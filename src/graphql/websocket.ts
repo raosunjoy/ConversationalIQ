@@ -29,7 +29,7 @@ interface WebSocketContext {
  */
 export function createWebSocketServer(
   httpServer: HttpServer,
-  apolloServer: ApolloServer<GraphQLContext>
+  apolloServer: ApolloServer<any>
 ): WebSocketServer {
   // Create WebSocket server
   const wsServer = new WebSocketServer({
@@ -41,71 +41,79 @@ export function createWebSocketServer(
   const serverCleanup = useServer(
     {
       schema,
-      
+
       // Handle connection initialization
-      onConnect: async (ctx) => {
+      onConnect: async (ctx: any) => {
         console.log('WebSocket connection established');
-        
+
         // Extract connection parameters
         const connectionParams = ctx.connectionParams;
-        
+
         // Log connection info in development
         if (process.env.NODE_ENV === 'development') {
           console.log('Connection params:', connectionParams);
         }
-        
+
         return true; // Accept connection
       },
 
       // Handle connection close
-      onDisconnect: (ctx, code, reason) => {
-        console.log('WebSocket connection closed:', { code, reason: reason.toString() });
+      onDisconnect: (ctx: any, code: any, reason: any) => {
+        console.log('WebSocket connection closed:', {
+          code,
+          reason: reason.toString(),
+        });
       },
 
       // Create context for subscriptions
-      context: async (ctx, msg, args) => {
+      context: async (ctx: any, msg: any, args: any) => {
         try {
           // Generate unique connection ID
           const connectionId = `ws_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          
+
           // Extract authentication from connection params or message
-          const authToken = ctx.connectionParams?.authorization || 
-                           ctx.connectionParams?.token ||
-                           args.contextValue?.authorization;
+          const authToken =
+            ctx.connectionParams?.authorization ||
+            ctx.connectionParams?.token ||
+            args.contextValue?.authorization;
 
           let user: GraphQLContext['user'] | undefined;
 
           if (authToken) {
             try {
               const jwtService = new JWTService();
-              const token = typeof authToken === 'string' && authToken.startsWith('Bearer ')
-                ? authToken.slice(7)
-                : authToken;
-              
+              const token =
+                typeof authToken === 'string' && authToken.startsWith('Bearer ')
+                  ? authToken.slice(7)
+                  : authToken;
+
               if (token) {
                 const decoded = await jwtService.verifyToken(token);
                 user = {
                   userId: decoded.userId,
                   email: decoded.email || '',
                   role: decoded.role || 'user',
-                  zendeskId: decoded.zendeskId,
-                  subdomain: decoded.subdomain,
-                  permissions: decoded.permissions,
+                  ...(decoded.zendeskId && { zendeskId: decoded.zendeskId }),
+                  ...(decoded.subdomain && { subdomain: decoded.subdomain }),
+                  ...(decoded.permissions && { permissions: decoded.permissions }),
                 };
               }
             } catch (error) {
-              console.warn('WebSocket authentication failed:', error instanceof Error ? error.message : 'Unknown error');
+              console.warn(
+                'WebSocket authentication failed:',
+                error instanceof Error ? error.message : 'Unknown error'
+              );
               // Continue without user - some subscriptions may allow anonymous access
             }
           }
 
           // Create base context similar to HTTP context
-          const baseContext = await createContext({ 
-            req: { 
-              headers: { 
-                authorization: authToken 
-              } 
-            } 
+          const baseContext = await createContext({
+            req: {
+              headers: {
+                authorization: authToken,
+              },
+            },
           });
 
           // Return enhanced context with WebSocket-specific properties
@@ -119,7 +127,7 @@ export function createWebSocketServer(
           return wsContext;
         } catch (error) {
           console.error('WebSocket context creation failed:', error);
-          
+
           // Return minimal context
           return {
             db: undefined as any,
@@ -131,7 +139,7 @@ export function createWebSocketServer(
       },
 
       // Handle subscription start
-      onSubscribe: async (ctx, msg) => {
+      onSubscribe: async (ctx: any, msg: any) => {
         // Log subscription start in development
         if (process.env.NODE_ENV === 'development') {
           console.log('Subscription started:', {
@@ -151,17 +159,17 @@ export function createWebSocketServer(
       },
 
       // Handle operation complete
-      onComplete: (ctx, msg) => {
+      onComplete: (ctx: any, msg: any) => {
         if (process.env.NODE_ENV === 'development') {
           console.log('Subscription completed:', msg.id);
         }
       },
 
       // Handle errors
-      onError: (ctx, msg, errors) => {
+      onError: (ctx: any, msg: any, errors: any) => {
         console.error('WebSocket subscription error:', {
           id: msg.id,
-          errors: errors.map(e => e.message),
+          errors: errors.map((e: any) => e.message),
         });
       },
 
@@ -175,7 +183,7 @@ export function createWebSocketServer(
   (wsServer as any).cleanup = serverCleanup;
 
   console.log('🔌 WebSocket server ready for subscriptions at /graphql');
-  
+
   return wsServer;
 }
 
@@ -194,7 +202,7 @@ export const websocketUtils = {
    * Broadcast message to all connected clients
    */
   broadcast: (wsServer: WebSocketServer, message: any): void => {
-    wsServer.clients.forEach((client) => {
+    wsServer.clients.forEach(client => {
       if (client.readyState === client.OPEN) {
         client.send(JSON.stringify(message));
       }
@@ -223,12 +231,12 @@ export const websocketUtils = {
       }
 
       // Close all connections
-      wsServer.clients.forEach((client) => {
+      wsServer.clients.forEach(client => {
         client.close(1000, 'Server shutting down');
       });
 
       // Close server
-      wsServer.close((error) => {
+      wsServer.close(error => {
         if (error) {
           reject(error);
         } else {

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ConversationIQ Chat</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@zendeskgarden/css-bedrock@8.69.2/dist/index.min.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      font-size: 13px;
+      color: #2f3941;
+      background: #f8f9fa;
+    }
+    
+    .chat-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e9ecef;
+    }
+    
+    .chat-icon {
+      font-size: 18px;
+    }
+    
+    .chat-title {
+      font-weight: 600;
+      font-size: 14px;
+    }
+    
+    .realtime-sentiment {
+      background: white;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    
+    .sentiment-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .sentiment-label {
+      font-size: 11px;
+      color: #68737d;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+    }
+    
+    .sentiment-value {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    
+    .sentiment-meter {
+      height: 4px;
+      background: #e9ecef;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    
+    .sentiment-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: all 0.3s ease;
+      width: 50%;
+      background: #ffd93d;
+    }
+    
+    .sentiment-fill.positive {
+      background: linear-gradient(90deg, #30aabc 0%, #87ceeb 100%);
+      width: 75%;
+    }
+    
+    .sentiment-fill.negative {
+      background: linear-gradient(90deg, #d93651 0%, #ff6b7a 100%);
+      width: 25%;
+    }
+    
+    .quick-suggestions {
+      background: white;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      padding: 12px;
+    }
+    
+    .suggestions-header {
+      font-size: 11px;
+      color: #68737d;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    
+    .suggestion-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .suggestion-item {
+      padding: 8px;
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      font-size: 11px;
+      line-height: 1.3;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .suggestion-item:hover {
+      background: #e9ecef;
+      border-color: #1f73b7;
+    }
+    
+    .empty-state {
+      text-align: center;
+      color: #68737d;
+      font-size: 11px;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-header">
+    <span class="chat-icon">🧠</span>
+    <span class="chat-title">ConversationIQ</span>
+  </div>
+
+  <div class="realtime-sentiment">
+    <div class="sentiment-header">
+      <span class="sentiment-label">Current Sentiment</span>
+      <span class="sentiment-value" id="sentiment-score">--</span>
+    </div>
+    <div class="sentiment-meter">
+      <div class="sentiment-fill" id="sentiment-fill"></div>
+    </div>
+  </div>
+
+  <div class="quick-suggestions">
+    <div class="suggestions-header">Quick Responses</div>
+    <div class="suggestion-list" id="suggestion-list">
+      <div class="empty-state">Analyzing conversation...</div>
+    </div>
+  </div>
+
+  <script src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script>
+  <script>
+    (function() {
+      let client;
+      let wsConnection;
+      
+      ZAFClient.init().then(function(zafClient) {
+        client = zafClient;
+        
+        // Get app settings and initialize
+        return Promise.all([
+          client.metadata(),
+          client.context(),
+          client.get('currentUser'),
+          client.get('chat')
+        ]);
+      })
+      .then(function([metadata, context, currentUser, chat]) {
+        const settings = metadata.settings;
+        
+        if (settings.api_url && settings.api_key) {
+          initializeRealTimeUpdates(settings, chat.chat);
+        }
+      })
+      .catch(function(error) {
+        console.error('ConversationIQ Chat: Initialization error:', error);
+      });
+
+      function initializeRealTimeUpdates(settings, chat) {
+        // Initialize WebSocket for real-time updates
+        const wsUrl = settings.api_url.replace(/^http/, 'ws') + '/graphql';
+        
+        try {
+          wsConnection = new WebSocket(wsUrl, 'graphql-ws');
+          
+          wsConnection.onopen = function() {
+            wsConnection.send(JSON.stringify({
+              type: 'connection_init',
+              payload: {
+                authorization: 'Bearer ' + settings.api_key
+              }
+            }));
+          };
+
+          wsConnection.onmessage = function(event) {
+            const message = JSON.parse(event.data);
+            
+            if (message.type === 'data' && message.payload?.data) {
+              handleRealtimeUpdate(message.payload.data);
+            }
+          };
+        } catch (error) {
+          console.error('ConversationIQ Chat: WebSocket error:', error);
+        }
+      }
+
+      function handleRealtimeUpdate(data) {
+        if (data.sentimentAnalyzed) {
+          updateSentimentDisplay(data.sentimentAnalyzed);
+        }
+        
+        if (data.responseSuggested) {
+          updateSuggestions([data.responseSuggested]);
+        }
+      }
+
+      function updateSentimentDisplay(sentiment) {
+        const scoreElement = document.getElementById('sentiment-score');
+        const fillElement = document.getElementById('sentiment-fill');
+        
+        if (scoreElement && fillElement) {
+          const score = Math.round(sentiment.sentimentScore * 100);
+          scoreElement.textContent = score > 0 ? `+${score}` : score.toString();
+          
+          fillElement.className = 'sentiment-fill';
+          if (score > 20) {
+            fillElement.classList.add('positive');
+          } else if (score < -20) {
+            fillElement.classList.add('negative');
+          }
+        }
+      }
+
+      function updateSuggestions(suggestions) {
+        const listElement = document.getElementById('suggestion-list');
+        
+        if (!suggestions || suggestions.length === 0) {
+          listElement.innerHTML = '<div class="empty-state">No suggestions available</div>';
+          return;
+        }
+        
+        listElement.innerHTML = '';
+        
+        suggestions.slice(0, 3).forEach(function(suggestion) {
+          const item = document.createElement('div');
+          item.className = 'suggestion-item';
+          item.textContent = suggestion.text.substring(0, 60) + (suggestion.text.length > 60 ? '...' : '');
+          
+          item.addEventListener('click', function() {
+            if (client) {
+              client.invoke('chat.compose.text', suggestion.text);
+            }
+          });
+          
+          listElement.appendChild(item);
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

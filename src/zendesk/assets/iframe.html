@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ConversationIQ</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@zendeskgarden/css-bedrock@8.69.2/dist/index.min.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <!-- Loading State -->
+  <div id="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading ConversationIQ...</p>
+  </div>
+
+  <!-- Error State -->
+  <div id="error" class="error-container hidden">
+    <div class="error-icon">⚠️</div>
+    <h3>Unable to load ConversationIQ</h3>
+    <p id="error-message">An error occurred while connecting to the service.</p>
+    <button id="retry-btn" class="btn btn-primary">Retry</button>
+  </div>
+
+  <!-- Main App Container -->
+  <div id="app" class="app-container hidden">
+    <!-- Header -->
+    <div class="app-header">
+      <div class="header-content">
+        <div class="brand">
+          <span class="brand-icon">🧠</span>
+          <span class="brand-name">ConversationIQ</span>
+        </div>
+        <div class="connection-status">
+          <span id="connection-indicator" class="status-indicator connecting">
+            <span class="status-dot"></span>
+            <span id="connection-text">Connecting...</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Tabs -->
+    <div class="tab-container">
+      <div class="tab-nav">
+        <button class="tab-btn active" data-tab="sentiment">
+          <span class="tab-icon">😊</span>
+          Sentiment
+        </button>
+        <button class="tab-btn" data-tab="suggestions">
+          <span class="tab-icon">💡</span>
+          Suggestions
+        </button>
+        <button class="tab-btn" data-tab="analytics">
+          <span class="tab-icon">📊</span>
+          Analytics
+        </button>
+      </div>
+
+      <!-- Sentiment Analysis Tab -->
+      <div id="sentiment-tab" class="tab-content active">
+        <div class="sentiment-overview">
+          <div class="sentiment-score-card">
+            <div class="score-display">
+              <div id="sentiment-score" class="score-value">--</div>
+              <div class="score-label">Overall Sentiment</div>
+            </div>
+            <div id="sentiment-indicator" class="sentiment-indicator neutral">
+              <div class="sentiment-bar"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="conversation-timeline">
+          <div class="timeline-header">
+            <h4>Message Analysis</h4>
+            <div class="timeline-filters">
+              <button class="filter-btn active" data-filter="all">All</button>
+              <button class="filter-btn" data-filter="negative">Negative</button>
+              <button class="filter-btn" data-filter="alerts">Alerts</button>
+            </div>
+          </div>
+          <div id="message-timeline" class="timeline-list">
+            <!-- Messages will be populated here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Response Suggestions Tab -->
+      <div id="suggestions-tab" class="tab-content">
+        <div class="suggestions-header">
+          <h4>AI Response Suggestions</h4>
+          <div class="suggestions-controls">
+            <button id="refresh-suggestions" class="btn btn-sm">
+              <span class="btn-icon">🔄</span>
+              Refresh
+            </button>
+          </div>
+        </div>
+        
+        <div id="suggestions-list" class="suggestions-container">
+          <!-- Suggestions will be populated here -->
+        </div>
+
+        <div class="suggestions-footer">
+          <div class="confidence-note">
+            <small>💡 Suggestions are AI-generated and should be reviewed before sending</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analytics Tab -->
+      <div id="analytics-tab" class="tab-content">
+        <div class="analytics-grid">
+          <div class="metric-card">
+            <div class="metric-value" id="avg-response-time">--</div>
+            <div class="metric-label">Avg Response Time</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" id="sentiment-trend">--</div>
+            <div class="metric-label">Sentiment Trend</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" id="escalation-risk">--</div>
+            <div class="metric-label">Escalation Risk</div>
+          </div>
+        </div>
+
+        <div class="analytics-section">
+          <h4>Conversation Insights</h4>
+          <div id="insights-list" class="insights-container">
+            <!-- Insights will be populated here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating Action Button for Quick Actions -->
+    <div class="fab-container">
+      <button id="quick-action-fab" class="fab" title="Quick Actions">
+        <span class="fab-icon">⚡</span>
+      </button>
+      <div id="fab-menu" class="fab-menu hidden">
+        <button class="fab-menu-item" data-action="escalate">
+          <span class="menu-icon">🚨</span>
+          Escalate
+        </button>
+        <button class="fab-menu-item" data-action="tag">
+          <span class="menu-icon">🏷️</span>
+          Add Tag
+        </button>
+        <button class="fab-menu-item" data-action="note">
+          <span class="menu-icon">📝</span>
+          Add Note
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Zendesk Apps Framework -->
+  <script src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script>
+  
+  <!-- Application JavaScript -->
+  <script src="app.js"></script>
+</body>
+</html>

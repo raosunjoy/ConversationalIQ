@@ -11,6 +11,10 @@ import { Server } from 'http';
 import { getConfig } from '../config/environment';
 import { DatabaseService } from '../services/database';
 import { healthRoutes } from './routes/health';
+import { zendeskRoutes } from './routes/zendesk';
+import { webhookRoutes } from './routes/webhooks';
+import { initializeKafka, shutdownKafka } from '../messaging/kafka';
+import { startEventProcessor, stopEventProcessor } from '../messaging/event-processor';
 
 export interface ServerError extends Error {
   status?: number;
@@ -89,6 +93,12 @@ export async function createServer(): Promise<{
   // Health check routes
   app.use('/health', healthRoutes);
 
+  // Zendesk app routes
+  app.use('/zendesk', zendeskRoutes);
+
+  // Webhook routes
+  app.use('/webhooks', webhookRoutes);
+
   // GraphQL endpoint (placeholder for now)
   app.use('/graphql', (req: Request, res: Response) => {
     res.status(501).json({
@@ -97,7 +107,7 @@ export async function createServer(): Promise<{
     });
   });
 
-  // API version prefix for REST endpoints
+  // API version prefix for REST endpoints (catch-all for undefined endpoints)
   app.use('/api/v1', (req: Request, res: Response) => {
     res.status(501).json({
       error: 'Not Implemented',
@@ -165,6 +175,21 @@ export async function createServer(): Promise<{
     // Connect to database
     await database.connect();
 
+    // Initialize Kafka and event processing
+    if (config.environment !== 'test') {
+      try {
+        await initializeKafka();
+        await startEventProcessor();
+        console.log('📡 Kafka and event processing initialized');
+      } catch (error) {
+        console.error('❌ Failed to initialize Kafka:', error);
+        // Continue without Kafka in development, but fail in production
+        if (config.isProduction) {
+          throw error;
+        }
+      }
+    }
+
     return new Promise((resolve, reject) => {
       server = app.listen(serverPort, (err?: Error) => {
         if (err) {
@@ -187,6 +212,17 @@ export async function createServer(): Promise<{
    * Stop the server gracefully
    */
   const stopServer = async (): Promise<void> => {
+    // Stop event processing and Kafka
+    if (config.environment !== 'test') {
+      try {
+        await stopEventProcessor();
+        await shutdownKafka();
+        console.log('📴 Kafka and event processing shut down');
+      } catch (error) {
+        console.error('❌ Error shutting down Kafka:', error);
+      }
+    }
+
     if (server) {
       await new Promise<void>(resolve => {
         server!.close(() => {

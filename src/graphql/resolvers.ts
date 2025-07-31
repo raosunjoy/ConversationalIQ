@@ -21,7 +21,9 @@ interface Context {
 }
 
 // Helper function to ensure authentication
-function requireAuth(context: Context): asserts context is Context & { user: NonNullable<Context['user']> } {
+function requireAuth(
+  context: Context
+): asserts context is Context & { user: NonNullable<Context['user']> } {
   if (!context.user) {
     throw new GraphQLError('Authentication required', {
       extensions: { code: 'UNAUTHENTICATED' },
@@ -40,7 +42,10 @@ function requireRole(context: Context, allowedRoles: string[]): void {
 }
 
 // Helper function to validate input
-function validateInput(input: any, rules: Record<string, (value: any) => string | null>): void {
+function validateInput(
+  input: any,
+  rules: Record<string, (value: any) => string | null>
+): void {
   for (const [field, validator] of Object.entries(rules)) {
     const error = validator(input[field]);
     if (error) {
@@ -72,7 +77,7 @@ export const resolvers = {
       context: Context
     ) {
       requireAuth(context);
-      
+
       // If no agentId in filter, use current user's ID for agents
       if (!filter.agentId && context.user.role === 'agent') {
         filter.agentId = context.user.userId;
@@ -102,7 +107,10 @@ export const resolvers = {
       context: Context
     ) {
       requireAuth(context);
-      return await context.db.findMessagesByConversation(conversationId, pagination);
+      return await context.db.findMessagesByConversation(
+        conversationId,
+        pagination
+      );
     },
 
     // Response suggestion queries
@@ -128,12 +136,15 @@ export const resolvers = {
       context: Context
     ) {
       requireRole(context, ['agent', 'manager', 'admin']);
-      
+
       // Agents can only access their own analytics unless they're managers/admins
       if (context.user.role === 'agent' && agentId !== context.user.userId) {
-        throw new GraphQLError('Access denied: Can only view your own analytics', {
-          extensions: { code: 'FORBIDDEN' },
-        });
+        throw new GraphQLError(
+          'Access denied: Can only view your own analytics',
+          {
+            extensions: { code: 'FORBIDDEN' },
+          }
+        );
       }
 
       // Mock analytics data for now - will implement actual analytics service later
@@ -202,10 +213,12 @@ export const resolvers = {
       context: Context
     ) {
       requireRole(context, ['agent', 'manager', 'admin']);
-      
+
       // Agents can only view their own performance
       if (context.user.role === 'agent' && agentId !== context.user.userId) {
-        throw new GraphQLError('Access denied: Can only view your own performance');
+        throw new GraphQLError(
+          'Access denied: Can only view your own performance'
+        );
       }
 
       // Will implement performance tracking
@@ -242,10 +255,10 @@ export const resolvers = {
 
       // Validate input
       validateInput(input, {
-        ticketId: (value) => !value ? 'Ticket ID is required' : null,
-        agentId: (value) => !value ? 'Agent ID is required' : null,
-        customerId: (value) => !value ? 'Customer ID is required' : null,
-        status: (value) => !value ? 'Status is required' : null,
+        ticketId: value => (!value ? 'Ticket ID is required' : null),
+        agentId: value => (!value ? 'Agent ID is required' : null),
+        customerId: value => (!value ? 'Customer ID is required' : null),
+        status: value => (!value ? 'Status is required' : null),
       });
 
       return await context.db.createConversation(input);
@@ -272,28 +285,24 @@ export const resolvers = {
       return conversation;
     },
 
-    async closeConversation(
-      _: any,
-      { id }: { id: string },
-      context: Context
-    ) {
+    async closeConversation(_: any, { id }: { id: string }, context: Context) {
       requireAuth(context);
       return await context.db.updateConversation(id, { status: 'CLOSED' });
     },
 
     // Message mutations
-    async createMessage(
-      _: any,
-      { input }: { input: any },
-      context: Context
-    ) {
+    async createMessage(_: any, { input }: { input: any }, context: Context) {
       requireAuth(context);
 
       // Validate input
       validateInput(input, {
-        conversationId: (value) => !value ? 'Conversation ID is required' : null,
-        content: (value) => !value || value.trim() === '' ? 'Message content cannot be empty' : null,
-        sender: (value) => !value ? 'Sender is required' : null,
+        conversationId: value =>
+          !value ? 'Conversation ID is required' : null,
+        content: value =>
+          !value || value.trim() === ''
+            ? 'Message content cannot be empty'
+            : null,
+        sender: value => (!value ? 'Sender is required' : null),
       });
 
       // Add default processing status
@@ -324,7 +333,7 @@ export const resolvers = {
       context: Context
     ) {
       requireAuth(context);
-      
+
       // Will implement AI analysis integration
       throw new GraphQLError('Message analysis not implemented yet');
     },
@@ -345,7 +354,7 @@ export const resolvers = {
       context: Context
     ) {
       requireAuth(context);
-      
+
       // Will implement suggestion acceptance tracking
       throw new GraphQLError('Suggestion acceptance not implemented yet');
     },
@@ -356,7 +365,7 @@ export const resolvers = {
       context: Context
     ) {
       requireAuth(context);
-      
+
       // Will implement suggestion rejection tracking
       throw new GraphQLError('Suggestion rejection not implemented yet');
     },
@@ -368,10 +377,12 @@ export const resolvers = {
       context: Context
     ) {
       requireRole(context, ['agent', 'manager', 'admin']);
-      
+
       // Agents can only update their own status
       if (context.user.role === 'agent' && agentId !== context.user.userId) {
-        throw new GraphQLError('Access denied: Can only update your own status');
+        throw new GraphQLError(
+          'Access denied: Can only update your own status'
+        );
       }
 
       // Will implement agent status updates
@@ -384,7 +395,7 @@ export const resolvers = {
       context: Context
     ) {
       requireAuth(context);
-      
+
       // Will implement activity recording
       throw new GraphQLError('Activity recording not implemented yet');
     },

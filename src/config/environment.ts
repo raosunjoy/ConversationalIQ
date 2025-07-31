@@ -26,6 +26,16 @@ export interface JWTConfig {
   issuer: string;
 }
 
+export interface KafkaConfig {
+  brokers: string[];
+  ssl?: boolean;
+  saslMechanism?: string;
+  saslUsername?: string;
+  saslPassword?: string;
+  partitions: number;
+  replicationFactor: number;
+}
+
 export interface AIConfig {
   openaiApiKey: string | undefined;
   openaiModel: string | undefined;
@@ -64,6 +74,7 @@ export interface AppConfig {
   database: DatabaseConfig;
   redis: RedisConfig;
   jwt: JWTConfig;
+  kafka: KafkaConfig;
   ai: AIConfig;
   zendesk: ZendeskConfig;
   cors: CorsConfig;
@@ -161,6 +172,17 @@ function createConfig(): AppConfig {
       secret: process.env.JWT_SECRET!,
       expiresIn: process.env.JWT_EXPIRES_IN || '24h',
       issuer: process.env.JWT_ISSUER || 'conversationiq',
+    },
+
+    // Kafka configuration
+    kafka: {
+      brokers: process.env.KAFKA_BROKERS?.split(',') || ['localhost:9092'],
+      ssl: process.env.KAFKA_SSL === 'true',
+      saslMechanism: process.env.KAFKA_SASL_MECHANISM || undefined,
+      saslUsername: process.env.KAFKA_SASL_USERNAME || undefined,
+      saslPassword: process.env.KAFKA_SASL_PASSWORD || undefined,
+      partitions: parseInt(process.env.KAFKA_PARTITIONS || '3', 10),
+      replicationFactor: parseInt(process.env.KAFKA_REPLICATION_FACTOR || '1', 10),
     },
 
     // AI services configuration

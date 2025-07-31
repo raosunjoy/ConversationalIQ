@@ -42,7 +42,7 @@ export const typeDefs = gql`
     tags: [String!]
     createdAt: DateTime!
     updatedAt: DateTime!
-    
+
     # Relations
     messages: [Message!]!
     analytics: ConversationAnalytics
@@ -61,7 +61,7 @@ export const typeDefs = gql`
     isProcessed: Boolean!
     metadata: JSON
     createdAt: DateTime!
-    
+
     # Relations
     conversation: Conversation!
     responseSuggestions: [ResponseSuggestion!]!
@@ -79,7 +79,7 @@ export const typeDefs = gql`
     isAccepted: Boolean
     isRejected: Boolean
     createdAt: DateTime!
-    
+
     # Relations
     message: Message!
   }
@@ -98,7 +98,7 @@ export const typeDefs = gql`
     escalationProbability: Float
     processingTime: Int!
     createdAt: DateTime!
-    
+
     # Relations
     message: Message!
   }
@@ -115,7 +115,7 @@ export const typeDefs = gql`
     customerSatisfaction: Float
     agentPerformance: Float
     updatedAt: DateTime!
-    
+
     # Relations
     conversation: Conversation!
   }
@@ -143,7 +143,7 @@ export const typeDefs = gql`
     isActive: Boolean!
     lastActiveAt: DateTime
     createdAt: DateTime!
-    
+
     # Relations
     conversations: [Conversation!]!
     performance: AgentPerformance
@@ -156,7 +156,7 @@ export const typeDefs = gql`
     zendeskId: String
     isVip: Boolean!
     createdAt: DateTime!
-    
+
     # Relations
     conversations: [Conversation!]!
   }
@@ -172,7 +172,7 @@ export const typeDefs = gql`
     escalationRate: Float!
     suggestionAcceptanceRate: Float!
     efficiency: Float!
-    
+
     # Relations
     agent: Agent!
   }
@@ -224,30 +224,20 @@ export const typeDefs = gql`
       filter: AnalyticsFilter
       pagination: PaginationInput
     ): [Conversation!]!
-    
+
     # Message queries
     message(id: ID!): Message
-    messages(
-      conversationId: ID!
-      pagination: PaginationInput
-    ): [Message!]!
-    
+    messages(conversationId: ID!, pagination: PaginationInput): [Message!]!
+
     # Response suggestion queries
     responseSuggestions(messageId: ID!): [ResponseSuggestion!]!
     suggestion(id: ID!): ResponseSuggestion
-    
+
     # Analytics queries
-    agentAnalytics(
-      agentId: String!
-      filter: AnalyticsFilter
-    ): Analytics!
-    conversationAnalytics(
-      conversationId: ID!
-    ): ConversationAnalytics
-    teamAnalytics(
-      filter: AnalyticsFilter
-    ): Analytics!
-    
+    agentAnalytics(agentId: String!, filter: AnalyticsFilter): Analytics!
+    conversationAnalytics(conversationId: ID!): ConversationAnalytics
+    teamAnalytics(filter: AnalyticsFilter): Analytics!
+
     # Agent queries
     agent(id: ID!): Agent
     agents(isActive: Boolean): [Agent!]!
@@ -256,7 +246,7 @@ export const typeDefs = gql`
       dateFrom: DateTime
       dateTo: DateTime
     ): [AgentPerformance!]!
-    
+
     # Customer queries
     customer(id: ID!): Customer
     customers(pagination: PaginationInput): [Customer!]!
@@ -266,21 +256,18 @@ export const typeDefs = gql`
   type Mutation {
     # Conversation mutations
     createConversation(input: ConversationInput!): Conversation!
-    updateConversation(
-      id: ID!
-      input: ConversationUpdateInput!
-    ): Conversation!
+    updateConversation(id: ID!, input: ConversationUpdateInput!): Conversation!
     closeConversation(id: ID!): Conversation!
-    
+
     # Message mutations
     createMessage(input: MessageInput!): Message!
     analyzeMessage(messageId: ID!): MessageAnalysis!
-    
+
     # Response suggestion mutations
     generateResponseSuggestions(messageId: ID!): [ResponseSuggestion!]!
     acceptSuggestion(suggestionId: ID!): ResponseSuggestion!
     rejectSuggestion(suggestionId: ID!): ResponseSuggestion!
-    
+
     # Agent mutations
     updateAgentStatus(agentId: ID!, isActive: Boolean!): Agent!
     recordAgentActivity(agentId: ID!): Agent!
@@ -324,19 +311,19 @@ export const typeDefs = gql`
   type Subscription {
     # Real-time message updates
     messageAdded(conversationId: ID): Message!
-    
+
     # Real-time conversation updates
     conversationUpdated(conversationId: ID): Conversation!
-    
+
     # Real-time sentiment analysis
     sentimentAnalyzed(conversationId: ID): SentimentAnalysis!
-    
+
     # Real-time response suggestions
     responseSuggested(conversationId: ID): ResponseSuggestionPayload!
-    
+
     # Agent status updates
     agentStatusChanged(agentId: ID): AgentStatusPayload!
-    
+
     # Conversation assignments
     conversationAssigned(agentId: ID): ConversationAssignment!
   }

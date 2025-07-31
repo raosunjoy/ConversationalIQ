@@ -3,14 +3,21 @@
  * Following TDD approach - comprehensive subscription testing
  */
 
-import { describe, expect, it, beforeEach, afterEach, jest } from '@jest/globals';
+import {
+  describe,
+  expect,
+  it,
+  beforeEach,
+  afterEach,
+  jest,
+} from '@jest/globals';
 import { PubSub } from 'graphql-subscriptions';
 
 // Mock graphql-subscriptions
 jest.mock('graphql-subscriptions', () => {
   const mockAsyncIterator = jest.fn();
   const mockPublish = jest.fn();
-  
+
   return {
     PubSub: jest.fn().mockImplementation(() => ({
       asyncIterator: mockAsyncIterator,
@@ -23,9 +30,9 @@ jest.mock('graphql-subscriptions', () => {
   };
 });
 
-import { 
-  subscriptionResolvers, 
-  publishEvent, 
+import {
+  subscriptionResolvers,
+  publishEvent,
   SUBSCRIPTION_EVENTS,
 } from './subscriptions';
 import { GraphQLContext } from './server';
@@ -54,14 +61,17 @@ describe('GraphQL Subscriptions', () => {
     describe('messageAdded', () => {
       it('should require authentication', async () => {
         const unauthenticatedContext = createMockContext(null);
-        
+
         try {
           // Access the subscribe function directly
-          const subscribeFunc = subscriptionResolvers.Subscription.messageAdded.subscribe;
+          const subscribeFunc =
+            subscriptionResolvers.Subscription.messageAdded.subscribe;
           await subscribeFunc(null, {}, unauthenticatedContext);
           expect(true).toBe(false); // Should not reach this line
         } catch (error: any) {
-          expect(error.message).toBe('Authentication required for subscription');
+          expect(error.message).toBe(
+            'Authentication required for subscription'
+          );
         }
       });
 
@@ -71,9 +81,10 @@ describe('GraphQL Subscriptions', () => {
           role: 'agent',
         });
 
-        const subscribeFunc = subscriptionResolvers.Subscription.messageAdded.subscribe;
+        const subscribeFunc =
+          subscriptionResolvers.Subscription.messageAdded.subscribe;
         const iterator = await subscribeFunc(null, {}, authenticatedContext);
-        
+
         expect(iterator).toBeDefined();
       });
 
@@ -92,7 +103,9 @@ describe('GraphQL Subscriptions', () => {
         const context = createMockContext();
 
         // Test the filter function
-        const filterFunc = (subscriptionResolvers.Subscription.messageAdded as any).subscribe.__wrapped;
+        const filterFunc = (
+          subscriptionResolvers.Subscription.messageAdded as any
+        ).subscribe.__wrapped;
         expect(filterFunc).toBeDefined();
       });
     });
@@ -104,9 +117,10 @@ describe('GraphQL Subscriptions', () => {
           role: 'agent',
         });
 
-        const subscribeFunc = subscriptionResolvers.Subscription.conversationUpdated.subscribe;
+        const subscribeFunc =
+          subscriptionResolvers.Subscription.conversationUpdated.subscribe;
         const iterator = await subscribeFunc(null, {}, agentContext);
-        
+
         expect(iterator).toBeDefined();
       });
 
@@ -116,9 +130,10 @@ describe('GraphQL Subscriptions', () => {
           role: 'manager',
         });
 
-        const subscribeFunc = subscriptionResolvers.Subscription.conversationUpdated.subscribe;
+        const subscribeFunc =
+          subscriptionResolvers.Subscription.conversationUpdated.subscribe;
         const iterator = await subscribeFunc(null, {}, managerContext);
-        
+
         expect(iterator).toBeDefined();
       });
     });
@@ -126,22 +141,26 @@ describe('GraphQL Subscriptions', () => {
     describe('sentimentAnalyzed', () => {
       it('should require authentication', async () => {
         const unauthenticatedContext = createMockContext(null);
-        
+
         try {
-          const subscribeFunc = subscriptionResolvers.Subscription.sentimentAnalyzed.subscribe;
+          const subscribeFunc =
+            subscriptionResolvers.Subscription.sentimentAnalyzed.subscribe;
           await subscribeFunc(null, {}, unauthenticatedContext);
           expect(true).toBe(false); // Should not reach this line
         } catch (error: any) {
-          expect(error.message).toBe('Authentication required for subscription');
+          expect(error.message).toBe(
+            'Authentication required for subscription'
+          );
         }
       });
 
       it('should allow authenticated users to subscribe', async () => {
         const authenticatedContext = createMockContext();
 
-        const subscribeFunc = subscriptionResolvers.Subscription.sentimentAnalyzed.subscribe;
+        const subscribeFunc =
+          subscriptionResolvers.Subscription.sentimentAnalyzed.subscribe;
         const iterator = await subscribeFunc(null, {}, authenticatedContext);
-        
+
         expect(iterator).toBeDefined();
       });
     });
@@ -152,13 +171,16 @@ describe('GraphQL Subscriptions', () => {
           userId: 'customer_123',
           role: 'customer',
         });
-        
+
         try {
-          const subscribeFunc = subscriptionResolvers.Subscription.responseSuggested.subscribe;
+          const subscribeFunc =
+            subscriptionResolvers.Subscription.responseSuggested.subscribe;
           await subscribeFunc(null, {}, customerContext);
           expect(true).toBe(false); // Should not reach this line
         } catch (error: any) {
-          expect(error.message).toBe('Subscription requires one of: agent, manager, admin');
+          expect(error.message).toBe(
+            'Subscription requires one of: agent, manager, admin'
+          );
         }
       });
 
@@ -168,9 +190,10 @@ describe('GraphQL Subscriptions', () => {
           role: 'agent',
         });
 
-        const subscribeFunc = subscriptionResolvers.Subscription.responseSuggested.subscribe;
+        const subscribeFunc =
+          subscriptionResolvers.Subscription.responseSuggested.subscribe;
         const iterator = await subscribeFunc(null, {}, agentContext);
-        
+
         expect(iterator).toBeDefined();
       });
     });
@@ -181,13 +204,16 @@ describe('GraphQL Subscriptions', () => {
           userId: 'customer_123',
           role: 'customer',
         });
-        
+
         try {
-          const subscribeFunc = subscriptionResolvers.Subscription.agentStatusChanged.subscribe;
+          const subscribeFunc =
+            subscriptionResolvers.Subscription.agentStatusChanged.subscribe;
           await subscribeFunc(null, {}, customerContext);
           expect(true).toBe(false); // Should not reach this line
         } catch (error: any) {
-          expect(error.message).toBe('Subscription requires one of: agent, manager, admin');
+          expect(error.message).toBe(
+            'Subscription requires one of: agent, manager, admin'
+          );
         }
       });
 
@@ -197,9 +223,10 @@ describe('GraphQL Subscriptions', () => {
           role: 'manager',
         });
 
-        const subscribeFunc = subscriptionResolvers.Subscription.agentStatusChanged.subscribe;
+        const subscribeFunc =
+          subscriptionResolvers.Subscription.agentStatusChanged.subscribe;
         const iterator = await subscribeFunc(null, {}, managerContext);
-        
+
         expect(iterator).toBeDefined();
       });
     });
@@ -211,9 +238,10 @@ describe('GraphQL Subscriptions', () => {
           role: 'agent',
         });
 
-        const subscribeFunc = subscriptionResolvers.Subscription.conversationAssigned.subscribe;
+        const subscribeFunc =
+          subscriptionResolvers.Subscription.conversationAssigned.subscribe;
         const iterator = await subscribeFunc(null, {}, agentContext);
-        
+
         expect(iterator).toBeDefined();
       });
 
@@ -223,9 +251,10 @@ describe('GraphQL Subscriptions', () => {
           role: 'admin',
         });
 
-        const subscribeFunc = subscriptionResolvers.Subscription.conversationAssigned.subscribe;
+        const subscribeFunc =
+          subscriptionResolvers.Subscription.conversationAssigned.subscribe;
         const iterator = await subscribeFunc(null, {}, adminContext);
-        
+
         expect(iterator).toBeDefined();
       });
     });
@@ -360,11 +389,17 @@ describe('GraphQL Subscriptions', () => {
   describe('Subscription Events Constants', () => {
     it('should have all required subscription event types', () => {
       expect(SUBSCRIPTION_EVENTS.MESSAGE_ADDED).toBe('MESSAGE_ADDED');
-      expect(SUBSCRIPTION_EVENTS.CONVERSATION_UPDATED).toBe('CONVERSATION_UPDATED');
+      expect(SUBSCRIPTION_EVENTS.CONVERSATION_UPDATED).toBe(
+        'CONVERSATION_UPDATED'
+      );
       expect(SUBSCRIPTION_EVENTS.SENTIMENT_ANALYZED).toBe('SENTIMENT_ANALYZED');
       expect(SUBSCRIPTION_EVENTS.RESPONSE_SUGGESTED).toBe('RESPONSE_SUGGESTED');
-      expect(SUBSCRIPTION_EVENTS.AGENT_STATUS_CHANGED).toBe('AGENT_STATUS_CHANGED');
-      expect(SUBSCRIPTION_EVENTS.CONVERSATION_ASSIGNED).toBe('CONVERSATION_ASSIGNED');
+      expect(SUBSCRIPTION_EVENTS.AGENT_STATUS_CHANGED).toBe(
+        'AGENT_STATUS_CHANGED'
+      );
+      expect(SUBSCRIPTION_EVENTS.CONVERSATION_ASSIGNED).toBe(
+        'CONVERSATION_ASSIGNED'
+      );
     });
   });
 
@@ -374,7 +409,9 @@ describe('GraphQL Subscriptions', () => {
     });
 
     it('should create async iterators for subscription events', () => {
-      const iterator = pubsub.asyncIterator([SUBSCRIPTION_EVENTS.MESSAGE_ADDED]);
+      const iterator = pubsub.asyncIterator([
+        SUBSCRIPTION_EVENTS.MESSAGE_ADDED,
+      ]);
       expect(iterator).toBeDefined();
       expect(typeof iterator[Symbol.asyncIterator]).toBe('function');
     });
@@ -383,9 +420,10 @@ describe('GraphQL Subscriptions', () => {
   describe('Error Handling', () => {
     it('should handle missing user in context gracefully', () => {
       const contextWithoutUser = createMockContext(null);
-      
+
       try {
-        const subscribeFunc = subscriptionResolvers.Subscription.messageAdded.subscribe;
+        const subscribeFunc =
+          subscriptionResolvers.Subscription.messageAdded.subscribe;
         subscribeFunc(null, {}, contextWithoutUser);
       } catch (error: any) {
         expect(error.message).toContain('Authentication required');
@@ -397,12 +435,15 @@ describe('GraphQL Subscriptions', () => {
         userId: 'user_123',
         role: 'invalid_role',
       });
-      
+
       try {
-        const subscribeFunc = subscriptionResolvers.Subscription.responseSuggested.subscribe;
+        const subscribeFunc =
+          subscriptionResolvers.Subscription.responseSuggested.subscribe;
         subscribeFunc(null, {}, contextWithInvalidRole);
       } catch (error: any) {
-        expect(error.message).toContain('requires one of: agent, manager, admin');
+        expect(error.message).toContain(
+          'requires one of: agent, manager, admin'
+        );
       }
     });
   });
@@ -423,7 +464,8 @@ describe('GraphQL Subscriptions', () => {
       const shouldReceive = payload.messageAdded.conversationId === 'conv_456';
       expect(shouldReceive).toBe(true);
 
-      const shouldNotReceive = payload.messageAdded.conversationId === 'different_conv';
+      const shouldNotReceive =
+        payload.messageAdded.conversationId === 'different_conv';
       expect(shouldNotReceive).toBe(false);
     });
 
@@ -443,7 +485,8 @@ describe('GraphQL Subscriptions', () => {
       const agentCanSee = payload.conversationUpdated.agentId === 'agent_789';
       expect(agentCanSee).toBe(true);
 
-      const agentCannotSee = payload.conversationUpdated.agentId === 'different_agent';
+      const agentCannotSee =
+        payload.conversationUpdated.agentId === 'different_agent';
       expect(agentCannotSee).toBe(false);
     });
   });

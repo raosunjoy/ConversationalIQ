@@ -1,0 +1,112 @@
+{
+  "name": "ConversationIQ",
+  "author": {
+    "name": "ConversationIQ Team",
+    "email": "support@conversationiq.com",
+    "url": "https://conversationiq.com"
+  },
+  "version": "1.0.0",
+  "frameworkVersion": "2.0",
+  "marketingOnly": false,
+  "private": false,
+  "singleInstall": false,
+  "signedUrls": false,
+  "domainWhitelist": [
+    "*.conversationiq.com",
+    "localhost",
+    "127.0.0.1"
+  ],
+  "location": {
+    "support": {
+      "ticket_sidebar": {
+        "url": "assets/iframe.html",
+        "flexible": true,
+        "size": {
+          "width": "100%",
+          "height": "400px"
+        }
+      },
+      "nav_bar": {
+        "url": "assets/nav.html",
+        "flexible": false,
+        "size": {
+          "width": "200px",
+          "height": "35px"
+        }
+      }
+    },
+    "chat": {
+      "chat_sidebar": {
+        "url": "assets/chat-iframe.html",
+        "flexible": true,
+        "size": {
+          "width": "100%", 
+          "height": "350px"
+        }
+      }
+    }
+  },
+  "defaultLocale": "en",
+  "parameters": [
+    {
+      "name": "api_url",
+      "type": "text",
+      "required": true,
+      "default": "https://api.conversationiq.com",
+      "secure": false
+    },
+    {
+      "name": "webhook_url", 
+      "type": "text",
+      "required": true,
+      "default": "https://api.conversationiq.com/webhooks/zendesk",
+      "secure": false
+    },
+    {
+      "name": "api_key",
+      "type": "password",
+      "required": true,
+      "secure": true
+    },
+    {
+      "name": "enable_sentiment_analysis",
+      "type": "checkbox",
+      "required": false,
+      "default": true
+    },
+    {
+      "name": "enable_response_suggestions",
+      "type": "checkbox", 
+      "required": false,
+      "default": true
+    },
+    {
+      "name": "escalation_threshold",
+      "type": "number",
+      "required": false,
+      "default": 0.7
+    }
+  ],
+  "oauth": {
+    "client_id": "{{setting.zendesk_client_id}}",
+    "client_secret": "{{setting.zendesk_client_secret}}",
+    "authorize_uri": "https://api.conversationiq.com/auth/zendesk/authorize",
+    "access_token_uri": "https://api.conversationiq.com/auth/zendesk/token",
+    "scope": "read write"
+  },
+  "requests": [
+    {
+      "url": "https://api.conversationiq.com/.*",
+      "cors": true
+    },
+    {
+      "url": "https://{{dc}}.zendesk.com/api/v2/.*",
+      "cors": true
+    }
+  ],
+  "noTemplate": [
+    "ticket_sidebar",
+    "chat_sidebar", 
+    "nav_bar"
+  ]
+}

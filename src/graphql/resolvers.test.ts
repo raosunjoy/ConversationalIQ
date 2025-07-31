@@ -345,7 +345,9 @@ describe('GraphQL Resolvers', () => {
           context
         );
 
-        expect(mockDb.createResponseSuggestions).toHaveBeenCalledWith('msg_123');
+        expect(mockDb.createResponseSuggestions).toHaveBeenCalledWith(
+          'msg_123'
+        );
         expect(result).toEqual(mockSuggestions);
       });
     });
@@ -395,9 +397,7 @@ describe('GraphQL Resolvers', () => {
 
       it('should resolve responseSuggestions field', async () => {
         const message = { id: 'msg_123' };
-        const mockSuggestions = [
-          { id: 'sugg_123', messageId: 'msg_123' },
-        ];
+        const mockSuggestions = [{ id: 'sugg_123', messageId: 'msg_123' }];
 
         mockDb.findSuggestionsByMessage.mockResolvedValue(mockSuggestions);
 

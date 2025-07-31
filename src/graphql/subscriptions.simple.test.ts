@@ -10,11 +10,17 @@ describe('GraphQL Subscriptions - Simple Tests', () => {
   describe('Subscription Events Constants', () => {
     it('should have all required subscription event types', () => {
       expect(SUBSCRIPTION_EVENTS.MESSAGE_ADDED).toBe('MESSAGE_ADDED');
-      expect(SUBSCRIPTION_EVENTS.CONVERSATION_UPDATED).toBe('CONVERSATION_UPDATED');
+      expect(SUBSCRIPTION_EVENTS.CONVERSATION_UPDATED).toBe(
+        'CONVERSATION_UPDATED'
+      );
       expect(SUBSCRIPTION_EVENTS.SENTIMENT_ANALYZED).toBe('SENTIMENT_ANALYZED');
       expect(SUBSCRIPTION_EVENTS.RESPONSE_SUGGESTED).toBe('RESPONSE_SUGGESTED');
-      expect(SUBSCRIPTION_EVENTS.AGENT_STATUS_CHANGED).toBe('AGENT_STATUS_CHANGED');
-      expect(SUBSCRIPTION_EVENTS.CONVERSATION_ASSIGNED).toBe('CONVERSATION_ASSIGNED');
+      expect(SUBSCRIPTION_EVENTS.AGENT_STATUS_CHANGED).toBe(
+        'AGENT_STATUS_CHANGED'
+      );
+      expect(SUBSCRIPTION_EVENTS.CONVERSATION_ASSIGNED).toBe(
+        'CONVERSATION_ASSIGNED'
+      );
     });
 
     it('should have unique event names', () => {
@@ -34,7 +40,7 @@ describe('GraphQL Subscriptions - Simple Tests', () => {
     it('should have all required subscription fields', () => {
       const { subscriptionResolvers } = require('./subscriptions');
       const subscriptions = subscriptionResolvers.Subscription;
-      
+
       expect(subscriptions.messageAdded).toBeDefined();
       expect(subscriptions.conversationUpdated).toBeDefined();
       expect(subscriptions.sentimentAnalyzed).toBeDefined();
@@ -47,7 +53,7 @@ describe('GraphQL Subscriptions - Simple Tests', () => {
   describe('Event Publishing Functions', () => {
     it('should export publishEvent object with all methods', () => {
       const { publishEvent } = require('./subscriptions');
-      
+
       expect(publishEvent).toBeDefined();
       expect(typeof publishEvent.messageAdded).toBe('function');
       expect(typeof publishEvent.conversationUpdated).toBe('function');
@@ -59,7 +65,7 @@ describe('GraphQL Subscriptions - Simple Tests', () => {
 
     it('should handle message added event publishing', () => {
       const { publishEvent } = require('./subscriptions');
-      
+
       expect(() => {
         publishEvent.messageAdded({
           id: 'test_msg',
@@ -73,7 +79,7 @@ describe('GraphQL Subscriptions - Simple Tests', () => {
 
     it('should handle conversation updated event publishing', () => {
       const { publishEvent } = require('./subscriptions');
-      
+
       expect(() => {
         publishEvent.conversationUpdated({
           id: 'test_conv',

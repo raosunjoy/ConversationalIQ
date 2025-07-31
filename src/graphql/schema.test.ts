@@ -28,7 +28,7 @@ describe('GraphQL Schema', () => {
       const conversationType = schema.getType('Conversation');
       expect(conversationType).toBeDefined();
       expect(conversationType.name).toBe('Conversation');
-      
+
       const fields = conversationType.getFields();
       expect(fields.id).toBeDefined();
       expect(fields.ticketId).toBeDefined();
@@ -43,7 +43,7 @@ describe('GraphQL Schema', () => {
       const messageType = schema.getType('Message');
       expect(messageType).toBeDefined();
       expect(messageType.name).toBe('Message');
-      
+
       const fields = messageType.getFields();
       expect(fields.id).toBeDefined();
       expect(fields.conversationId).toBeDefined();
@@ -58,7 +58,7 @@ describe('GraphQL Schema', () => {
       const suggestionType = schema.getType('ResponseSuggestion');
       expect(suggestionType).toBeDefined();
       expect(suggestionType.name).toBe('ResponseSuggestion');
-      
+
       const fields = suggestionType.getFields();
       expect(fields.id).toBeDefined();
       expect(fields.messageId).toBeDefined();
@@ -72,7 +72,7 @@ describe('GraphQL Schema', () => {
       const analyticsType = schema.getType('Analytics');
       expect(analyticsType).toBeDefined();
       expect(analyticsType.name).toBe('Analytics');
-      
+
       const fields = analyticsType.getFields();
       expect(fields.totalConversations).toBeDefined();
       expect(fields.averageSentiment).toBeDefined();
@@ -83,7 +83,7 @@ describe('GraphQL Schema', () => {
     it('should define Query operations', () => {
       const queryType = schema.getQueryType();
       const fields = queryType.getFields();
-      
+
       expect(fields.conversation).toBeDefined();
       expect(fields.conversations).toBeDefined();
       expect(fields.message).toBeDefined();
@@ -96,7 +96,7 @@ describe('GraphQL Schema', () => {
     it('should define Mutation operations', () => {
       const mutationType = schema.getMutationType();
       const fields = mutationType.getFields();
-      
+
       expect(fields.createConversation).toBeDefined();
       expect(fields.updateConversation).toBeDefined();
       expect(fields.createMessage).toBeDefined();
@@ -108,7 +108,7 @@ describe('GraphQL Schema', () => {
     it('should define Subscription operations', () => {
       const subscriptionType = schema.getSubscriptionType();
       const fields = subscriptionType.getFields();
-      
+
       expect(fields.conversationUpdated).toBeDefined();
       expect(fields.messageAdded).toBeDefined();
       expect(fields.responseSuggested).toBeDefined();
@@ -123,7 +123,7 @@ describe('GraphQL Schema', () => {
       const statusEnum = schema.getType('ConversationStatus');
       expect(statusEnum).toBeDefined();
       expect(statusEnum.name).toBe('ConversationStatus');
-      
+
       const values = statusEnum.getValues();
       expect(values.find((v: any) => v.name === 'OPEN')).toBeDefined();
       expect(values.find((v: any) => v.name === 'PENDING')).toBeDefined();
@@ -135,7 +135,7 @@ describe('GraphQL Schema', () => {
       const senderEnum = schema.getType('MessageSender');
       expect(senderEnum).toBeDefined();
       expect(senderEnum.name).toBe('MessageSender');
-      
+
       const values = senderEnum.getValues();
       expect(values.find((v: any) => v.name === 'AGENT')).toBeDefined();
       expect(values.find((v: any) => v.name === 'CUSTOMER')).toBeDefined();
@@ -148,7 +148,7 @@ describe('GraphQL Schema', () => {
       const inputType = schema.getType('ConversationInput');
       expect(inputType).toBeDefined();
       expect(inputType.name).toBe('ConversationInput');
-      
+
       const fields = inputType.getFields();
       expect(fields.ticketId).toBeDefined();
       expect(fields.agentId).toBeDefined();
@@ -160,7 +160,7 @@ describe('GraphQL Schema', () => {
       const inputType = schema.getType('MessageInput');
       expect(inputType).toBeDefined();
       expect(inputType.name).toBe('MessageInput');
-      
+
       const fields = inputType.getFields();
       expect(fields.conversationId).toBeDefined();
       expect(fields.content).toBeDefined();
@@ -171,7 +171,7 @@ describe('GraphQL Schema', () => {
       const filterType = schema.getType('AnalyticsFilter');
       expect(filterType).toBeDefined();
       expect(filterType.name).toBe('AnalyticsFilter');
-      
+
       const fields = filterType.getFields();
       expect(fields.agentId).toBeDefined();
       expect(fields.dateFrom).toBeDefined();

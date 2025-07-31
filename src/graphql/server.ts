@@ -95,9 +95,13 @@ export const schema = makeExecutableSchema({
 });
 
 // Context creation function
-export async function createContext({ req }: { req: any }): Promise<GraphQLContext> {
+export async function createContext({
+  req,
+}: {
+  req: any;
+}): Promise<GraphQLContext> {
   const db = new DatabaseService();
-  
+
   let user: GraphQLContext['user'] | undefined;
 
   try {
@@ -106,7 +110,7 @@ export async function createContext({ req }: { req: any }): Promise<GraphQLConte
     if (authHeader) {
       const jwtService = new JWTService();
       const token = jwtService.extractTokenFromHeader(authHeader);
-      
+
       if (token) {
         try {
           const decoded = await jwtService.verifyToken(token);
@@ -120,13 +124,19 @@ export async function createContext({ req }: { req: any }): Promise<GraphQLConte
           };
         } catch (error) {
           // Token is invalid, continue without user
-          console.warn('Invalid JWT token:', error instanceof Error ? error.message : 'Unknown error');
+          console.warn(
+            'Invalid JWT token:',
+            error instanceof Error ? error.message : 'Unknown error'
+          );
         }
       }
     }
   } catch (error) {
     // Authentication failed, continue without user
-    console.warn('Authentication failed:', error instanceof Error ? error.message : 'Unknown error');
+    console.warn(
+      'Authentication failed:',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
   }
 
   return {
@@ -175,7 +185,7 @@ export function createApolloServer(): ApolloServer<GraphQLContext> {
             },
             async didEncounterErrors(requestContext) {
               // Log errors
-              requestContext.errors.forEach((error) => {
+              requestContext.errors.forEach(error => {
                 console.error('GraphQL Error:', {
                   error: error.message,
                   operation: requestContext.request.operationName,
@@ -186,7 +196,10 @@ export function createApolloServer(): ApolloServer<GraphQLContext> {
             async willSendResponse(requestContext) {
               // Add custom headers
               if (requestContext.response.http) {
-                requestContext.response.http.headers.set('X-GraphQL-Server', 'ConversationIQ');
+                requestContext.response.http.headers.set(
+                  'X-GraphQL-Server',
+                  'ConversationIQ'
+                );
               }
             },
           };
@@ -197,7 +210,9 @@ export function createApolloServer(): ApolloServer<GraphQLContext> {
 }
 
 // Start standalone server function
-export async function startGraphQLServer(port: number = 4000): Promise<{ url: string; server: ApolloServer<GraphQLContext> }> {
+export async function startGraphQLServer(
+  port: number = 4000
+): Promise<{ url: string; server: ApolloServer<GraphQLContext> }> {
   const server = createApolloServer();
 
   const { url } = await startStandaloneServer(server, {
@@ -206,7 +221,7 @@ export async function startGraphQLServer(port: number = 4000): Promise<{ url: st
   });
 
   console.log(`🚀 GraphQL Server ready at: ${url}`);
-  
+
   return { url, server };
 }
 

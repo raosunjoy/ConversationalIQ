@@ -6,6 +6,8 @@
 import { Router, Request, Response } from 'express';
 import { getConfig } from '../../config/environment';
 import { AppContext } from '../server';
+import { getKafkaService } from '../../messaging/kafka';
+import { getEventProcessor } from '../../messaging/event-processor';
 
 export const healthRoutes = Router();
 
@@ -69,8 +71,52 @@ healthRoutes.get(
         };
       }
 
+      // Check Kafka health (only in non-test environments)
+      let kafkaStatus = 'skipped';
+      let kafkaInfo: any = { status: 'disabled' };
+      
+      const config = getConfig();
+      if (config.environment !== 'test') {
+        try {
+          const kafkaService = getKafkaService();
+          const kafkaHealth = await kafkaService.healthCheck();
+          kafkaStatus = kafkaHealth.status;
+          kafkaInfo = kafkaHealth.details;
+        } catch (error) {
+          kafkaStatus = 'unhealthy';
+          kafkaInfo = {
+            status: 'error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          };
+        }
+      }
+
+      // Check event processor health (only in non-test environments)
+      let processorStatus = 'skipped';
+      let processorInfo: any = { status: 'disabled' };
+      
+      if (config.environment !== 'test') {
+        try {
+          const eventProcessor = getEventProcessor();
+          const processorHealth = eventProcessor.getHealth();
+          processorStatus = processorHealth.status;
+          processorInfo = processorHealth.details;
+        } catch (error) {
+          processorStatus = 'unhealthy';
+          processorInfo = {
+            status: 'error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          };
+        }
+      }
+
       // Determine overall readiness
-      const isReady = databaseStatus === 'healthy';
+      const healthyServices = [databaseStatus];
+      if (config.environment !== 'test') {
+        healthyServices.push(kafkaStatus, processorStatus);
+      }
+      
+      const isReady = healthyServices.every(status => status === 'healthy');
       const statusCode = isReady ? 200 : 503;
       const status = isReady ? 'ready' : 'not ready';
 
@@ -78,8 +124,12 @@ healthRoutes.get(
         status,
         timestamp,
         database: databaseInfo,
+        kafka: kafkaInfo,
+        eventProcessor: processorInfo,
         services: {
           database: databaseStatus,
+          kafka: kafkaStatus,
+          eventProcessor: processorStatus,
         },
       });
     } catch (error) {

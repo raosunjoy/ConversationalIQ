@@ -12,7 +12,7 @@ export const pubsub = new PubSub();
 // Subscription event types
 export const SUBSCRIPTION_EVENTS = {
   MESSAGE_ADDED: 'MESSAGE_ADDED',
-  CONVERSATION_UPDATED: 'CONVERSATION_UPDATED', 
+  CONVERSATION_UPDATED: 'CONVERSATION_UPDATED',
   SENTIMENT_ANALYZED: 'SENTIMENT_ANALYZED',
   RESPONSE_SUGGESTED: 'RESPONSE_SUGGESTED',
   AGENT_STATUS_CHANGED: 'AGENT_STATUS_CHANGED',
@@ -101,15 +101,21 @@ export const subscriptionResolvers = {
     messageAdded: {
       subscribe: withFilter(
         () => pubsub.asyncIterator([SUBSCRIPTION_EVENTS.MESSAGE_ADDED]),
-        (payload: MessageAddedPayload, variables: { conversationId?: string }, context: GraphQLContext) => {
+        (
+          payload: MessageAddedPayload,
+          variables: { conversationId?: string },
+          context: GraphQLContext
+        ) => {
           // Require authentication
           requireAuth(context);
-          
+
           // Filter by conversation ID if specified
           if (variables.conversationId) {
-            return payload.messageAdded.conversationId === variables.conversationId;
+            return (
+              payload.messageAdded.conversationId === variables.conversationId
+            );
           }
-          
+
           // For agents/managers, return all messages they have access to
           // TODO: Implement proper access control based on assigned conversations
           return true;
@@ -120,19 +126,23 @@ export const subscriptionResolvers = {
     conversationUpdated: {
       subscribe: withFilter(
         () => pubsub.asyncIterator([SUBSCRIPTION_EVENTS.CONVERSATION_UPDATED]),
-        (payload: ConversationUpdatedPayload, variables: { conversationId?: string }, context: GraphQLContext) => {
+        (
+          payload: ConversationUpdatedPayload,
+          variables: { conversationId?: string },
+          context: GraphQLContext
+        ) => {
           requireAuth(context);
-          
+
           // Filter by conversation ID if specified
           if (variables.conversationId) {
             return payload.conversationUpdated.id === variables.conversationId;
           }
-          
+
           // For agents, only show conversations they're assigned to or have access to
           if (context.user?.role === 'agent') {
             return payload.conversationUpdated.agentId === context.user.userId;
           }
-          
+
           // Managers and admins can see all conversations
           return ['manager', 'admin'].includes(context.user?.role || '');
         }
@@ -142,14 +152,21 @@ export const subscriptionResolvers = {
     sentimentAnalyzed: {
       subscribe: withFilter(
         () => pubsub.asyncIterator([SUBSCRIPTION_EVENTS.SENTIMENT_ANALYZED]),
-        (payload: SentimentAnalyzedPayload, variables: { conversationId?: string }, context: GraphQLContext) => {
+        (
+          payload: SentimentAnalyzedPayload,
+          variables: { conversationId?: string },
+          context: GraphQLContext
+        ) => {
           requireAuth(context);
-          
+
           // Filter by conversation ID if specified
           if (variables.conversationId) {
-            return payload.sentimentAnalyzed.conversationId === variables.conversationId;
+            return (
+              payload.sentimentAnalyzed.conversationId ===
+              variables.conversationId
+            );
           }
-          
+
           return true;
         }
       ),
@@ -158,14 +175,21 @@ export const subscriptionResolvers = {
     responseSuggested: {
       subscribe: withFilter(
         () => pubsub.asyncIterator([SUBSCRIPTION_EVENTS.RESPONSE_SUGGESTED]),
-        (payload: ResponseSuggestedPayload, variables: { conversationId?: string }, context: GraphQLContext) => {
+        (
+          payload: ResponseSuggestedPayload,
+          variables: { conversationId?: string },
+          context: GraphQLContext
+        ) => {
           requireRole(context, ['agent', 'manager', 'admin']);
-          
+
           // Filter by conversation ID if specified
           if (variables.conversationId) {
-            return payload.responseSuggested.conversationId === variables.conversationId;
+            return (
+              payload.responseSuggested.conversationId ===
+              variables.conversationId
+            );
           }
-          
+
           return true;
         }
       ),
@@ -174,14 +198,18 @@ export const subscriptionResolvers = {
     agentStatusChanged: {
       subscribe: withFilter(
         () => pubsub.asyncIterator([SUBSCRIPTION_EVENTS.AGENT_STATUS_CHANGED]),
-        (payload: AgentStatusChangedPayload, variables: { agentId?: string }, context: GraphQLContext) => {
+        (
+          payload: AgentStatusChangedPayload,
+          variables: { agentId?: string },
+          context: GraphQLContext
+        ) => {
           requireRole(context, ['agent', 'manager', 'admin']);
-          
+
           // Filter by agent ID if specified
           if (variables.agentId) {
             return payload.agentStatusChanged.agentId === variables.agentId;
           }
-          
+
           return true;
         }
       ),
@@ -190,19 +218,26 @@ export const subscriptionResolvers = {
     conversationAssigned: {
       subscribe: withFilter(
         () => pubsub.asyncIterator([SUBSCRIPTION_EVENTS.CONVERSATION_ASSIGNED]),
-        (payload: ConversationAssignedPayload, variables: { agentId?: string }, context: GraphQLContext) => {
+        (
+          payload: ConversationAssignedPayload,
+          variables: { agentId?: string },
+          context: GraphQLContext
+        ) => {
           requireAuth(context);
-          
+
           // Agents only see assignments to themselves
           if (context.user?.role === 'agent') {
             return payload.conversationAssigned.agentId === context.user.userId;
           }
-          
+
           // Filter by agent ID if specified and user is manager/admin
-          if (variables.agentId && ['manager', 'admin'].includes(context.user?.role || '')) {
+          if (
+            variables.agentId &&
+            ['manager', 'admin'].includes(context.user?.role || '')
+          ) {
             return payload.conversationAssigned.agentId === variables.agentId;
           }
-          
+
           // Managers and admins can see all assignments
           return ['manager', 'admin'].includes(context.user?.role || '');
         }
@@ -214,26 +249,48 @@ export const subscriptionResolvers = {
 // Utility functions for publishing events
 export const publishEvent = {
   messageAdded: (message: MessageAddedPayload['messageAdded']) => {
-    pubsub.publish(SUBSCRIPTION_EVENTS.MESSAGE_ADDED, { messageAdded: message });
+    pubsub.publish(SUBSCRIPTION_EVENTS.MESSAGE_ADDED, {
+      messageAdded: message,
+    });
   },
 
-  conversationUpdated: (conversation: ConversationUpdatedPayload['conversationUpdated']) => {
-    pubsub.publish(SUBSCRIPTION_EVENTS.CONVERSATION_UPDATED, { conversationUpdated: conversation });
+  conversationUpdated: (
+    conversation: ConversationUpdatedPayload['conversationUpdated']
+  ) => {
+    pubsub.publish(SUBSCRIPTION_EVENTS.CONVERSATION_UPDATED, {
+      conversationUpdated: conversation,
+    });
   },
 
-  sentimentAnalyzed: (analysis: SentimentAnalyzedPayload['sentimentAnalyzed']) => {
-    pubsub.publish(SUBSCRIPTION_EVENTS.SENTIMENT_ANALYZED, { sentimentAnalyzed: analysis });
+  sentimentAnalyzed: (
+    analysis: SentimentAnalyzedPayload['sentimentAnalyzed']
+  ) => {
+    pubsub.publish(SUBSCRIPTION_EVENTS.SENTIMENT_ANALYZED, {
+      sentimentAnalyzed: analysis,
+    });
   },
 
-  responseSuggested: (suggestion: ResponseSuggestedPayload['responseSuggested']) => {
-    pubsub.publish(SUBSCRIPTION_EVENTS.RESPONSE_SUGGESTED, { responseSuggested: suggestion });
+  responseSuggested: (
+    suggestion: ResponseSuggestedPayload['responseSuggested']
+  ) => {
+    pubsub.publish(SUBSCRIPTION_EVENTS.RESPONSE_SUGGESTED, {
+      responseSuggested: suggestion,
+    });
   },
 
-  agentStatusChanged: (status: AgentStatusChangedPayload['agentStatusChanged']) => {
-    pubsub.publish(SUBSCRIPTION_EVENTS.AGENT_STATUS_CHANGED, { agentStatusChanged: status });
+  agentStatusChanged: (
+    status: AgentStatusChangedPayload['agentStatusChanged']
+  ) => {
+    pubsub.publish(SUBSCRIPTION_EVENTS.AGENT_STATUS_CHANGED, {
+      agentStatusChanged: status,
+    });
   },
 
-  conversationAssigned: (assignment: ConversationAssignedPayload['conversationAssigned']) => {
-    pubsub.publish(SUBSCRIPTION_EVENTS.CONVERSATION_ASSIGNED, { conversationAssigned: assignment });
+  conversationAssigned: (
+    assignment: ConversationAssignedPayload['conversationAssigned']
+  ) => {
+    pubsub.publish(SUBSCRIPTION_EVENTS.CONVERSATION_ASSIGNED, {
+      conversationAssigned: assignment,
+    });
   },
 };

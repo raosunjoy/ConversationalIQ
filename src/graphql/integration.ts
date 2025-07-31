@@ -3,15 +3,23 @@
  * Configures Apollo Server middleware for Express
  */
 
-import { Application } from 'express';
+import { Application, Response } from 'express';
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
-import { ApolloServerPluginLandingPageLocalDefault, ApolloServerPluginLandingPageProductionDefault } from '@apollo/server/plugin/landingPage/default';
+import {
+  ApolloServerPluginLandingPageLocalDefault,
+  ApolloServerPluginLandingPageProductionDefault,
+} from '@apollo/server/plugin/landingPage/default';
 import { createServer, Server } from 'http';
 import { schema } from './server';
 import { GraphQLContext, createContext } from './server';
 import { createWebSocketServer, createWebSocketMiddleware } from './websocket';
+
+// Extended context for Express integration
+interface ExpressGraphQLContext extends GraphQLContext {
+  res: Response;
+}
 
 /**
  * Integrate GraphQL with Express application
@@ -22,18 +30,18 @@ import { createWebSocketServer, createWebSocketMiddleware } from './websocket';
 export async function integrateGraphQL(
   app: Application,
   httpServer?: Server
-): Promise<ApolloServer<GraphQLContext>> {
+): Promise<ApolloServer<ExpressGraphQLContext>> {
   // Create HTTP server if not provided
   const server = httpServer || createServer(app);
 
   // Create Apollo Server with Express integration
-  const apolloServer = new ApolloServer<GraphQLContext>({
+  const apolloServer = new ApolloServer<ExpressGraphQLContext>({
     schema,
     introspection: process.env.NODE_ENV !== 'production',
     plugins: [
       // Proper shutdown for the HTTP server
       ApolloServerPluginDrainHttpServer({ httpServer: server }),
-      
+
       // Landing page configuration
       process.env.NODE_ENV === 'production'
         ? ApolloServerPluginLandingPageProductionDefault({
@@ -44,7 +52,7 @@ export async function integrateGraphQL(
             footer: false,
             embed: true,
           }),
-      
+
       // Custom plugin for request logging and metrics
       {
         async requestDidStart() {
@@ -52,15 +60,17 @@ export async function integrateGraphQL(
             async didResolveOperation(requestContext) {
               // Log GraphQL operations in development
               if (process.env.NODE_ENV === 'development') {
-                const operationName = requestContext.request.operationName || 'Anonymous';
-                const operationType = requestContext.document?.definitions[0]?.kind;
+                const operationName =
+                  requestContext.request.operationName || 'Anonymous';
+                const operationType =
+                  requestContext.document?.definitions[0]?.kind;
                 console.log(`GraphQL ${operationType}: ${operationName}`);
               }
             },
-            
+
             async didEncounterErrors(requestContext) {
               // Enhanced error logging
-              requestContext.errors.forEach((error) => {
+              requestContext.errors.forEach(error => {
                 console.error('GraphQL Error:', {
                   message: error.message,
                   operation: requestContext.request.operationName,
@@ -70,31 +80,37 @@ export async function integrateGraphQL(
                 });
               });
             },
-            
+
             async willSendResponse(requestContext) {
               // Add custom response headers
               if (requestContext.response.http) {
-                requestContext.response.http.headers.set('X-GraphQL-Server', 'ConversationIQ');
-                requestContext.response.http.headers.set('X-Response-Time', Date.now().toString());
+                requestContext.response.http.headers.set(
+                  'X-GraphQL-Server',
+                  'ConversationIQ'
+                );
+                requestContext.response.http.headers.set(
+                  'X-Response-Time',
+                  Date.now().toString()
+                );
               }
             },
           };
         },
       },
     ],
-    
-    formatError: (formattedError, error) => {
+
+    formatError: (formattedError, error: any) => {
       // Enhanced error formatting
       const isDevelopment = process.env.NODE_ENV === 'development';
-      
+
       // Log full error details in development
       if (isDevelopment) {
         console.error('GraphQL Error Details:', {
-          error: error.message,
-          stack: error.stack,
-          source: error.source,
-          positions: error.positions,
-          path: error.path,
+          error: error?.message || 'Unknown error',
+          stack: error?.stack,
+          source: error?.source,
+          positions: error?.positions,
+          path: error?.path,
         });
       }
 
@@ -110,12 +126,17 @@ export async function integrateGraphQL(
         };
 
         // Only include path for client errors
-        if (formattedError.extensions?.code && 
-            ['BAD_USER_INPUT', 'UNAUTHENTICATED', 'FORBIDDEN'].includes(formattedError.extensions.code)) {
-          return {
-            ...safeError,
-            path: formattedError.path,
-          };
+        if (
+          formattedError.extensions?.code &&
+          ['BAD_USER_INPUT', 'UNAUTHENTICATED', 'FORBIDDEN'].includes(
+            String(formattedError.extensions.code)
+          )
+        ) {
+          const result = { ...safeError };
+          if (formattedError.path) {
+            (result as any).path = formattedError.path;
+          }
+          return result;
         }
 
         return safeError;
@@ -143,24 +164,27 @@ export async function integrateGraphQL(
       // Set CORS headers specifically for GraphQL
       res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
       res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+      res.header(
+        'Access-Control-Allow-Headers',
+        'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+      );
       res.header('Access-Control-Allow-Credentials', 'true');
-      
+
       if (req.method === 'OPTIONS') {
         res.sendStatus(204);
         return;
       }
-      
+
       next();
     },
-    
+
     // Apply Express middleware for GraphQL
     expressMiddleware(apolloServer, {
-      context: async ({ req, res }) => {
+      context: async ({ req, res }): Promise<ExpressGraphQLContext> => {
         try {
           // Create GraphQL context from Express request
           const context = await createContext({ req });
-          
+
           // Add Express response to context for potential use in resolvers
           return {
             ...context,
@@ -168,10 +192,11 @@ export async function integrateGraphQL(
           };
         } catch (error) {
           console.error('Context creation error:', error);
-          
+
           // Return minimal context if creation fails
+          const { DatabaseService } = await import('../services/database');
           return {
-            db: undefined as any, // Will cause auth errors, which is appropriate
+            db: new DatabaseService(),
             user: undefined,
             res,
           };
@@ -203,7 +228,7 @@ export async function integrateGraphQL(
 
   console.log('🚀 GraphQL endpoint ready at /graphql');
   console.log('🔌 GraphQL subscriptions ready at ws://localhost/graphql');
-  
+
   return apolloServer;
 }
 
@@ -211,7 +236,9 @@ export async function integrateGraphQL(
  * Create Express middleware for GraphQL subscriptions (WebSocket support)
  * Now fully implemented with WebSocket server integration
  */
-export function createSubscriptionMiddleware(apolloServer: ApolloServer<GraphQLContext>) {
+export function createSubscriptionMiddleware(
+  apolloServer: ApolloServer<ExpressGraphQLContext>
+) {
   return {
     installSubscriptionHandlers: (server: Server) => {
       const wsServer = createWebSocketServer(server, apolloServer);
@@ -230,7 +257,7 @@ export const graphqlDevUtils = {
    */
   getSampleQueries: () => ({
     healthCheck: '{ __typename }',
-    
+
     getConversation: `
       query GetConversation($id: ID!) {
         conversation(id: $id) {
@@ -247,7 +274,7 @@ export const graphqlDevUtils = {
         }
       }
     `,
-    
+
     createMessage: `
       mutation CreateMessage($input: MessageInput!) {
         createMessage(input: $input) {
@@ -260,7 +287,7 @@ export const graphqlDevUtils = {
         }
       }
     `,
-    
+
     getAgentAnalytics: `
       query GetAgentAnalytics($agentId: String!, $filter: AnalyticsFilter) {
         agentAnalytics(agentId: $agentId, filter: $filter) {

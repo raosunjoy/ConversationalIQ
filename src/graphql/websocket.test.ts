@@ -3,11 +3,22 @@
  * Following TDD approach - comprehensive WebSocket testing
  */
 
-import { describe, expect, it, beforeEach, afterEach, jest } from '@jest/globals';
+import {
+  describe,
+  expect,
+  it,
+  beforeEach,
+  afterEach,
+  jest,
+} from '@jest/globals';
 import { Server as HttpServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { ApolloServer } from '@apollo/server';
-import { createWebSocketServer, websocketUtils, createWebSocketMiddleware } from './websocket';
+import {
+  createWebSocketServer,
+  websocketUtils,
+  createWebSocketMiddleware,
+} from './websocket';
 import { GraphQLContext } from './server';
 
 // Mock dependencies
@@ -48,7 +59,7 @@ describe('WebSocket Server Integration', () => {
     // Mock WebSocket server
     mockWsServer = {
       clients: new Set(),
-      close: jest.fn((callback) => callback && callback()),
+      close: jest.fn(callback => callback && callback()),
       on: jest.fn(),
     } as any;
 
@@ -132,8 +143,13 @@ describe('WebSocket Server Integration', () => {
         const result = await onConnectHandler(mockCtx);
 
         expect(result).toBe(true);
-        expect(consoleSpy).toHaveBeenCalledWith('WebSocket connection established');
-        expect(consoleSpy).toHaveBeenCalledWith('Connection params:', mockCtx.connectionParams);
+        expect(consoleSpy).toHaveBeenCalledWith(
+          'WebSocket connection established'
+        );
+        expect(consoleSpy).toHaveBeenCalledWith(
+          'Connection params:',
+          mockCtx.connectionParams
+        );
 
         consoleSpy.mockRestore();
         process.env.NODE_ENV = originalEnv;
@@ -152,8 +168,13 @@ describe('WebSocket Server Integration', () => {
         const result = await onConnectHandler(mockCtx);
 
         expect(result).toBe(true);
-        expect(consoleSpy).toHaveBeenCalledWith('WebSocket connection established');
-        expect(consoleSpy).not.toHaveBeenCalledWith('Connection params:', expect.any(Object));
+        expect(consoleSpy).toHaveBeenCalledWith(
+          'WebSocket connection established'
+        );
+        expect(consoleSpy).not.toHaveBeenCalledWith(
+          'Connection params:',
+          expect.any(Object)
+        );
 
         consoleSpy.mockRestore();
         process.env.NODE_ENV = originalEnv;
@@ -169,10 +190,13 @@ describe('WebSocket Server Integration', () => {
 
         onDisconnectHandler(mockCtx, code, reason);
 
-        expect(consoleSpy).toHaveBeenCalledWith('WebSocket connection closed:', {
-          code,
-          reason: 'Normal closure',
-        });
+        expect(consoleSpy).toHaveBeenCalledWith(
+          'WebSocket connection closed:',
+          {
+            code,
+            reason: 'Normal closure',
+          }
+        );
 
         consoleSpy.mockRestore();
       });
@@ -190,7 +214,10 @@ describe('WebSocket Server Integration', () => {
 
         expect(context).toHaveProperty('connectionId');
         expect(context.connectionId).toMatch(/^ws_\d+_[a-z0-9]+$/);
-        expect(context).toHaveProperty('connectionParams', mockCtx.connectionParams);
+        expect(context).toHaveProperty(
+          'connectionParams',
+          mockCtx.connectionParams
+        );
       });
 
       it('should handle authentication from connection params', async () => {
@@ -201,7 +228,9 @@ describe('WebSocket Server Integration', () => {
         const context = await contextHandler(mockCtx, {}, {});
 
         expect(context).toHaveProperty('connectionParams');
-        expect(context.connectionParams.authorization).toBe('Bearer valid.token');
+        expect(context.connectionParams.authorization).toBe(
+          'Bearer valid.token'
+        );
       });
 
       it('should handle authentication errors gracefully', async () => {
@@ -222,7 +251,9 @@ describe('WebSocket Server Integration', () => {
       });
 
       it('should handle context creation errors', async () => {
-        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+        const consoleErrorSpy = jest
+          .spyOn(console, 'error')
+          .mockImplementation();
 
         // Force an error by passing invalid context
         const mockCtx = null as any;
@@ -303,7 +334,10 @@ describe('WebSocket Server Integration', () => {
 
         onCompleteHandler(mockCtx, mockMsg);
 
-        expect(consoleSpy).toHaveBeenCalledWith('Subscription completed:', 'sub_123');
+        expect(consoleSpy).toHaveBeenCalledWith(
+          'Subscription completed:',
+          'sub_123'
+        );
 
         consoleSpy.mockRestore();
         process.env.NODE_ENV = originalEnv;
@@ -312,7 +346,9 @@ describe('WebSocket Server Integration', () => {
 
     describe('onError', () => {
       it('should log subscription errors', () => {
-        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+        const consoleErrorSpy = jest
+          .spyOn(console, 'error')
+          .mockImplementation();
         const mockCtx = {};
         const mockMsg = { id: 'sub_123' };
         const mockErrors = [
@@ -322,10 +358,13 @@ describe('WebSocket Server Integration', () => {
 
         onErrorHandler(mockCtx, mockMsg, mockErrors);
 
-        expect(consoleErrorSpy).toHaveBeenCalledWith('WebSocket subscription error:', {
-          id: 'sub_123',
-          errors: ['Subscription error 1', 'Subscription error 2'],
-        });
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          'WebSocket subscription error:',
+          {
+            id: 'sub_123',
+            errors: ['Subscription error 1', 'Subscription error 2'],
+          }
+        );
 
         consoleErrorSpy.mockRestore();
       });
@@ -391,14 +430,14 @@ describe('WebSocket Server Integration', () => {
       it('should close all connections and server', async () => {
         const mockClient1 = { close: jest.fn() };
         const mockClient2 = { close: jest.fn() };
-        
+
         mockWsServer.clients.add(mockClient1 as any);
         mockWsServer.clients.add(mockClient2 as any);
 
         const mockCleanup = jest.fn();
         (mockWsServer as any).cleanup = mockCleanup;
 
-        mockWsServer.close.mockImplementation((callback) => {
+        mockWsServer.close.mockImplementation(callback => {
           callback && callback();
         });
 
@@ -407,21 +446,31 @@ describe('WebSocket Server Integration', () => {
         await websocketUtils.closeServer(mockWsServer);
 
         expect(mockCleanup).toHaveBeenCalled();
-        expect(mockClient1.close).toHaveBeenCalledWith(1000, 'Server shutting down');
-        expect(mockClient2.close).toHaveBeenCalledWith(1000, 'Server shutting down');
+        expect(mockClient1.close).toHaveBeenCalledWith(
+          1000,
+          'Server shutting down'
+        );
+        expect(mockClient2.close).toHaveBeenCalledWith(
+          1000,
+          'Server shutting down'
+        );
         expect(mockWsServer.close).toHaveBeenCalled();
-        expect(consoleSpy).toHaveBeenCalledWith('WebSocket server closed gracefully');
+        expect(consoleSpy).toHaveBeenCalledWith(
+          'WebSocket server closed gracefully'
+        );
 
         consoleSpy.mockRestore();
       });
 
       it('should reject on server close error', async () => {
         const error = new Error('Close failed');
-        mockWsServer.close.mockImplementation((callback) => {
+        mockWsServer.close.mockImplementation(callback => {
           callback && callback(error);
         });
 
-        await expect(websocketUtils.closeServer(mockWsServer)).rejects.toThrow('Close failed');
+        await expect(websocketUtils.closeServer(mockWsServer)).rejects.toThrow(
+          'Close failed'
+        );
       });
     });
   });

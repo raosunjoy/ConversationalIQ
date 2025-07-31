@@ -3,7 +3,14 @@
  * Following TDD approach - tests written first
  */
 
-import { describe, expect, it, beforeEach, afterEach, jest } from '@jest/globals';
+import {
+  describe,
+  expect,
+  it,
+  beforeEach,
+  afterEach,
+  jest,
+} from '@jest/globals';
 import { ApolloServer } from '@apollo/server';
 import { createApolloServer, createContext } from './server';
 import { DatabaseService } from '../services/database';
@@ -102,7 +109,9 @@ describe('Apollo GraphQL Server', () => {
       const context = await createContext({ req: mockRequest });
 
       expect(context.user).toEqual(mockUser);
-      expect(mockJWT.extractTokenFromHeader).toHaveBeenCalledWith('Bearer valid.jwt.token');
+      expect(mockJWT.extractTokenFromHeader).toHaveBeenCalledWith(
+        'Bearer valid.jwt.token'
+      );
       expect(mockJWT.verifyToken).toHaveBeenCalledWith('valid.jwt.token');
     });
 
@@ -268,7 +277,9 @@ describe('Apollo GraphQL Server', () => {
       expect(response.body.kind).toBe('single');
       if (response.body.kind === 'single') {
         expect(response.body.singleResult.errors).toBeDefined();
-        expect(response.body.singleResult.errors?.[0].message).toBe('Authentication required');
+        expect(response.body.singleResult.errors?.[0].message).toBe(
+          'Authentication required'
+        );
       }
     });
 
@@ -295,7 +306,9 @@ describe('Apollo GraphQL Server', () => {
       expect(response.body.kind).toBe('single');
       if (response.body.kind === 'single') {
         expect(response.body.singleResult.errors).toBeDefined();
-        expect(response.body.singleResult.errors?.[0].message).toContain('nonExistentField');
+        expect(response.body.singleResult.errors?.[0].message).toContain(
+          'nonExistentField'
+        );
       }
     });
   });
@@ -310,7 +323,9 @@ describe('Apollo GraphQL Server', () => {
         }
       `;
 
-      mockDb.findConversationById.mockRejectedValue(new Error('Database connection failed'));
+      mockDb.findConversationById.mockRejectedValue(
+        new Error('Database connection failed')
+      );
 
       const context = {
         db: mockDb,
@@ -331,7 +346,9 @@ describe('Apollo GraphQL Server', () => {
       expect(response.body.kind).toBe('single');
       if (response.body.kind === 'single') {
         expect(response.body.singleResult.errors).toBeDefined();
-        expect(response.body.singleResult.errors?.[0].message).toBe('Database connection failed');
+        expect(response.body.singleResult.errors?.[0].message).toBe(
+          'Database connection failed'
+        );
       }
     });
 
@@ -370,8 +387,12 @@ describe('Apollo GraphQL Server', () => {
       expect(response.body.kind).toBe('single');
       if (response.body.kind === 'single') {
         expect(response.body.singleResult.errors).toBeDefined();
-        expect(response.body.singleResult.errors?.[0].message).toBe('Ticket ID is required');
-        expect(response.body.singleResult.errors?.[0].extensions?.code).toBe('BAD_USER_INPUT');
+        expect(response.body.singleResult.errors?.[0].message).toBe(
+          'Ticket ID is required'
+        );
+        expect(response.body.singleResult.errors?.[0].extensions?.code).toBe(
+          'BAD_USER_INPUT'
+        );
       }
     });
   });

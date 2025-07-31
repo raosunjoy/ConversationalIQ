@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ConversationIQ Nav</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 8px 12px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      font-size: 12px;
+      background: transparent;
+    }
+    
+    .nav-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #68737d;
+    }
+    
+    .nav-icon {
+      font-size: 16px;
+    }
+    
+    .nav-text {
+      font-weight: 500;
+    }
+    
+    .nav-badge {
+      background: #1f73b7;
+      color: white;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    
+    .nav-container:hover {
+      color: #1f73b7;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="nav-container" id="nav-item">
+    <span class="nav-icon">🧠</span>
+    <span class="nav-text">ConversationIQ</span>
+    <span class="nav-badge" id="alert-badge" style="display: none;">!</span>
+  </div>
+
+  <script src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script>
+  <script>
+    (function() {
+      let client;
+      
+      ZAFClient.init().then(function(zafClient) {
+        client = zafClient;
+        
+        // Listen for sentiment alerts
+        client.on('app.message', function(data) {
+          if (data.type === 'sentiment_alert') {
+            showAlertBadge();
+          }
+        });
+        
+        // Handle nav click
+        document.getElementById('nav-item').addEventListener('click', function() {
+          // Could open a modal or navigate to main dashboard
+          client.invoke('notify', 'ConversationIQ: Opening dashboard...', 'notice');
+        });
+      });
+      
+      function showAlertBadge() {
+        const badge = document.getElementById('alert-badge');
+        badge.style.display = 'inline';
+        
+        // Auto-hide after 30 seconds
+        setTimeout(function() {
+          badge.style.display = 'none';
+        }, 30000);
+      }
+    })();
+  </script>
+</body>
+</html>
