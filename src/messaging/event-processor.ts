@@ -74,12 +74,17 @@ export class EventProcessor {
         try {
           console.log(`🔄 Processing conversation event: ${event.type}`);
 
-          if (event.type === 'CONVERSATION_CREATED' || event.type === 'CONVERSATION_UPDATED') {
+          if (
+            event.type === 'CONVERSATION_CREATED' ||
+            event.type === 'CONVERSATION_UPDATED'
+          ) {
             const conversationEvent = event as any; // Type assertion for conversation events
 
             // Update database
-            const conversation = await this.dbService.findConversationById(conversationEvent.conversationId);
-            
+            const conversation = await this.dbService.findConversationById(
+              conversationEvent.conversationId
+            );
+
             if (conversation) {
               // Publish to GraphQL subscriptions
               await pubsub.publish(SUBSCRIPTION_EVENTS.CONVERSATION_UPDATED, {
@@ -93,7 +98,9 @@ export class EventProcessor {
                 },
               });
 
-              console.log(`📡 Published conversation update to GraphQL: ${conversationEvent.conversationId}`);
+              console.log(
+                `📡 Published conversation update to GraphQL: ${conversationEvent.conversationId}`
+              );
             }
           }
         } catch (error) {
@@ -132,10 +139,15 @@ export class EventProcessor {
               },
             });
 
-            console.log(`📡 Published message to GraphQL: ${messageEvent.messageId}`);
+            console.log(
+              `📡 Published message to GraphQL: ${messageEvent.messageId}`
+            );
 
             // If sentiment analysis is available, trigger AI processing
-            if (messageEvent.sentimentScore && messageEvent.sentimentScore < -0.5) {
+            if (
+              messageEvent.sentimentScore &&
+              messageEvent.sentimentScore < -0.5
+            ) {
               // Trigger escalation alert
               await this.kafkaService.publishSentimentEvent({
                 type: 'SENTIMENT_ALERT',
@@ -185,11 +197,18 @@ export class EventProcessor {
           });
 
           // If this is an alert, also trigger agent notifications
-          if (event.type === 'SENTIMENT_ALERT' && sentimentEvent.escalationRisk > 0.7) {
-            console.log(`🚨 High escalation risk detected: ${sentimentEvent.conversationId}`);
-            
+          if (
+            event.type === 'SENTIMENT_ALERT' &&
+            sentimentEvent.escalationRisk > 0.7
+          ) {
+            console.log(
+              `🚨 High escalation risk detected: ${sentimentEvent.conversationId}`
+            );
+
             // Find assigned agent and send notification
-            const conversation = await this.dbService.findConversationById(sentimentEvent.conversationId);
+            const conversation = await this.dbService.findConversationById(
+              sentimentEvent.conversationId
+            );
             if (conversation?.agentId) {
               // You could integrate with external notification services here
               // For now, we'll just log and rely on GraphQL subscriptions
@@ -228,7 +247,9 @@ export class EventProcessor {
               },
             });
 
-            console.log(`📡 Published agent status change: ${agentEvent.agentId} -> ${agentEvent.status}`);
+            console.log(
+              `📡 Published agent status change: ${agentEvent.agentId} -> ${agentEvent.status}`
+            );
           }
 
           if (event.type === 'AGENT_PERFORMANCE_UPDATE') {
@@ -264,12 +285,16 @@ export class EventProcessor {
           }
 
           if (event.type === 'WEBHOOK_RETRY') {
-            console.log(`🔄 Retrying webhook processing: ${webhookEvent.source}`);
+            console.log(
+              `🔄 Retrying webhook processing: ${webhookEvent.source}`
+            );
             // Implement retry logic here
           }
 
           if (event.type === 'WEBHOOK_FAILED') {
-            console.error(`❌ Webhook processing failed: ${webhookEvent.source}`);
+            console.error(
+              `❌ Webhook processing failed: ${webhookEvent.source}`
+            );
             // Implement failure handling (alerts, dead letter queue, etc.)
           }
         } catch (error) {
@@ -296,7 +321,9 @@ export class EventProcessor {
 
           // Store analytics data in time-series database or analytics store
           // For now, we'll just log the metrics
-          console.log(`📊 Analytics metric: ${analyticsEvent.metricType} = ${analyticsEvent.value}`);
+          console.log(
+            `📊 Analytics metric: ${analyticsEvent.metricType} = ${analyticsEvent.value}`
+          );
 
           // You could integrate with analytics services like DataDog, New Relic, etc.
           // or store in a specialized analytics database

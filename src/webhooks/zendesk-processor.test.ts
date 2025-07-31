@@ -17,16 +17,16 @@ describe('ZendeskWebhookProcessor', () => {
 
   beforeEach(() => {
     processor = new ZendeskWebhookProcessor();
-    
+
     mockRequest = {
       params: { installationId: 'test-installation' },
       headers: { 'x-zendesk-webhook-signature': 'test-signature' },
-      body: {}
+      body: {},
     };
 
     mockResponse = {
       status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis()
+      json: jest.fn().mockReturnThis(),
     };
 
     jest.clearAllMocks();
@@ -36,11 +36,15 @@ describe('ZendeskWebhookProcessor', () => {
     beforeEach(() => {
       // Mock installation validation
       const { zendeskAuthService } = require('../zendesk/auth-service');
-      zendeskAuthService.getInstallationByWebhookEndpoint = jest.fn().mockResolvedValue({
-        id: 'test-installation',
-        webhookSecret: 'test-secret'
-      });
-      zendeskAuthService.verifyWebhookSignature = jest.fn().mockReturnValue(true);
+      zendeskAuthService.getInstallationByWebhookEndpoint = jest
+        .fn()
+        .mockResolvedValue({
+          id: 'test-installation',
+          webhookSecret: 'test-secret',
+        });
+      zendeskAuthService.verifyWebhookSignature = jest
+        .fn()
+        .mockReturnValue(true);
 
       // Mock Kafka service
       const { getKafkaService } = require('../messaging/kafka');
@@ -48,7 +52,7 @@ describe('ZendeskWebhookProcessor', () => {
         publishConversationEvent: jest.fn().mockResolvedValue(undefined),
         publishMessageEvent: jest.fn().mockResolvedValue(undefined),
         publishWebhookEvent: jest.fn().mockResolvedValue(undefined),
-        publishAnalyticsEvent: jest.fn().mockResolvedValue(undefined)
+        publishAnalyticsEvent: jest.fn().mockResolvedValue(undefined),
       };
       getKafkaService.mockReturnValue(mockKafka);
 
@@ -58,7 +62,7 @@ describe('ZendeskWebhookProcessor', () => {
         createConversation: jest.fn().mockResolvedValue(undefined),
         updateConversation: jest.fn().mockResolvedValue(undefined),
         createMessage: jest.fn().mockResolvedValue(undefined),
-        updateMessage: jest.fn().mockResolvedValue(undefined)
+        updateMessage: jest.fn().mockResolvedValue(undefined),
       };
       DatabaseService.mockImplementation(() => mockDb);
     });
@@ -72,7 +76,7 @@ describe('ZendeskWebhookProcessor', () => {
         subject: '123',
         account: {
           subdomain: 'test-company',
-          id: 12345
+          id: 12345,
         },
         body: {
           current: {
@@ -85,19 +89,22 @@ describe('ZendeskWebhookProcessor', () => {
             assignee_id: 789,
             tags: ['test', 'webhook'],
             created_at: '2024-01-01T12:00:00Z',
-            updated_at: '2024-01-01T12:00:00Z'
-          }
-        }
+            updated_at: '2024-01-01T12:00:00Z',
+          },
+        },
       };
 
-      await processor.processWebhook(mockRequest as Request, mockResponse as Response);
+      await processor.processWebhook(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockResponse.status).toHaveBeenCalledWith(200);
       expect(mockResponse.json).toHaveBeenCalledWith({
         status: 'processed',
         eventId: 'webhook-123',
         eventType: 'ticket.created',
-        timestamp: expect.any(String)
+        timestamp: expect.any(String),
       });
 
       // Verify Kafka events were published
@@ -113,9 +120,9 @@ describe('ZendeskWebhookProcessor', () => {
         metadata: expect.objectContaining({
           subject: 'Test ticket',
           priority: 'normal',
-          tags: ['test', 'webhook']
+          tags: ['test', 'webhook'],
         }),
-        timestamp: '2024-01-01T12:00:00Z'
+        timestamp: '2024-01-01T12:00:00Z',
       });
     });
 
@@ -128,7 +135,7 @@ describe('ZendeskWebhookProcessor', () => {
         subject: '123',
         account: {
           subdomain: 'test-company',
-          id: 12345
+          id: 12345,
         },
         body: {
           current: {
@@ -140,13 +147,16 @@ describe('ZendeskWebhookProcessor', () => {
             public: true,
             created_at: '2024-01-01T12:30:00Z',
             via: {
-              channel: 'web'
-            }
-          }
-        }
+              channel: 'web',
+            },
+          },
+        },
       };
 
-      await processor.processWebhook(mockRequest as Request, mockResponse as Response);
+      await processor.processWebhook(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockResponse.status).toHaveBeenCalledWith(200);
 
@@ -162,9 +172,9 @@ describe('ZendeskWebhookProcessor', () => {
         metadata: expect.objectContaining({
           zendeskCommentId: 789,
           authorId: '456',
-          isPublic: true
+          isPublic: true,
         }),
-        timestamp: '2024-01-01T12:30:00Z'
+        timestamp: '2024-01-01T12:30:00Z',
       });
     });
 
@@ -177,7 +187,7 @@ describe('ZendeskWebhookProcessor', () => {
         subject: '123',
         account: {
           subdomain: 'test-company',
-          id: 12345
+          id: 12345,
         },
         body: {
           current: {
@@ -187,7 +197,7 @@ describe('ZendeskWebhookProcessor', () => {
             priority: 'high',
             requester_id: 456,
             assignee_id: 789,
-            updated_at: '2024-01-01T13:00:00Z'
+            updated_at: '2024-01-01T13:00:00Z',
           },
           previous: {
             id: 123,
@@ -196,12 +206,15 @@ describe('ZendeskWebhookProcessor', () => {
             priority: 'normal',
             requester_id: 456,
             assignee_id: 789,
-            updated_at: '2024-01-01T12:00:00Z'
-          }
-        }
+            updated_at: '2024-01-01T12:00:00Z',
+          },
+        },
       };
 
-      await processor.processWebhook(mockRequest as Request, mockResponse as Response);
+      await processor.processWebhook(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockResponse.status).toHaveBeenCalledWith(200);
 
@@ -219,62 +232,75 @@ describe('ZendeskWebhookProcessor', () => {
           changes: expect.objectContaining({
             status: { from: 'open', to: 'solved' },
             priority: { from: 'normal', to: 'high' },
-            subject: { from: 'Test ticket', to: 'Test ticket - Updated' }
-          })
+            subject: { from: 'Test ticket', to: 'Test ticket - Updated' },
+          }),
         }),
-        timestamp: '2024-01-01T13:00:00Z'
+        timestamp: '2024-01-01T13:00:00Z',
       });
     });
 
     it('should reject webhook with invalid installation', async () => {
       const { zendeskAuthService } = require('../zendesk/auth-service');
-      zendeskAuthService.getInstallationByWebhookEndpoint = jest.fn().mockResolvedValue(null);
-
-      mockRequest.body = {
-        id: 'webhook-123',
-        event_type: 'ticket.created',
-        event_timestamp: '2024-01-01T12:00:00Z'
-      };
-
-      await processor.processWebhook(mockRequest as Request, mockResponse as Response);
-
-      expect(mockResponse.status).toHaveBeenCalledWith(404);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        error: 'Installation not found',
-        installationId: 'test-installation'
-      });
-    });
-
-    it('should reject webhook with invalid signature', async () => {
-      const { zendeskAuthService } = require('../zendesk/auth-service');
-      zendeskAuthService.verifyWebhookSignature = jest.fn().mockReturnValue(false);
+      zendeskAuthService.getInstallationByWebhookEndpoint = jest
+        .fn()
+        .mockResolvedValue(null);
 
       mockRequest.body = {
         id: 'webhook-123',
         event_type: 'ticket.created',
         event_timestamp: '2024-01-01T12:00:00Z',
-        account: { subdomain: 'test' }
       };
 
-      await processor.processWebhook(mockRequest as Request, mockResponse as Response);
+      await processor.processWebhook(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockResponse.status).toHaveBeenCalledWith(404);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        error: 'Installation not found',
+        installationId: 'test-installation',
+      });
+    });
+
+    it('should reject webhook with invalid signature', async () => {
+      const { zendeskAuthService } = require('../zendesk/auth-service');
+      zendeskAuthService.verifyWebhookSignature = jest
+        .fn()
+        .mockReturnValue(false);
+
+      mockRequest.body = {
+        id: 'webhook-123',
+        event_type: 'ticket.created',
+        event_timestamp: '2024-01-01T12:00:00Z',
+        account: { subdomain: 'test' },
+      };
+
+      await processor.processWebhook(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockResponse.status).toHaveBeenCalledWith(401);
       expect(mockResponse.json).toHaveBeenCalledWith({
-        error: 'Invalid webhook signature'
+        error: 'Invalid webhook signature',
       });
     });
 
     it('should reject webhook with invalid event structure', async () => {
       mockRequest.body = {
         // Missing required fields
-        id: 'webhook-123'
+        id: 'webhook-123',
       };
 
-      await processor.processWebhook(mockRequest as Request, mockResponse as Response);
+      await processor.processWebhook(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith({
-        error: 'Invalid webhook event structure'
+        error: 'Invalid webhook event structure',
       });
     });
 
@@ -287,14 +313,17 @@ describe('ZendeskWebhookProcessor', () => {
         subject: '123',
         account: {
           subdomain: 'test-company',
-          id: 12345
+          id: 12345,
         },
         body: {
-          some: 'data'
-        }
+          some: 'data',
+        },
       };
 
-      await processor.processWebhook(mockRequest as Request, mockResponse as Response);
+      await processor.processWebhook(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockResponse.status).toHaveBeenCalledWith(200);
 
@@ -306,14 +335,16 @@ describe('ZendeskWebhookProcessor', () => {
         source: 'zendesk',
         eventType: 'unknown.event',
         payload: { some: 'data' },
-        timestamp: '2024-01-01T12:00:00Z'
+        timestamp: '2024-01-01T12:00:00Z',
       });
     });
 
     it('should handle processing errors gracefully', async () => {
       const { getKafkaService } = require('../messaging/kafka');
       const mockKafka = {
-        publishConversationEvent: jest.fn().mockRejectedValue(new Error('Kafka unavailable'))
+        publishConversationEvent: jest
+          .fn()
+          .mockRejectedValue(new Error('Kafka unavailable')),
       };
       getKafkaService.mockReturnValue(mockKafka);
 
@@ -325,7 +356,7 @@ describe('ZendeskWebhookProcessor', () => {
         subject: '123',
         account: {
           subdomain: 'test-company',
-          id: 12345
+          id: 12345,
         },
         body: {
           current: {
@@ -333,24 +364,29 @@ describe('ZendeskWebhookProcessor', () => {
             status: 'new',
             requester_id: 456,
             created_at: '2024-01-01T12:00:00Z',
-            updated_at: '2024-01-01T12:00:00Z'
-          }
-        }
+            updated_at: '2024-01-01T12:00:00Z',
+          },
+        },
       };
 
-      await processor.processWebhook(mockRequest as Request, mockResponse as Response);
+      await processor.processWebhook(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith({
         error: 'Webhook processing failed',
-        message: 'Kafka unavailable'
+        message: 'Kafka unavailable',
       });
     });
   });
 
   describe('status mapping', () => {
     it('should map Zendesk statuses to internal statuses', () => {
-      const mapStatus = (processor as any).mapZendeskStatusToInternal.bind(processor);
+      const mapStatus = (processor as any).mapZendeskStatusToInternal.bind(
+        processor
+      );
 
       expect(mapStatus('new')).toBe('OPEN');
       expect(mapStatus('open')).toBe('OPEN');
@@ -370,7 +406,7 @@ describe('ZendeskWebhookProcessor', () => {
         priority: 'high',
         assignee_id: 789,
         subject: 'Updated ticket',
-        tags: ['urgent', 'billing']
+        tags: ['urgent', 'billing'],
       };
 
       const previous = {
@@ -379,7 +415,7 @@ describe('ZendeskWebhookProcessor', () => {
         priority: 'normal',
         assignee_id: 456,
         subject: 'Original ticket',
-        tags: ['normal']
+        tags: ['normal'],
       };
 
       const changes = (processor as any).detectTicketChanges(current, previous);
@@ -389,7 +425,7 @@ describe('ZendeskWebhookProcessor', () => {
         priority: { from: 'normal', to: 'high' },
         assignee: { from: 456, to: 789 },
         subject: { from: 'Original ticket', to: 'Updated ticket' },
-        tags: { from: ['normal'], to: ['urgent', 'billing'] }
+        tags: { from: ['normal'], to: ['urgent', 'billing'] },
       });
     });
 
@@ -411,9 +447,9 @@ describe('ZendeskWebhookProcessor', () => {
         subject: '123',
         account: {
           subdomain: 'test-company',
-          id: 12345
+          id: 12345,
         },
-        body: {}
+        body: {},
       };
 
       const isValid = (processor as any).validateWebhookEvent(validEvent);
@@ -440,16 +476,20 @@ describe('ZendeskWebhookProcessor', () => {
     it('should correctly identify sender based on comment properties', async () => {
       // Mock setup
       const { zendeskAuthService } = require('../zendesk/auth-service');
-      zendeskAuthService.getInstallationByWebhookEndpoint = jest.fn().mockResolvedValue({
-        id: 'test-installation',
-        webhookSecret: 'test-secret',
-        settings: {}
-      });
-      zendeskAuthService.verifyWebhookSignature = jest.fn().mockReturnValue(true);
+      zendeskAuthService.getInstallationByWebhookEndpoint = jest
+        .fn()
+        .mockResolvedValue({
+          id: 'test-installation',
+          webhookSecret: 'test-secret',
+          settings: {},
+        });
+      zendeskAuthService.verifyWebhookSignature = jest
+        .fn()
+        .mockReturnValue(true);
 
       const { getKafkaService } = require('../messaging/kafka');
       const mockKafka = {
-        publishMessageEvent: jest.fn().mockResolvedValue(undefined)
+        publishMessageEvent: jest.fn().mockResolvedValue(undefined),
       };
       getKafkaService.mockReturnValue(mockKafka);
 
@@ -467,12 +507,15 @@ describe('ZendeskWebhookProcessor', () => {
             author_id: 456,
             body: 'Public comment',
             public: true,
-            created_at: '2024-01-01T12:00:00Z'
-          }
-        }
+            created_at: '2024-01-01T12:00:00Z',
+          },
+        },
       };
 
-      await processor.processWebhook(mockRequest as Request, mockResponse as Response);
+      await processor.processWebhook(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockKafka.publishMessageEvent).toHaveBeenCalledWith(
         expect.objectContaining({ sender: 'AGENT' })
@@ -480,7 +523,10 @@ describe('ZendeskWebhookProcessor', () => {
 
       // Test private comment (should be CUSTOMER)
       mockRequest.body.body.current.public = false;
-      await processor.processWebhook(mockRequest as Request, mockResponse as Response);
+      await processor.processWebhook(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockKafka.publishMessageEvent).toHaveBeenCalledWith(
         expect.objectContaining({ sender: 'CUSTOMER' })
@@ -495,7 +541,7 @@ describe('ZendeskWebhookProcessor', () => {
       expect(stats).toEqual({
         processed: expect.any(Number),
         errors: expect.any(Number),
-        types: expect.any(Object)
+        types: expect.any(Object),
       });
     });
   });
@@ -511,19 +557,21 @@ describe('ZendeskWebhookProcessor Integration', () => {
   it('should handle complete ticket lifecycle', async () => {
     // This would be an integration test covering ticket creation,
     // updates, comments, and closure
-    
+
     const mockInstallation = {
       id: 'test-installation',
       webhookSecret: 'test-secret',
       settings: {
         enable_sentiment_analysis: true,
-        enable_response_suggestions: true
-      }
+        enable_response_suggestions: true,
+      },
     };
 
     // Mock dependencies
     const { zendeskAuthService } = require('../zendesk/auth-service');
-    zendeskAuthService.getInstallationByWebhookEndpoint = jest.fn().mockResolvedValue(mockInstallation);
+    zendeskAuthService.getInstallationByWebhookEndpoint = jest
+      .fn()
+      .mockResolvedValue(mockInstallation);
     zendeskAuthService.verifyWebhookSignature = jest.fn().mockReturnValue(true);
 
     const { getKafkaService } = require('../messaging/kafka');
@@ -531,7 +579,7 @@ describe('ZendeskWebhookProcessor Integration', () => {
       publishConversationEvent: jest.fn().mockResolvedValue(undefined),
       publishMessageEvent: jest.fn().mockResolvedValue(undefined),
       publishWebhookEvent: jest.fn().mockResolvedValue(undefined),
-      publishAnalyticsEvent: jest.fn().mockResolvedValue(undefined)
+      publishAnalyticsEvent: jest.fn().mockResolvedValue(undefined),
     };
     getKafkaService.mockReturnValue(mockKafka);
 
@@ -554,15 +602,15 @@ describe('ZendeskWebhookProcessor Integration', () => {
             status: 'new',
             requester_id: 456,
             created_at: '2024-01-01T12:00:00Z',
-            updated_at: '2024-01-01T12:00:00Z'
-          }
-        }
-      }
+            updated_at: '2024-01-01T12:00:00Z',
+          },
+        },
+      },
     } as Request;
 
     const mockResponse = {
       status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis()
+      json: jest.fn().mockReturnThis(),
     } as any as Response;
 
     await processor.processWebhook(createRequest, mockResponse);
@@ -571,7 +619,7 @@ describe('ZendeskWebhookProcessor Integration', () => {
     expect(mockKafka.publishConversationEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'CONVERSATION_CREATED',
-        conversationId: 'zendesk-123'
+        conversationId: 'zendesk-123',
       })
     );
 
@@ -580,7 +628,7 @@ describe('ZendeskWebhookProcessor Integration', () => {
       expect.objectContaining({
         type: 'MESSAGE_CREATED',
         messageId: 'zendesk-ticket-123-description',
-        content: 'Initial description'
+        content: 'Initial description',
       })
     );
   });

@@ -5,7 +5,7 @@
 
 import { Server as HttpServer } from 'http';
 import { WebSocketServer } from 'ws';
-import { useServer } from 'graphql-ws/lib/use/ws';
+import { useServer } from 'graphql-ws/use/ws';
 import { ApolloServer } from '@apollo/server';
 import { schema } from './server';
 import { createContext, GraphQLContext } from './server';
@@ -95,7 +95,9 @@ export function createWebSocketServer(
                   role: decoded.role || 'user',
                   ...(decoded.zendeskId && { zendeskId: decoded.zendeskId }),
                   ...(decoded.subdomain && { subdomain: decoded.subdomain }),
-                  ...(decoded.permissions && { permissions: decoded.permissions }),
+                  ...(decoded.permissions && {
+                    permissions: decoded.permissions,
+                  }),
                 };
               }
             } catch (error) {
@@ -173,8 +175,7 @@ export function createWebSocketServer(
         });
       },
 
-      // Keep alive configuration
-      keepAlive: 30000, // 30 seconds
+      // Note: Keep alive is handled by the WebSocket implementation
     },
     wsServer
   );

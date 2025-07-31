@@ -28,7 +28,9 @@ describe('EventProcessor', () => {
       publishSentimentEvent: jest.fn().mockResolvedValue(undefined),
       publishConversationEvent: jest.fn().mockResolvedValue(undefined),
       publishMessageEvent: jest.fn().mockResolvedValue(undefined),
-      getStats: jest.fn().mockReturnValue({ connected: true, consumers: 0, topics: [] }),
+      getStats: jest
+        .fn()
+        .mockReturnValue({ connected: true, consumers: 0, topics: [] }),
     } as any;
 
     mockDatabaseService = {
@@ -53,7 +55,9 @@ describe('EventProcessor', () => {
     subscriptionsModule.pubsub = mockPubsub;
 
     const databaseModule = require('../services/database');
-    databaseModule.DatabaseService.mockImplementation(() => mockDatabaseService);
+    databaseModule.DatabaseService.mockImplementation(
+      () => mockDatabaseService
+    );
 
     eventProcessor = new EventProcessor();
   });
@@ -80,13 +84,13 @@ describe('EventProcessor', () => {
 
     it('should not start if already running', async () => {
       await eventProcessor.start();
-      
+
       // Clear the mock calls from first start
       mockKafkaService.subscribe.mockClear();
-      
+
       // Try to start again
       await eventProcessor.start();
-      
+
       // Should not call subscribe again
       expect(mockKafkaService.subscribe).not.toHaveBeenCalled();
     });
@@ -110,10 +114,12 @@ describe('EventProcessor', () => {
 
     beforeEach(async () => {
       await eventProcessor.start();
-      
+
       // Extract the conversation handler
-      const conversationSubscribeCall = mockKafkaService.subscribe.mock.calls
-        .find(call => call[0] === KAFKA_TOPICS.CONVERSATION_EVENTS);
+      const conversationSubscribeCall =
+        mockKafkaService.subscribe.mock.calls.find(
+          call => call[0] === KAFKA_TOPICS.CONVERSATION_EVENTS
+        );
       conversationHandler = conversationSubscribeCall![2];
     });
 
@@ -129,7 +135,9 @@ describe('EventProcessor', () => {
 
       await conversationHandler(event, { partition: 0, offset: '0' });
 
-      expect(mockDatabaseService.findConversationById).toHaveBeenCalledWith('conv-123');
+      expect(mockDatabaseService.findConversationById).toHaveBeenCalledWith(
+        'conv-123'
+      );
       expect(mockPubsub.publish).toHaveBeenCalledWith(
         SUBSCRIPTION_EVENTS.CONVERSATION_UPDATED,
         {
@@ -158,7 +166,9 @@ describe('EventProcessor', () => {
 
       await conversationHandler(event, { partition: 0, offset: '0' });
 
-      expect(mockDatabaseService.findConversationById).toHaveBeenCalledWith('conv-123');
+      expect(mockDatabaseService.findConversationById).toHaveBeenCalledWith(
+        'conv-123'
+      );
       expect(mockPubsub.publish).toHaveBeenCalledWith(
         SUBSCRIPTION_EVENTS.CONVERSATION_UPDATED,
         expect.objectContaining({
@@ -184,12 +194,16 @@ describe('EventProcessor', () => {
 
       await conversationHandler(event, { partition: 0, offset: '0' });
 
-      expect(mockDatabaseService.findConversationById).toHaveBeenCalledWith('conv-404');
+      expect(mockDatabaseService.findConversationById).toHaveBeenCalledWith(
+        'conv-404'
+      );
       expect(mockPubsub.publish).not.toHaveBeenCalled();
     });
 
     it('should handle processing errors', async () => {
-      mockDatabaseService.findConversationById.mockRejectedValue(new Error('Database error'));
+      mockDatabaseService.findConversationById.mockRejectedValue(
+        new Error('Database error')
+      );
 
       const event = {
         type: 'CONVERSATION_CREATED',
@@ -200,8 +214,9 @@ describe('EventProcessor', () => {
         timestamp: new Date().toISOString(),
       };
 
-      await expect(conversationHandler(event, { partition: 0, offset: '0' }))
-        .rejects.toThrow('Database error');
+      await expect(
+        conversationHandler(event, { partition: 0, offset: '0' })
+      ).rejects.toThrow('Database error');
     });
   });
 
@@ -210,10 +225,11 @@ describe('EventProcessor', () => {
 
     beforeEach(async () => {
       await eventProcessor.start();
-      
+
       // Extract the message handler
-      const messageSubscribeCall = mockKafkaService.subscribe.mock.calls
-        .find(call => call[0] === KAFKA_TOPICS.MESSAGE_EVENTS);
+      const messageSubscribeCall = mockKafkaService.subscribe.mock.calls.find(
+        call => call[0] === KAFKA_TOPICS.MESSAGE_EVENTS
+      );
       messageHandler = messageSubscribeCall![2];
     });
 
@@ -296,10 +312,11 @@ describe('EventProcessor', () => {
 
     beforeEach(async () => {
       await eventProcessor.start();
-      
+
       // Extract the sentiment handler
-      const sentimentSubscribeCall = mockKafkaService.subscribe.mock.calls
-        .find(call => call[0] === KAFKA_TOPICS.SENTIMENT_EVENTS);
+      const sentimentSubscribeCall = mockKafkaService.subscribe.mock.calls.find(
+        call => call[0] === KAFKA_TOPICS.SENTIMENT_EVENTS
+      );
       sentimentHandler = sentimentSubscribeCall![2];
     });
 
@@ -347,7 +364,9 @@ describe('EventProcessor', () => {
 
       await sentimentHandler(event, { partition: 0, offset: '0' });
 
-      expect(mockDatabaseService.findConversationById).toHaveBeenCalledWith('conv-123');
+      expect(mockDatabaseService.findConversationById).toHaveBeenCalledWith(
+        'conv-123'
+      );
       expect(mockPubsub.publish).toHaveBeenCalled();
     });
   });
@@ -357,10 +376,11 @@ describe('EventProcessor', () => {
 
     beforeEach(async () => {
       await eventProcessor.start();
-      
+
       // Extract the agent handler
-      const agentSubscribeCall = mockKafkaService.subscribe.mock.calls
-        .find(call => call[0] === KAFKA_TOPICS.AGENT_EVENTS);
+      const agentSubscribeCall = mockKafkaService.subscribe.mock.calls.find(
+        call => call[0] === KAFKA_TOPICS.AGENT_EVENTS
+      );
       agentHandler = agentSubscribeCall![2];
     });
 
@@ -408,17 +428,21 @@ describe('EventProcessor', () => {
   describe('health check', () => {
     it('should return healthy when running', async () => {
       await eventProcessor.start();
-      
+
       const health = eventProcessor.getHealth();
-      
+
       expect(health.status).toBe('healthy');
       expect(health.details.running).toBe(true);
-      expect(health.details.kafkaStats).toEqual({ connected: true, consumers: 0, topics: [] });
+      expect(health.details.kafkaStats).toEqual({
+        connected: true,
+        consumers: 0,
+        topics: [],
+      });
     });
 
     it('should return unhealthy when not running', () => {
       const health = eventProcessor.getHealth();
-      
+
       expect(health.status).toBe('unhealthy');
       expect(health.details.running).toBe(false);
     });
@@ -429,10 +453,11 @@ describe('EventProcessor', () => {
 
     beforeEach(async () => {
       await eventProcessor.start();
-      
+
       // Extract the webhook handler
-      const webhookSubscribeCall = mockKafkaService.subscribe.mock.calls
-        .find(call => call[0] === KAFKA_TOPICS.WEBHOOK_EVENTS);
+      const webhookSubscribeCall = mockKafkaService.subscribe.mock.calls.find(
+        call => call[0] === KAFKA_TOPICS.WEBHOOK_EVENTS
+      );
       webhookHandler = webhookSubscribeCall![2];
     });
 
@@ -510,8 +535,9 @@ describe('EventProcessor', () => {
         timestamp: new Date().toISOString(),
       };
 
-      await expect(webhookHandler(event, { partition: 0, offset: '0' }))
-        .resolves.not.toThrow();
+      await expect(
+        webhookHandler(event, { partition: 0, offset: '0' })
+      ).resolves.not.toThrow();
 
       // Should not publish any events for unknown types
       expect(mockKafkaService.publishConversationEvent).not.toHaveBeenCalled();
@@ -524,7 +550,7 @@ describe('EventProcessor utility functions', () => {
   it('should provide singleton access', () => {
     const processor1 = getEventProcessor();
     const processor2 = getEventProcessor();
-    
+
     expect(processor1).toBe(processor2);
     expect(processor1).toBeInstanceOf(EventProcessor);
   });

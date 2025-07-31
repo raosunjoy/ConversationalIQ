@@ -29,9 +29,9 @@ export interface JWTConfig {
 export interface KafkaConfig {
   brokers: string[];
   ssl?: boolean;
-  saslMechanism?: string;
-  saslUsername?: string;
-  saslPassword?: string;
+  saslMechanism?: string | undefined;
+  saslUsername?: string | undefined;
+  saslPassword?: string | undefined;
   partitions: number;
   replicationFactor: number;
 }
@@ -178,11 +178,14 @@ function createConfig(): AppConfig {
     kafka: {
       brokers: process.env.KAFKA_BROKERS?.split(',') || ['localhost:9092'],
       ssl: process.env.KAFKA_SSL === 'true',
-      saslMechanism: process.env.KAFKA_SASL_MECHANISM || undefined,
-      saslUsername: process.env.KAFKA_SASL_USERNAME || undefined,
-      saslPassword: process.env.KAFKA_SASL_PASSWORD || undefined,
+      saslMechanism: process.env.KAFKA_SASL_MECHANISM,
+      saslUsername: process.env.KAFKA_SASL_USERNAME,
+      saslPassword: process.env.KAFKA_SASL_PASSWORD,
       partitions: parseInt(process.env.KAFKA_PARTITIONS || '3', 10),
-      replicationFactor: parseInt(process.env.KAFKA_REPLICATION_FACTOR || '1', 10),
+      replicationFactor: parseInt(
+        process.env.KAFKA_REPLICATION_FACTOR || '1',
+        10
+      ),
     },
 
     // AI services configuration

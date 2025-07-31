@@ -14,7 +14,10 @@ import { healthRoutes } from './routes/health';
 import { zendeskRoutes } from './routes/zendesk';
 import { webhookRoutes } from './routes/webhooks';
 import { initializeKafka, shutdownKafka } from '../messaging/kafka';
-import { startEventProcessor, stopEventProcessor } from '../messaging/event-processor';
+import {
+  startEventProcessor,
+  stopEventProcessor,
+} from '../messaging/event-processor';
 
 export interface ServerError extends Error {
   status?: number;

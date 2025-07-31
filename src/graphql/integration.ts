@@ -178,18 +178,18 @@ export async function integrateGraphQL(
       next();
     },
 
-    // Apply Express middleware for GraphQL
+    // Apply Express middleware for GraphQL with type safety
     expressMiddleware(apolloServer, {
-      context: async ({ req, res }): Promise<ExpressGraphQLContext> => {
+      context: async ({ req, res }) => {
         try {
           // Create GraphQL context from Express request
-          const context = await createContext({ req });
+          const context = await createContext({ req: req as any });
 
           // Add Express response to context for potential use in resolvers
           return {
             ...context,
-            res,
-          };
+            res: res as any,
+          } as ExpressGraphQLContext;
         } catch (error) {
           console.error('Context creation error:', error);
 
@@ -198,11 +198,11 @@ export async function integrateGraphQL(
           return {
             db: new DatabaseService(),
             user: undefined,
-            res,
-          };
+            res: res as any,
+          } as ExpressGraphQLContext;
         }
       },
-    })
+    }) as any
   );
 
   // Create WebSocket server for subscriptions

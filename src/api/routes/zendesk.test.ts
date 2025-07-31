@@ -25,9 +25,13 @@ describe('Zendesk API Routes', () => {
     describe('GET /zendesk/auth/authorize', () => {
       it('should handle authorization request', async () => {
         const { zendeskAuthService } = require('../../zendesk/auth-service');
-        zendeskAuthService.handleAuthorize = jest.fn().mockImplementation((req, res) => {
-          res.redirect('https://test-company.zendesk.com/api/v2/oauth/callback?code=test-code&state=test-state');
-        });
+        zendeskAuthService.handleAuthorize = jest
+          .fn()
+          .mockImplementation((req, res) => {
+            res.redirect(
+              'https://test-company.zendesk.com/api/v2/oauth/callback?code=test-code&state=test-state'
+            );
+          });
 
         const response = await request(app)
           .get('/zendesk/auth/authorize')
@@ -35,7 +39,7 @@ describe('Zendesk API Routes', () => {
             state: 'test-state',
             subdomain: 'test-company',
             user_id: '12345',
-            app_id: 'app-67890'
+            app_id: 'app-67890',
           });
 
         expect(response.status).toBe(302);
@@ -46,22 +50,22 @@ describe('Zendesk API Routes', () => {
     describe('POST /zendesk/auth/token', () => {
       it('should handle token exchange', async () => {
         const { zendeskAuthService } = require('../../zendesk/auth-service');
-        zendeskAuthService.handleTokenExchange = jest.fn().mockImplementation((req, res) => {
-          res.json({
-            access_token: 'test-access-token',
-            refresh_token: 'test-refresh-token',
-            token_type: 'Bearer',
-            scope: 'read write',
-            expires_in: 3600
+        zendeskAuthService.handleTokenExchange = jest
+          .fn()
+          .mockImplementation((req, res) => {
+            res.json({
+              access_token: 'test-access-token',
+              refresh_token: 'test-refresh-token',
+              token_type: 'Bearer',
+              scope: 'read write',
+              expires_in: 3600,
+            });
           });
-        });
 
-        const response = await request(app)
-          .post('/zendesk/auth/token')
-          .send({
-            code: 'test-auth-code',
-            grant_type: 'authorization_code'
-          });
+        const response = await request(app).post('/zendesk/auth/token').send({
+          code: 'test-auth-code',
+          grant_type: 'authorization_code',
+        });
 
         expect(response.status).toBe(200);
         expect(response.body.access_token).toBe('test-access-token');
@@ -74,14 +78,17 @@ describe('Zendesk API Routes', () => {
     describe('POST /zendesk/app/install', () => {
       it('should handle app installation', async () => {
         const { zendeskAuthService } = require('../../zendesk/auth-service');
-        zendeskAuthService.handleAppInstallation = jest.fn().mockImplementation((req, res) => {
-          res.status(201).json({
-            status: 'installed',
-            installation_id: 'test-installation-id',
-            webhook_url: 'https://api.conversationiq.com/webhooks/zendesk/test-installation-id',
-            webhook_secret: 'test-webhook-secret'
+        zendeskAuthService.handleAppInstallation = jest
+          .fn()
+          .mockImplementation((req, res) => {
+            res.status(201).json({
+              status: 'installed',
+              installation_id: 'test-installation-id',
+              webhook_url:
+                'https://api.conversationiq.com/webhooks/zendesk/test-installation-id',
+              webhook_secret: 'test-webhook-secret',
+            });
           });
-        });
 
         const response = await request(app)
           .post('/zendesk/app/install')
@@ -91,8 +98,8 @@ describe('Zendesk API Routes', () => {
             user_id: 'user-67890',
             settings: {
               api_url: 'https://api.conversationiq.com',
-              enable_sentiment: true
-            }
+              enable_sentiment: true,
+            },
           });
 
         expect(response.status).toBe(201);
@@ -104,15 +111,18 @@ describe('Zendesk API Routes', () => {
     describe('DELETE /zendesk/app/uninstall/:installation_id', () => {
       it('should handle app uninstallation', async () => {
         const { zendeskAuthService } = require('../../zendesk/auth-service');
-        zendeskAuthService.handleAppUninstallation = jest.fn().mockImplementation((req, res) => {
-          res.json({
-            status: 'uninstalled',
-            installation_id: req.params.installation_id
+        zendeskAuthService.handleAppUninstallation = jest
+          .fn()
+          .mockImplementation((req, res) => {
+            res.json({
+              status: 'uninstalled',
+              installation_id: req.params.installation_id,
+            });
           });
-        });
 
-        const response = await request(app)
-          .delete('/zendesk/app/uninstall/test-installation-id');
+        const response = await request(app).delete(
+          '/zendesk/app/uninstall/test-installation-id'
+        );
 
         expect(response.status).toBe(200);
         expect(response.body.status).toBe('uninstalled');
@@ -129,14 +139,16 @@ describe('Zendesk API Routes', () => {
       appId: 'app-67890',
       settings: {
         enable_sentiment_analysis: true,
-        enable_response_suggestions: true
-      }
+        enable_response_suggestions: true,
+      },
     };
 
     beforeEach(() => {
       // Mock authentication middleware
       const { zendeskAuthService } = require('../../zendesk/auth-service');
-      zendeskAuthService.validateAccessToken = jest.fn().mockResolvedValue(mockInstallation);
+      zendeskAuthService.validateAccessToken = jest
+        .fn()
+        .mockResolvedValue(mockInstallation);
     });
 
     describe('GET /zendesk/api/v1/sentiment/:conversationId', () => {
@@ -146,7 +158,7 @@ describe('Zendesk API Routes', () => {
           findConversationById: jest.fn().mockResolvedValue({
             id: 'conv-123',
             ticketId: 'ticket-456',
-            status: 'OPEN'
+            status: 'OPEN',
           }),
           findMessagesByConversationId: jest.fn().mockResolvedValue([
             {
@@ -155,7 +167,7 @@ describe('Zendesk API Routes', () => {
               sender: 'CUSTOMER',
               sentimentScore: -0.3,
               detectedIntent: 'support_request',
-              createdAt: new Date()
+              createdAt: new Date(),
             },
             {
               id: 'msg-2',
@@ -163,9 +175,9 @@ describe('Zendesk API Routes', () => {
               sender: 'AGENT',
               sentimentScore: 0.7,
               detectedIntent: 'assistance',
-              createdAt: new Date()
-            }
-          ])
+              createdAt: new Date(),
+            },
+          ]),
         };
         DatabaseService.mockImplementation(() => mockDbService);
 
@@ -177,13 +189,15 @@ describe('Zendesk API Routes', () => {
         expect(response.body.conversationId).toBe('conv-123');
         expect(response.body.sentimentScore).toBeDefined();
         expect(response.body.messages).toHaveLength(2);
-        expect(mockDbService.findConversationById).toHaveBeenCalledWith('conv-123');
+        expect(mockDbService.findConversationById).toHaveBeenCalledWith(
+          'conv-123'
+        );
       });
 
       it('should return 404 for non-existent conversation', async () => {
         const { DatabaseService } = require('../../services/database');
         const mockDbService = {
-          findConversationById: jest.fn().mockResolvedValue(null)
+          findConversationById: jest.fn().mockResolvedValue(null),
         };
         DatabaseService.mockImplementation(() => mockDbService);
 
@@ -197,13 +211,18 @@ describe('Zendesk API Routes', () => {
 
       it('should require authentication', async () => {
         const { zendeskAuthService } = require('../../zendesk/auth-service');
-        zendeskAuthService.validateAccessToken = jest.fn().mockResolvedValue(null);
+        zendeskAuthService.validateAccessToken = jest
+          .fn()
+          .mockResolvedValue(null);
 
-        const response = await request(app)
-          .get('/zendesk/api/v1/sentiment/conv-123');
+        const response = await request(app).get(
+          '/zendesk/api/v1/sentiment/conv-123'
+        );
 
         expect(response.status).toBe(401);
-        expect(response.body.error).toBe('Missing or invalid authorization header');
+        expect(response.body.error).toBe(
+          'Missing or invalid authorization header'
+        );
       });
     });
 
@@ -214,7 +233,7 @@ describe('Zendesk API Routes', () => {
           findConversationById: jest.fn().mockResolvedValue({
             id: 'conv-123',
             ticketId: 'ticket-456',
-            status: 'OPEN'
+            status: 'OPEN',
           }),
           findMessagesByConversationId: jest.fn().mockResolvedValue([
             {
@@ -222,9 +241,9 @@ describe('Zendesk API Routes', () => {
               content: 'I have a billing issue',
               sender: 'CUSTOMER',
               sentimentScore: -0.2,
-              createdAt: new Date()
-            }
-          ])
+              createdAt: new Date(),
+            },
+          ]),
         };
         DatabaseService.mockImplementation(() => mockDbService);
 
@@ -244,9 +263,9 @@ describe('Zendesk API Routes', () => {
           findConversationById: jest.fn().mockResolvedValue({
             id: 'conv-123',
             ticketId: 'ticket-456',
-            status: 'OPEN'
+            status: 'OPEN',
           }),
-          findMessagesByConversationId: jest.fn().mockResolvedValue([])
+          findMessagesByConversationId: jest.fn().mockResolvedValue([]),
         };
         DatabaseService.mockImplementation(() => mockDbService);
 
@@ -267,7 +286,7 @@ describe('Zendesk API Routes', () => {
             id: 'conv-123',
             ticketId: 'ticket-456',
             status: 'OPEN',
-            createdAt: new Date(Date.now() - 3600000) // 1 hour ago
+            createdAt: new Date(Date.now() - 3600000), // 1 hour ago
           }),
           findMessagesByConversationId: jest.fn().mockResolvedValue([
             {
@@ -275,16 +294,16 @@ describe('Zendesk API Routes', () => {
               content: 'Help me',
               sender: 'CUSTOMER',
               sentimentScore: -0.1,
-              createdAt: new Date(Date.now() - 3600000)
+              createdAt: new Date(Date.now() - 3600000),
             },
             {
               id: 'msg-2',
               content: 'I can help',
               sender: 'AGENT',
               sentimentScore: 0.5,
-              createdAt: new Date(Date.now() - 3500000)
-            }
-          ])
+              createdAt: new Date(Date.now() - 3500000),
+            },
+          ]),
         };
         DatabaseService.mockImplementation(() => mockDbService);
 
@@ -305,7 +324,7 @@ describe('Zendesk API Routes', () => {
       it('should publish message events to Kafka', async () => {
         const { getKafkaService } = require('../../messaging/kafka');
         const mockKafkaService = {
-          publishMessageEvent: jest.fn().mockResolvedValue(undefined)
+          publishMessageEvent: jest.fn().mockResolvedValue(undefined),
         };
         getKafkaService.mockReturnValue(mockKafkaService);
 
@@ -318,8 +337,8 @@ describe('Zendesk API Routes', () => {
               messageId: 'msg-123',
               conversationId: 'conv-456',
               content: 'Test message',
-              sender: 'CUSTOMER'
-            }
+              sender: 'CUSTOMER',
+            },
           });
 
         expect(response.status).toBe(201);
@@ -330,14 +349,14 @@ describe('Zendesk API Routes', () => {
           conversationId: 'conv-456',
           content: 'Test message',
           sender: 'CUSTOMER',
-          timestamp: expect.any(String)
+          timestamp: expect.any(String),
         });
       });
 
       it('should publish conversation events to Kafka', async () => {
         const { getKafkaService } = require('../../messaging/kafka');
         const mockKafkaService = {
-          publishConversationEvent: jest.fn().mockResolvedValue(undefined)
+          publishConversationEvent: jest.fn().mockResolvedValue(undefined),
         };
         getKafkaService.mockReturnValue(mockKafkaService);
 
@@ -352,8 +371,8 @@ describe('Zendesk API Routes', () => {
               ticketId: 'ticket-456',
               customerId: 'customer-789',
               agentId: 'agent-101',
-              status: 'IN_PROGRESS'
-            }
+              status: 'IN_PROGRESS',
+            },
           });
 
         expect(response.status).toBe(201);
@@ -364,7 +383,7 @@ describe('Zendesk API Routes', () => {
           customerId: 'customer-789',
           agentId: 'agent-101',
           status: 'IN_PROGRESS',
-          timestamp: expect.any(String)
+          timestamp: expect.any(String),
         });
       });
 
@@ -374,12 +393,15 @@ describe('Zendesk API Routes', () => {
           .set('Authorization', 'Bearer test-token')
           .send({
             type: 'unsupported',
-            data: {}
+            data: {},
           });
 
         expect(response.status).toBe(400);
         expect(response.body.error).toBe('Unsupported event type');
-        expect(response.body.supportedTypes).toEqual(['message', 'conversation']);
+        expect(response.body.supportedTypes).toEqual([
+          'message',
+          'conversation',
+        ]);
       });
 
       it('should reject events with missing data', async () => {
@@ -387,7 +409,7 @@ describe('Zendesk API Routes', () => {
           .post('/zendesk/api/v1/events')
           .set('Authorization', 'Bearer test-token')
           .send({
-            type: 'message'
+            type: 'message',
             // Missing data field
           });
 
@@ -401,8 +423,7 @@ describe('Zendesk API Routes', () => {
   describe('Health Check', () => {
     describe('GET /zendesk/health', () => {
       it('should return health status', async () => {
-        const response = await request(app)
-          .get('/zendesk/health');
+        const response = await request(app).get('/zendesk/health');
 
         expect(response.status).toBe(200);
         expect(response.body.status).toBe('healthy');
@@ -415,11 +436,14 @@ describe('Zendesk API Routes', () => {
 
   describe('Authentication Middleware', () => {
     it('should reject requests without authorization header', async () => {
-      const response = await request(app)
-        .get('/zendesk/api/v1/sentiment/conv-123');
+      const response = await request(app).get(
+        '/zendesk/api/v1/sentiment/conv-123'
+      );
 
       expect(response.status).toBe(401);
-      expect(response.body.error).toBe('Missing or invalid authorization header');
+      expect(response.body.error).toBe(
+        'Missing or invalid authorization header'
+      );
     });
 
     it('should reject requests with invalid authorization format', async () => {
@@ -428,12 +452,16 @@ describe('Zendesk API Routes', () => {
         .set('Authorization', 'Invalid token-format');
 
       expect(response.status).toBe(401);
-      expect(response.body.error).toBe('Missing or invalid authorization header');
+      expect(response.body.error).toBe(
+        'Missing or invalid authorization header'
+      );
     });
 
     it('should reject requests with invalid token', async () => {
       const { zendeskAuthService } = require('../../zendesk/auth-service');
-      zendeskAuthService.validateAccessToken = jest.fn().mockResolvedValue(null);
+      zendeskAuthService.validateAccessToken = jest
+        .fn()
+        .mockResolvedValue(null);
 
       const response = await request(app)
         .get('/zendesk/api/v1/sentiment/conv-123')
@@ -445,7 +473,9 @@ describe('Zendesk API Routes', () => {
 
     it('should handle authentication validation errors', async () => {
       const { zendeskAuthService } = require('../../zendesk/auth-service');
-      zendeskAuthService.validateAccessToken = jest.fn().mockRejectedValue(new Error('Validation failed'));
+      zendeskAuthService.validateAccessToken = jest
+        .fn()
+        .mockRejectedValue(new Error('Validation failed'));
 
       const response = await request(app)
         .get('/zendesk/api/v1/sentiment/conv-123')
@@ -460,12 +490,14 @@ describe('Zendesk API Routes', () => {
     it('should handle database errors gracefully', async () => {
       const { zendeskAuthService } = require('../../zendesk/auth-service');
       zendeskAuthService.validateAccessToken = jest.fn().mockResolvedValue({
-        id: 'test-installation'
+        id: 'test-installation',
       });
 
       const { DatabaseService } = require('../../services/database');
       const mockDbService = {
-        findConversationById: jest.fn().mockRejectedValue(new Error('Database connection failed'))
+        findConversationById: jest
+          .fn()
+          .mockRejectedValue(new Error('Database connection failed')),
       };
       DatabaseService.mockImplementation(() => mockDbService);
 
@@ -481,12 +513,14 @@ describe('Zendesk API Routes', () => {
     it('should handle Kafka publishing errors', async () => {
       const { zendeskAuthService } = require('../../zendesk/auth-service');
       zendeskAuthService.validateAccessToken = jest.fn().mockResolvedValue({
-        id: 'test-installation'
+        id: 'test-installation',
       });
 
       const { getKafkaService } = require('../../messaging/kafka');
       const mockKafkaService = {
-        publishMessageEvent: jest.fn().mockRejectedValue(new Error('Kafka unavailable'))
+        publishMessageEvent: jest
+          .fn()
+          .mockRejectedValue(new Error('Kafka unavailable')),
       };
       getKafkaService.mockReturnValue(mockKafkaService);
 
@@ -499,8 +533,8 @@ describe('Zendesk API Routes', () => {
             messageId: 'msg-123',
             conversationId: 'conv-456',
             content: 'Test message',
-            sender: 'CUSTOMER'
-          }
+            sender: 'CUSTOMER',
+          },
         });
 
       expect(response.status).toBe(500);

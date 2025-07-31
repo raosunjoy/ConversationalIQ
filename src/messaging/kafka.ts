@@ -3,7 +3,13 @@
  * Handles event-driven messaging and real-time event processing
  */
 
-import { Kafka, KafkaConfig, Producer, Consumer, EachMessagePayload } from 'kafkajs';
+import {
+  Kafka,
+  KafkaConfig,
+  Producer,
+  Consumer,
+  EachMessagePayload,
+} from 'kafkajs';
 import { v4 as uuidv4 } from 'uuid';
 
 // Kafka topic configuration
@@ -84,12 +90,12 @@ export interface AnalyticsEvent {
 }
 
 // Union type for all event types
-export type KafkaEvent = 
-  | ConversationEvent 
-  | MessageEvent 
-  | SentimentEvent 
-  | AgentEvent 
-  | WebhookEvent 
+export type KafkaEvent =
+  | ConversationEvent
+  | MessageEvent
+  | SentimentEvent
+  | AgentEvent
+  | WebhookEvent
   | AnalyticsEvent;
 
 /**
@@ -107,11 +113,13 @@ export class KafkaService {
       clientId: 'conversationiq',
       brokers: process.env.KAFKA_BROKERS?.split(',') || ['localhost:9092'],
       ssl: process.env.KAFKA_SSL === 'true',
-      sasl: process.env.KAFKA_SASL_MECHANISM ? {
-        mechanism: process.env.KAFKA_SASL_MECHANISM as any,
-        username: process.env.KAFKA_SASL_USERNAME!,
-        password: process.env.KAFKA_SASL_PASSWORD!,
-      } : undefined,
+      sasl: process.env.KAFKA_SASL_MECHANISM
+        ? {
+            mechanism: process.env.KAFKA_SASL_MECHANISM as any,
+            username: process.env.KAFKA_SASL_USERNAME!,
+            password: process.env.KAFKA_SASL_PASSWORD!,
+          }
+        : undefined,
       connectionTimeout: 30000,
       requestTimeout: 30000,
       retry: {
@@ -149,7 +157,9 @@ export class KafkaService {
       const topicConfigs = Object.values(KAFKA_TOPICS).map(topic => ({
         topic,
         numPartitions: parseInt(process.env.KAFKA_PARTITIONS || '3'),
-        replicationFactor: parseInt(process.env.KAFKA_REPLICATION_FACTOR || '1'),
+        replicationFactor: parseInt(
+          process.env.KAFKA_REPLICATION_FACTOR || '1'
+        ),
         configEntries: [
           { name: 'cleanup.policy', value: 'delete' },
           { name: 'retention.ms', value: '604800000' }, // 7 days
@@ -185,26 +195,38 @@ export class KafkaService {
   /**
    * Publish an event to a Kafka topic
    */
-  async publishEvent(topic: string, event: KafkaEvent, key?: string): Promise<void> {
+  async publishEvent(
+    topic: string,
+    event: KafkaEvent,
+    key?: string
+  ): Promise<void> {
     if (!this.producer || !this.isConnected) {
-      throw new Error('Kafka service not initialized. Call initialize() first.');
+      throw new Error(
+        'Kafka service not initialized. Call initialize() first.'
+      );
     }
 
     try {
-      const messageKey = key || (event as any).conversationId || (event as any).messageId || uuidv4();
-      
+      const messageKey =
+        key ||
+        (event as any).conversationId ||
+        (event as any).messageId ||
+        uuidv4();
+
       await this.producer.send({
         topic,
-        messages: [{
-          key: messageKey,
-          value: JSON.stringify(event),
-          timestamp: Date.now().toString(),
-          headers: {
-            'event-type': event.type,
-            'event-id': uuidv4(),
-            'source': 'conversationiq',
+        messages: [
+          {
+            key: messageKey,
+            value: JSON.stringify(event),
+            timestamp: Date.now().toString(),
+            headers: {
+              'event-type': event.type,
+              'event-id': uuidv4(),
+              source: 'conversationiq',
+            },
           },
-        }],
+        ],
       });
 
       console.log(`📨 Event published to ${topic}:`, event.type);
@@ -220,7 +242,10 @@ export class KafkaService {
   async subscribe(
     topic: string,
     groupId: string,
-    handler: (event: KafkaEvent, metadata: { partition: number; offset: string }) => Promise<void>,
+    handler: (
+      event: KafkaEvent,
+      metadata: { partition: number; offset: string }
+    ) => Promise<void>,
     options?: {
       fromBeginning?: boolean;
       sessionTimeout?: number;
@@ -228,7 +253,9 @@ export class KafkaService {
     }
   ): Promise<void> {
     if (!this.isConnected) {
-      throw new Error('Kafka service not initialized. Call initialize() first.');
+      throw new Error(
+        'Kafka service not initialized. Call initialize() first.'
+      );
     }
 
     const consumer = this.kafka.consumer({
@@ -243,13 +270,17 @@ export class KafkaService {
     });
 
     await consumer.connect();
-    await consumer.subscribe({ 
-      topic, 
-      fromBeginning: options?.fromBeginning || false 
+    await consumer.subscribe({
+      topic,
+      fromBeginning: options?.fromBeginning || false,
     });
 
     await consumer.run({
-      eachMessage: async ({ topic, partition, message }: EachMessagePayload) => {
+      eachMessage: async ({
+        topic,
+        partition,
+        message,
+      }: EachMessagePayload) => {
         try {
           if (!message.value) {
             console.warn('⚠️ Received empty message, skipping');
@@ -279,21 +310,33 @@ export class KafkaService {
    * Publish conversation-related events
    */
   async publishConversationEvent(event: ConversationEvent): Promise<void> {
-    await this.publishEvent(KAFKA_TOPICS.CONVERSATION_EVENTS, event, event.conversationId);
+    await this.publishEvent(
+      KAFKA_TOPICS.CONVERSATION_EVENTS,
+      event,
+      event.conversationId
+    );
   }
 
   /**
    * Publish message-related events
    */
   async publishMessageEvent(event: MessageEvent): Promise<void> {
-    await this.publishEvent(KAFKA_TOPICS.MESSAGE_EVENTS, event, event.conversationId);
+    await this.publishEvent(
+      KAFKA_TOPICS.MESSAGE_EVENTS,
+      event,
+      event.conversationId
+    );
   }
 
   /**
    * Publish sentiment analysis events
    */
   async publishSentimentEvent(event: SentimentEvent): Promise<void> {
-    await this.publishEvent(KAFKA_TOPICS.SENTIMENT_EVENTS, event, event.conversationId);
+    await this.publishEvent(
+      KAFKA_TOPICS.SENTIMENT_EVENTS,
+      event,
+      event.conversationId
+    );
   }
 
   /**
@@ -314,13 +357,20 @@ export class KafkaService {
    * Publish analytics events
    */
   async publishAnalyticsEvent(event: AnalyticsEvent): Promise<void> {
-    await this.publishEvent(KAFKA_TOPICS.ANALYTICS_EVENTS, event, event.agentId || event.conversationId);
+    await this.publishEvent(
+      KAFKA_TOPICS.ANALYTICS_EVENTS,
+      event,
+      event.agentId || event.conversationId
+    );
   }
 
   /**
    * Health check for Kafka connectivity
    */
-  async healthCheck(): Promise<{ status: 'healthy' | 'unhealthy'; details: any }> {
+  async healthCheck(): Promise<{
+    status: 'healthy' | 'unhealthy';
+    details: any;
+  }> {
     try {
       if (!this.isConnected) {
         return { status: 'unhealthy', details: { error: 'Not connected' } };
@@ -329,7 +379,9 @@ export class KafkaService {
       // Test admin connection
       const admin = this.kafka.admin();
       await admin.connect();
-      const metadata = await admin.fetchTopicMetadata({ topics: Object.values(KAFKA_TOPICS) });
+      const metadata = await admin.fetchTopicMetadata({
+        topics: Object.values(KAFKA_TOPICS),
+      });
       await admin.disconnect();
 
       return {
@@ -342,9 +394,11 @@ export class KafkaService {
         },
       };
     } catch (error) {
-      return { 
-        status: 'unhealthy', 
-        details: { error: error instanceof Error ? error.message : 'Unknown error' } 
+      return {
+        status: 'unhealthy',
+        details: {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
       };
     }
   }

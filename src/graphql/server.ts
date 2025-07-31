@@ -16,14 +16,16 @@ import { JWTService } from '../auth/jwt';
 // Context interface
 export interface GraphQLContext {
   db: DatabaseService;
-  user?: {
-    userId: string;
-    email: string;
-    role: string;
-    zendeskId?: string;
-    subdomain?: string;
-    permissions?: string[];
-  };
+  user?:
+    | {
+        userId: string;
+        email: string;
+        role: string;
+        zendeskId?: string | undefined;
+        subdomain?: string | undefined;
+        permissions?: string[] | undefined;
+      }
+    | undefined;
 }
 
 // Custom scalar implementations

@@ -49,7 +49,7 @@ export class ZendeskAuthService {
       if (!state || !subdomain || !user_id || !app_id) {
         res.status(400).json({
           error: 'Missing required OAuth parameters',
-          required: ['state', 'subdomain', 'user_id', 'app_id']
+          required: ['state', 'subdomain', 'user_id', 'app_id'],
         });
         return;
       }
@@ -59,7 +59,7 @@ export class ZendeskAuthService {
         subdomain: subdomain as string,
         userId: user_id as string,
         appId: app_id as string,
-        state: state as string
+        state: state as string,
       });
 
       // Store authorization context temporarily
@@ -68,19 +68,19 @@ export class ZendeskAuthService {
         userId: user_id as string,
         appId: app_id as string,
         state: state as string,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       // Redirect back to Zendesk with authorization code
       const redirectUrl = `https://${subdomain}.zendesk.com/api/v2/oauth/callback`;
       const callbackUrl = `${redirectUrl}?code=${authCode}&state=${state}`;
-      
+
       res.redirect(callbackUrl);
     } catch (error) {
       console.error('Zendesk OAuth authorization error:', error);
       res.status(500).json({
         error: 'Authorization failed',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -95,7 +95,7 @@ export class ZendeskAuthService {
       if (!code || grant_type !== 'authorization_code') {
         res.status(400).json({
           error: 'invalid_request',
-          error_description: 'Missing or invalid authorization code'
+          error_description: 'Missing or invalid authorization code',
         });
         return;
       }
@@ -105,7 +105,7 @@ export class ZendeskAuthService {
       if (!authContext) {
         res.status(400).json({
           error: 'invalid_grant',
-          error_description: 'Invalid or expired authorization code'
+          error_description: 'Invalid or expired authorization code',
         });
         return;
       }
@@ -114,14 +114,14 @@ export class ZendeskAuthService {
       const accessToken = this.generateAccessToken({
         subdomain: authContext.subdomain,
         userId: authContext.userId,
-        appId: authContext.appId
+        appId: authContext.appId,
       });
 
       // Generate refresh token
       const refreshToken = this.generateRefreshToken({
         subdomain: authContext.subdomain,
         userId: authContext.userId,
-        appId: authContext.appId
+        appId: authContext.appId,
       });
 
       // Store app installation
@@ -130,7 +130,7 @@ export class ZendeskAuthService {
         userId: authContext.userId,
         appId: authContext.appId,
         accessToken,
-        refreshToken
+        refreshToken,
       });
 
       // Return OAuth tokens
@@ -139,7 +139,7 @@ export class ZendeskAuthService {
         refresh_token: refreshToken,
         token_type: 'Bearer',
         scope: 'read write',
-        expires_in: 3600 // 1 hour
+        expires_in: 3600, // 1 hour
       };
 
       res.json(tokenResponse);
@@ -147,7 +147,7 @@ export class ZendeskAuthService {
       console.error('Zendesk OAuth token exchange error:', error);
       res.status(500).json({
         error: 'server_error',
-        error_description: 'Token exchange failed'
+        error_description: 'Token exchange failed',
       });
     }
   }
@@ -158,12 +158,16 @@ export class ZendeskAuthService {
   async handleAppInstallation(req: Request, res: Response): Promise<void> {
     try {
       const installation = req.body;
-      
+
       // Validate installation payload
-      if (!installation.subdomain || !installation.app_id || !installation.user_id) {
+      if (
+        !installation.subdomain ||
+        !installation.app_id ||
+        !installation.user_id
+      ) {
         res.status(400).json({
           error: 'Invalid installation payload',
-          required: ['subdomain', 'app_id', 'user_id']
+          required: ['subdomain', 'app_id', 'user_id'],
         });
         return;
       }
@@ -178,7 +182,7 @@ export class ZendeskAuthService {
         appId: installation.app_id,
         installationId: installation.installation_id,
         settings: installation.settings || {},
-        webhookSecret
+        webhookSecret,
       });
 
       // Configure webhook endpoint
@@ -188,13 +192,13 @@ export class ZendeskAuthService {
         status: 'installed',
         installation_id: installationRecord.id,
         webhook_url: `${this.config.zendesk.apiUrl}/webhooks/zendesk/${installationRecord.id}`,
-        webhook_secret: webhookSecret
+        webhook_secret: webhookSecret,
       });
     } catch (error) {
       console.error('Zendesk app installation error:', error);
       res.status(500).json({
         error: 'Installation failed',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -208,7 +212,7 @@ export class ZendeskAuthService {
 
       if (!installation_id) {
         res.status(400).json({
-          error: 'Missing installation_id'
+          error: 'Missing installation_id',
         });
         return;
       }
@@ -218,13 +222,13 @@ export class ZendeskAuthService {
 
       res.status(200).json({
         status: 'uninstalled',
-        installation_id
+        installation_id,
       });
     } catch (error) {
       console.error('Zendesk app uninstallation error:', error);
       res.status(500).json({
         error: 'Uninstallation failed',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -232,11 +236,13 @@ export class ZendeskAuthService {
   /**
    * Validate app access token
    */
-  async validateAccessToken(token: string): Promise<ZendeskAppInstallation | null> {
+  async validateAccessToken(
+    token: string
+  ): Promise<ZendeskAppInstallation | null> {
     try {
       // Verify JWT token
       const payload = jwt.verify(token, this.config.jwt.secret) as any;
-      
+
       if (!payload.subdomain || !payload.userId || !payload.appId) {
         return null;
       }
@@ -273,7 +279,7 @@ export class ZendeskAuthService {
   }): string {
     const payload = {
       ...params,
-      exp: Math.floor(Date.now() / 1000) + 300 // 5 minutes
+      exp: Math.floor(Date.now() / 1000) + 300, // 5 minutes
     };
 
     return jwt.sign(payload, this.config.jwt.secret, { algorithm: 'HS256' });
@@ -290,7 +296,7 @@ export class ZendeskAuthService {
     const payload = {
       ...params,
       type: 'access_token',
-      exp: Math.floor(Date.now() / 1000) + 3600 // 1 hour
+      exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour
     };
 
     return jwt.sign(payload, this.config.jwt.secret, { algorithm: 'HS256' });
@@ -307,7 +313,7 @@ export class ZendeskAuthService {
     const payload = {
       ...params,
       type: 'refresh_token',
-      exp: Math.floor(Date.now() / 1000) + (30 * 24 * 3600) // 30 days
+      exp: Math.floor(Date.now() / 1000) + 30 * 24 * 3600, // 30 days
     };
 
     return jwt.sign(payload, this.config.jwt.secret, { algorithm: 'HS256' });
@@ -316,7 +322,11 @@ export class ZendeskAuthService {
   /**
    * Store authorization context temporarily
    */
-  private async storeAuthContext(code: string, context: any): Promise<void> {
+  private async storeAuthContext(
+    code: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    context: any
+  ): Promise<void> {
     // In a real implementation, you'd store this in Redis or similar
     // For now, we'll use the JWT token itself to store context
     console.log('Storing auth context for code:', code);
@@ -328,7 +338,7 @@ export class ZendeskAuthService {
   private async verifyAuthCode(code: string): Promise<any> {
     try {
       const payload = jwt.verify(code, this.config.jwt.secret) as any;
-      
+
       // Check if code is expired
       if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
         return null;
@@ -362,9 +372,10 @@ export class ZendeskAuthService {
       accessToken: params.accessToken || '',
       refreshToken: params.refreshToken || '',
       settings: params.settings || {},
-      webhookSecret: params.webhookSecret || crypto.randomBytes(32).toString('hex'),
+      webhookSecret:
+        params.webhookSecret || crypto.randomBytes(32).toString('hex'),
       installedAt: new Date(),
-      lastActiveAt: new Date()
+      lastActiveAt: new Date(),
     };
 
     // In a real implementation, store in database
@@ -394,7 +405,7 @@ export class ZendeskAuthService {
       settings: {},
       webhookSecret: 'mock-webhook-secret',
       installedAt: new Date(),
-      lastActiveAt: new Date()
+      lastActiveAt: new Date(),
     };
   }
 
@@ -417,7 +428,9 @@ export class ZendeskAuthService {
   /**
    * Configure webhooks for installation
    */
-  private async configureWebhooks(installation: ZendeskAppInstallation): Promise<void> {
+  private async configureWebhooks(
+    installation: ZendeskAppInstallation
+  ): Promise<void> {
     // Configure webhooks with Zendesk
     const webhookConfig = {
       webhook: {
@@ -426,15 +439,16 @@ export class ZendeskAuthService {
         http_method: 'POST',
         request_format: 'json',
         status: 'active',
-        subscriptions: [
-          'conditional_ticket_events',
-          'ticket_comment_events'
-        ]
-      }
+        subscriptions: ['conditional_ticket_events', 'ticket_comment_events'],
+      },
     };
 
-    console.log('Configuring webhooks for installation:', installation.id, webhookConfig);
-    
+    console.log(
+      'Configuring webhooks for installation:',
+      installation.id,
+      webhookConfig
+    );
+
     // In a real implementation, make API call to Zendesk to configure webhooks
     // This would require Zendesk Admin API access
   }
@@ -466,7 +480,10 @@ export class ZendeskAuthService {
   /**
    * Get installation by webhook endpoint
    */
-  async getInstallationByWebhookEndpoint(installationId: string): Promise<ZendeskAppInstallation | null> {
+  async getInstallationByWebhookEndpoint(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    installationId: string
+  ): Promise<ZendeskAppInstallation | null> {
     return this.getAppInstallation('mock', 'mock', 'mock');
   }
 }

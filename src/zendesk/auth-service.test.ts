@@ -18,18 +18,18 @@ describe('ZendeskAuthService', () => {
 
   beforeEach(() => {
     authService = new ZendeskAuthService();
-    
+
     mockRequest = {
       query: {},
       body: {},
       params: {},
-      headers: {}
+      headers: {},
     };
 
     mockResponse = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn().mockReturnThis(),
-      redirect: jest.fn().mockReturnThis()
+      redirect: jest.fn().mockReturnThis(),
     };
 
     jest.clearAllMocks();
@@ -41,28 +41,36 @@ describe('ZendeskAuthService', () => {
         state: 'test-state',
         subdomain: 'test-company',
         user_id: '12345',
-        app_id: 'app-67890'
+        app_id: 'app-67890',
       };
 
-      await authService.handleAuthorize(mockRequest as Request, mockResponse as Response);
+      await authService.handleAuthorize(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockResponse.redirect).toHaveBeenCalledWith(
-        expect.stringContaining('test-company.zendesk.com/api/v2/oauth/callback')
+        expect.stringContaining(
+          'test-company.zendesk.com/api/v2/oauth/callback'
+        )
       );
     });
 
     it('should reject authorization request with missing parameters', async () => {
       mockRequest.query = {
-        state: 'test-state'
+        state: 'test-state',
         // Missing required parameters
       };
 
-      await authService.handleAuthorize(mockRequest as Request, mockResponse as Response);
+      await authService.handleAuthorize(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith({
         error: 'Missing required OAuth parameters',
-        required: ['state', 'subdomain', 'user_id', 'app_id']
+        required: ['state', 'subdomain', 'user_id', 'app_id'],
       });
     });
 
@@ -71,20 +79,25 @@ describe('ZendeskAuthService', () => {
         state: 'test-state',
         subdomain: 'test-company',
         user_id: '12345',
-        app_id: 'app-67890'
+        app_id: 'app-67890',
       };
 
       // Mock an error in authorization code generation
-      jest.spyOn(authService as any, 'generateAuthCode').mockImplementation(() => {
-        throw new Error('Code generation failed');
-      });
+      jest
+        .spyOn(authService as any, 'generateAuthCode')
+        .mockImplementation(() => {
+          throw new Error('Code generation failed');
+        });
 
-      await authService.handleAuthorize(mockRequest as Request, mockResponse as Response);
+      await authService.handleAuthorize(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith({
         error: 'Authorization failed',
-        message: 'Code generation failed'
+        message: 'Code generation failed',
       });
     });
   });
@@ -93,77 +106,95 @@ describe('ZendeskAuthService', () => {
     it('should exchange valid authorization code for tokens', async () => {
       mockRequest.body = {
         code: 'valid-auth-code',
-        grant_type: 'authorization_code'
+        grant_type: 'authorization_code',
       };
 
       // Mock successful code verification
       jest.spyOn(authService as any, 'verifyAuthCode').mockResolvedValue({
         subdomain: 'test-company',
         userId: '12345',
-        appId: 'app-67890'
+        appId: 'app-67890',
       });
 
       // Mock token generation
-      jest.spyOn(authService as any, 'generateAccessToken').mockReturnValue('access-token');
-      jest.spyOn(authService as any, 'generateRefreshToken').mockReturnValue('refresh-token');
-      jest.spyOn(authService as any, 'storeAppInstallation').mockResolvedValue({});
+      jest
+        .spyOn(authService as any, 'generateAccessToken')
+        .mockReturnValue('access-token');
+      jest
+        .spyOn(authService as any, 'generateRefreshToken')
+        .mockReturnValue('refresh-token');
+      jest
+        .spyOn(authService as any, 'storeAppInstallation')
+        .mockResolvedValue({});
 
-      await authService.handleTokenExchange(mockRequest as Request, mockResponse as Response);
+      await authService.handleTokenExchange(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockResponse.json).toHaveBeenCalledWith({
         access_token: 'access-token',
         refresh_token: 'refresh-token',
         token_type: 'Bearer',
         scope: 'read write',
-        expires_in: 3600
+        expires_in: 3600,
       });
     });
 
     it('should reject invalid authorization code', async () => {
       mockRequest.body = {
         code: 'invalid-code',
-        grant_type: 'authorization_code'
+        grant_type: 'authorization_code',
       };
 
       // Mock failed code verification
       jest.spyOn(authService as any, 'verifyAuthCode').mockResolvedValue(null);
 
-      await authService.handleTokenExchange(mockRequest as Request, mockResponse as Response);
+      await authService.handleTokenExchange(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith({
         error: 'invalid_grant',
-        error_description: 'Invalid or expired authorization code'
+        error_description: 'Invalid or expired authorization code',
       });
     });
 
     it('should reject missing authorization code', async () => {
       mockRequest.body = {
-        grant_type: 'authorization_code'
+        grant_type: 'authorization_code',
         // Missing code
       };
 
-      await authService.handleTokenExchange(mockRequest as Request, mockResponse as Response);
+      await authService.handleTokenExchange(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith({
         error: 'invalid_request',
-        error_description: 'Missing or invalid authorization code'
+        error_description: 'Missing or invalid authorization code',
       });
     });
 
     it('should reject invalid grant type', async () => {
       mockRequest.body = {
         code: 'valid-code',
-        grant_type: 'client_credentials'
+        grant_type: 'client_credentials',
       };
 
-      await authService.handleTokenExchange(mockRequest as Request, mockResponse as Response);
+      await authService.handleTokenExchange(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith({
         error: 'invalid_request',
-        error_description: 'Missing or invalid authorization code'
+        error_description: 'Missing or invalid authorization code',
       });
     });
   });
@@ -177,39 +208,47 @@ describe('ZendeskAuthService', () => {
         installation_id: 'install-123',
         settings: {
           api_url: 'https://api.conversationiq.com',
-          enable_sentiment: true
-        }
+          enable_sentiment: true,
+        },
       };
 
       jest.spyOn(authService as any, 'storeAppInstallation').mockResolvedValue({
         id: 'install-123',
-        webhookSecret: 'webhook-secret'
+        webhookSecret: 'webhook-secret',
       });
-      jest.spyOn(authService as any, 'configureWebhooks').mockResolvedValue(undefined);
+      jest
+        .spyOn(authService as any, 'configureWebhooks')
+        .mockResolvedValue(undefined);
 
-      await authService.handleAppInstallation(mockRequest as Request, mockResponse as Response);
+      await authService.handleAppInstallation(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockResponse.status).toHaveBeenCalledWith(201);
       expect(mockResponse.json).toHaveBeenCalledWith({
         status: 'installed',
         installation_id: 'install-123',
         webhook_url: expect.stringContaining('/webhooks/zendesk/install-123'),
-        webhook_secret: 'webhook-secret'
+        webhook_secret: 'webhook-secret',
       });
     });
 
     it('should reject installation with missing parameters', async () => {
       mockRequest.body = {
-        subdomain: 'test-company'
+        subdomain: 'test-company',
         // Missing required fields
       };
 
-      await authService.handleAppInstallation(mockRequest as Request, mockResponse as Response);
+      await authService.handleAppInstallation(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith({
         error: 'Invalid installation payload',
-        required: ['subdomain', 'app_id', 'user_id']
+        required: ['subdomain', 'app_id', 'user_id'],
       });
     });
   });
@@ -217,28 +256,36 @@ describe('ZendeskAuthService', () => {
   describe('handleAppUninstallation', () => {
     it('should handle valid app uninstallation', async () => {
       mockRequest.params = {
-        installation_id: 'install-123'
+        installation_id: 'install-123',
       };
 
-      jest.spyOn(authService as any, 'removeAppInstallation').mockResolvedValue(undefined);
+      jest
+        .spyOn(authService as any, 'removeAppInstallation')
+        .mockResolvedValue(undefined);
 
-      await authService.handleAppUninstallation(mockRequest as Request, mockResponse as Response);
+      await authService.handleAppUninstallation(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockResponse.status).toHaveBeenCalledWith(200);
       expect(mockResponse.json).toHaveBeenCalledWith({
         status: 'uninstalled',
-        installation_id: 'install-123'
+        installation_id: 'install-123',
       });
     });
 
     it('should reject uninstallation with missing installation_id', async () => {
       mockRequest.params = {};
 
-      await authService.handleAppUninstallation(mockRequest as Request, mockResponse as Response);
+      await authService.handleAppUninstallation(
+        mockRequest as Request,
+        mockResponse as Response
+      );
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith({
-        error: 'Missing installation_id'
+        error: 'Missing installation_id',
       });
     });
   });
@@ -254,7 +301,7 @@ describe('ZendeskAuthService', () => {
         settings: {},
         webhookSecret: 'secret',
         installedAt: new Date(),
-        lastActiveAt: new Date()
+        lastActiveAt: new Date(),
       };
 
       // Mock JWT verification
@@ -262,11 +309,15 @@ describe('ZendeskAuthService', () => {
       jwt.verify.mockReturnValue({
         subdomain: 'test-company',
         userId: '12345',
-        appId: 'app-67890'
+        appId: 'app-67890',
       });
 
-      jest.spyOn(authService as any, 'getAppInstallation').mockResolvedValue(mockInstallation);
-      jest.spyOn(authService as any, 'updateLastActive').mockResolvedValue(undefined);
+      jest
+        .spyOn(authService as any, 'getAppInstallation')
+        .mockResolvedValue(mockInstallation);
+      jest
+        .spyOn(authService as any, 'updateLastActive')
+        .mockResolvedValue(undefined);
 
       const result = await authService.validateAccessToken('valid-token');
 
@@ -290,7 +341,7 @@ describe('ZendeskAuthService', () => {
       // Mock JWT verification with incomplete payload
       const jwt = require('jsonwebtoken');
       jwt.verify.mockReturnValue({
-        subdomain: 'test-company'
+        subdomain: 'test-company',
         // Missing userId and appId
       });
 
@@ -309,7 +360,11 @@ describe('ZendeskAuthService', () => {
         .update(payload)
         .digest('base64');
 
-      const result = authService.verifyWebhookSignature(payload, signature, secret);
+      const result = authService.verifyWebhookSignature(
+        payload,
+        signature,
+        secret
+      );
 
       expect(result).toBe(true);
     });
@@ -319,7 +374,11 @@ describe('ZendeskAuthService', () => {
       const secret = 'webhook-secret';
       const invalidSignature = 'invalid-signature';
 
-      const result = authService.verifyWebhookSignature(payload, invalidSignature, secret);
+      const result = authService.verifyWebhookSignature(
+        payload,
+        invalidSignature,
+        secret
+      );
 
       expect(result).toBe(false);
     });
@@ -329,7 +388,11 @@ describe('ZendeskAuthService', () => {
       const secret = 'webhook-secret';
       const malformedSignature = null as any;
 
-      const result = authService.verifyWebhookSignature(payload, malformedSignature, secret);
+      const result = authService.verifyWebhookSignature(
+        payload,
+        malformedSignature,
+        secret
+      );
 
       expect(result).toBe(false);
     });
@@ -341,7 +404,7 @@ describe('ZendeskAuthService', () => {
         subdomain: 'test-company',
         userId: '12345',
         appId: 'app-67890',
-        state: 'test-state'
+        state: 'test-state',
       };
 
       const code1 = (authService as any).generateAuthCode(params);
@@ -357,7 +420,7 @@ describe('ZendeskAuthService', () => {
       const params = {
         subdomain: 'test-company',
         userId: '12345',
-        appId: 'app-67890'
+        appId: 'app-67890',
       };
 
       const token = (authService as any).generateAccessToken(params);
@@ -370,7 +433,7 @@ describe('ZendeskAuthService', () => {
       const params = {
         subdomain: 'test-company',
         userId: '12345',
-        appId: 'app-67890'
+        appId: 'app-67890',
       };
 
       const token = (authService as any).generateRefreshToken(params);
@@ -391,21 +454,21 @@ describe('ZendeskAuthService Integration', () => {
   it('should handle complete OAuth flow', async () => {
     // This would be an integration test covering the full OAuth flow
     // from authorization to token exchange to installation
-    
+
     // Mock the full flow
     const mockRequest = {
       query: {
         state: 'test-state',
         subdomain: 'test-company',
         user_id: '12345',
-        app_id: 'app-67890'
-      }
+        app_id: 'app-67890',
+      },
     } as Request;
 
     const mockResponse = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn().mockReturnThis(),
-      redirect: jest.fn().mockReturnThis()
+      redirect: jest.fn().mockReturnThis(),
     } as any as Response;
 
     // Test authorization step

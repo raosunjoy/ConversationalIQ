@@ -98,40 +98,52 @@ export class ZendeskWebhookProcessor {
       const payload = JSON.stringify(req.body);
 
       // Validate installation exists
-      const installation = await zendeskAuthService.getInstallationByWebhookEndpoint(installationId!);
+      const installation =
+        await zendeskAuthService.getInstallationByWebhookEndpoint(
+          installationId!
+        );
       if (!installation) {
         res.status(404).json({
           error: 'Installation not found',
-          installationId
+          installationId,
         });
         return;
       }
 
       // Verify webhook signature
-      if (!this.verifyWebhookSignature(payload, signature, installation.webhookSecret)) {
+      if (
+        !this.verifyWebhookSignature(
+          payload,
+          signature,
+          installation.webhookSecret
+        )
+      ) {
         res.status(401).json({
-          error: 'Invalid webhook signature'
+          error: 'Invalid webhook signature',
         });
         return;
       }
 
       // Parse webhook event
       const event = req.body as ZendeskWebhookEvent;
-      
+
       // Validate event structure
       if (!this.validateWebhookEvent(event)) {
         res.status(400).json({
-          error: 'Invalid webhook event structure'
+          error: 'Invalid webhook event structure',
         });
         return;
       }
 
       // Log webhook receipt
-      console.log(`Webhook received: ${event.event_type} for ${event.account.subdomain}`, {
-        eventId: event.id,
-        timestamp: event.event_timestamp,
-        installationId
-      });
+      console.log(
+        `Webhook received: ${event.event_type} for ${event.account.subdomain}`,
+        {
+          eventId: event.id,
+          timestamp: event.event_timestamp,
+          installationId,
+        }
+      );
 
       // Process event based on type
       await this.processEventByType(event, installation);
@@ -144,14 +156,13 @@ export class ZendeskWebhookProcessor {
         status: 'processed',
         eventId: event.id,
         eventType: event.event_type,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-
     } catch (error) {
       console.error('Webhook processing error:', error);
       res.status(500).json({
         error: 'Webhook processing failed',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -159,28 +170,46 @@ export class ZendeskWebhookProcessor {
   /**
    * Process event based on its type
    */
-  private async processEventByType(event: ZendeskWebhookEvent, installation: any): Promise<void> {
+  private async processEventByType(
+    event: ZendeskWebhookEvent,
+    installation: any
+  ): Promise<void> {
     switch (event.event_type) {
       case 'ticket.created':
-        await this.processTicketCreated(event as ZendeskTicketEvent, installation);
+        await this.processTicketCreated(
+          event as ZendeskTicketEvent,
+          installation
+        );
         break;
-        
+
       case 'ticket.updated':
-        await this.processTicketUpdated(event as ZendeskTicketEvent, installation);
+        await this.processTicketUpdated(
+          event as ZendeskTicketEvent,
+          installation
+        );
         break;
-        
+
       case 'ticket.status_changed':
-        await this.processTicketStatusChanged(event as ZendeskTicketEvent, installation);
+        await this.processTicketStatusChanged(
+          event as ZendeskTicketEvent,
+          installation
+        );
         break;
-        
+
       case 'comment.created':
-        await this.processCommentCreated(event as ZendeskCommentEvent, installation);
+        await this.processCommentCreated(
+          event as ZendeskCommentEvent,
+          installation
+        );
         break;
-        
+
       case 'comment.updated':
-        await this.processCommentUpdated(event as ZendeskCommentEvent, installation);
+        await this.processCommentUpdated(
+          event as ZendeskCommentEvent,
+          installation
+        );
         break;
-        
+
       default:
         console.log(`Unhandled webhook event type: ${event.event_type}`);
         // Publish generic webhook event for future processing
@@ -189,7 +218,7 @@ export class ZendeskWebhookProcessor {
           source: 'zendesk',
           eventType: event.event_type,
           payload: event.body,
-          timestamp: event.event_timestamp
+          timestamp: event.event_timestamp,
         });
     }
   }
@@ -197,7 +226,10 @@ export class ZendeskWebhookProcessor {
   /**
    * Process ticket creation event
    */
-  private async processTicketCreated(event: ZendeskTicketEvent, installation: any): Promise<void> {
+  private async processTicketCreated(
+    event: ZendeskTicketEvent,
+    installation: any
+  ): Promise<void> {
     const ticket = event.body.current;
     const conversationId = `zendesk-${ticket.id}`;
 
@@ -206,11 +238,11 @@ export class ZendeskWebhookProcessor {
       await this.dbService.createConversation({
         ticketId: ticket.id.toString(),
         customerId: ticket.requester_id.toString(),
-        agentId: ticket.assignee_id?.toString(),
+        agentId: ticket.assignee_id?.toString() || '',
         status: this.mapZendeskStatusToInternal(ticket.status) as any,
-        subject: ticket.subject,
-        priority: ticket.priority,
-        tags: ticket.tags,
+        subject: ticket.subject || '',
+        priority: ticket.priority || 'normal',
+        tags: ticket.tags || [],
         source: 'zendesk',
         metadata: {
           zendeskTicketId: ticket.id,
@@ -219,8 +251,8 @@ export class ZendeskWebhookProcessor {
           externalId: ticket.external_id,
           organizationId: ticket.organization_id,
           groupId: ticket.group_id,
-          customFields: ticket.custom_fields
-        }
+          customFields: ticket.custom_fields,
+        },
       });
     } catch (error) {
       console.warn('Error creating conversation record:', error);
@@ -238,11 +270,11 @@ export class ZendeskWebhookProcessor {
       metadata: {
         subject: ticket.subject,
         priority: ticket.priority,
-        tags: ticket.tags,
+        tags: ticket.tags || [],
         subdomain: event.account.subdomain,
-        zendeskTicketId: ticket.id
+        zendeskTicketId: ticket.id,
       },
-      timestamp: event.event_timestamp
+      timestamp: event.event_timestamp,
     });
 
     // If ticket has initial description, process it as first message
@@ -254,7 +286,10 @@ export class ZendeskWebhookProcessor {
   /**
    * Process ticket update event
    */
-  private async processTicketUpdated(event: ZendeskTicketEvent, installation: any): Promise<void> {
+  private async processTicketUpdated(
+    event: ZendeskTicketEvent,
+    installation: any
+  ): Promise<void> {
     const ticket = event.body.current;
     const previous = event.body.previous;
     const conversationId = `zendesk-${ticket.id}`;
@@ -267,8 +302,8 @@ export class ZendeskWebhookProcessor {
         status: this.mapZendeskStatusToInternal(ticket.status),
         subject: ticket.subject,
         priority: ticket.priority,
-        tags: ticket.tags,
-        updatedAt: new Date(event.event_timestamp)
+        tags: ticket.tags || [],
+        updatedAt: new Date(event.event_timestamp),
       });
     } catch (error) {
       console.warn('Error updating conversation record:', error);
@@ -285,23 +320,31 @@ export class ZendeskWebhookProcessor {
       metadata: {
         subject: ticket.subject,
         priority: ticket.priority,
-        tags: ticket.tags,
+        tags: ticket.tags || [],
         changes: this.detectTicketChanges(ticket, previous),
-        subdomain: event.account.subdomain
+        subdomain: event.account.subdomain,
       },
-      timestamp: event.event_timestamp
+      timestamp: event.event_timestamp,
     });
 
     // Check for assignment changes
     if (previous && ticket.assignee_id !== previous.assignee_id) {
-      await this.processTicketAssignment(conversationId, ticket, previous, event);
+      await this.processTicketAssignment(
+        conversationId,
+        ticket,
+        previous,
+        event
+      );
     }
   }
 
   /**
    * Process ticket status change event
    */
-  private async processTicketStatusChanged(event: ZendeskTicketEvent, installation: any): Promise<void> {
+  private async processTicketStatusChanged(
+    event: ZendeskTicketEvent,
+    installation: any
+  ): Promise<void> {
     const ticket = event.body.current;
     const previous = event.body.previous;
     const conversationId = `zendesk-${ticket.id}`;
@@ -311,7 +354,7 @@ export class ZendeskWebhookProcessor {
       // Note: updateConversation method needs to be implemented in DatabaseService
       console.log('Would update conversation status:', conversationId, {
         status: this.mapZendeskStatusToInternal(ticket.status),
-        updatedAt: new Date(event.event_timestamp)
+        updatedAt: new Date(event.event_timestamp),
       });
     } catch (error) {
       console.warn('Error updating conversation status:', error);
@@ -328,11 +371,11 @@ export class ZendeskWebhookProcessor {
       metadata: {
         statusChange: {
           from: previous?.status,
-          to: ticket.status
+          to: ticket.status,
         },
-        subdomain: event.account.subdomain
+        subdomain: event.account.subdomain,
       },
-      timestamp: event.event_timestamp
+      timestamp: event.event_timestamp,
     });
 
     // If ticket is closed/solved, trigger analytics calculation
@@ -344,7 +387,10 @@ export class ZendeskWebhookProcessor {
   /**
    * Process comment creation event
    */
-  private async processCommentCreated(event: ZendeskCommentEvent, installation: any): Promise<void> {
+  private async processCommentCreated(
+    event: ZendeskCommentEvent,
+    installation: any
+  ): Promise<void> {
     const comment = event.body.current;
     const conversationId = `zendesk-${event.subject}`;
     const messageId = `zendesk-comment-${comment.id}`;
@@ -366,8 +412,8 @@ export class ZendeskWebhookProcessor {
           isPublic: comment.public,
           via: comment.via,
           attachments: comment.attachments,
-          subdomain: event.account.subdomain
-        }
+          subdomain: event.account.subdomain,
+        },
       });
     } catch (error) {
       console.warn('Error creating message record:', error);
@@ -386,9 +432,9 @@ export class ZendeskWebhookProcessor {
         isPublic: comment.public,
         hasAttachments: comment.attachments && comment.attachments.length > 0,
         channel: comment.via?.channel,
-        subdomain: event.account.subdomain
+        subdomain: event.account.subdomain,
       },
-      timestamp: event.event_timestamp
+      timestamp: event.event_timestamp,
     });
 
     // Trigger real-time sentiment analysis if enabled
@@ -397,7 +443,10 @@ export class ZendeskWebhookProcessor {
     }
 
     // Trigger response suggestions if this is a customer message
-    if (sender === 'CUSTOMER' && installation.settings?.enable_response_suggestions !== false) {
+    if (
+      sender === 'CUSTOMER' &&
+      installation.settings?.enable_response_suggestions !== false
+    ) {
       await this.triggerResponseSuggestions(conversationId, comment, event);
     }
   }
@@ -405,7 +454,10 @@ export class ZendeskWebhookProcessor {
   /**
    * Process comment update event
    */
-  private async processCommentUpdated(event: ZendeskCommentEvent, installation: any): Promise<void> {
+  private async processCommentUpdated(
+    event: ZendeskCommentEvent,
+    installation: any
+  ): Promise<void> {
     const comment = event.body.current;
     const conversationId = `zendesk-${event.subject}`;
     const messageId = `zendesk-comment-${comment.id}`;
@@ -416,7 +468,7 @@ export class ZendeskWebhookProcessor {
       console.log('Would update message:', messageId, {
         content: comment.plain_body || comment.body,
         htmlContent: comment.html_body,
-        updatedAt: new Date(event.event_timestamp)
+        updatedAt: new Date(event.event_timestamp),
       });
     } catch (error) {
       console.warn('Error updating message record:', error);
@@ -432,9 +484,9 @@ export class ZendeskWebhookProcessor {
       metadata: {
         zendeskCommentId: comment.id,
         updated: true,
-        subdomain: event.account.subdomain
+        subdomain: event.account.subdomain,
       },
-      timestamp: event.event_timestamp
+      timestamp: event.event_timestamp,
     });
   }
 
@@ -459,8 +511,8 @@ export class ZendeskWebhookProcessor {
           zendeskTicketId: ticket.id,
           isInitialDescription: true,
           requesterId: ticket.requester_id.toString(),
-          subdomain: event.account.subdomain
-        }
+          subdomain: event.account.subdomain,
+        },
       });
     } catch (error) {
       console.warn('Error creating initial message:', error);
@@ -477,9 +529,9 @@ export class ZendeskWebhookProcessor {
         zendeskTicketId: ticket.id,
         isInitialDescription: true,
         requesterId: ticket.requester_id.toString(),
-        subdomain: event.account.subdomain
+        subdomain: event.account.subdomain,
       },
-      timestamp: event.event_timestamp
+      timestamp: event.event_timestamp,
     });
   }
 
@@ -504,9 +556,9 @@ export class ZendeskWebhookProcessor {
         previousAgentId: previous.assignee_id?.toString(),
         ticketId: ticket.id.toString(),
         subdomain: event.account.subdomain,
-        assignmentTime: event.event_timestamp
+        assignmentTime: event.event_timestamp,
       },
-      timestamp: event.event_timestamp
+      timestamp: event.event_timestamp,
     });
   }
 
@@ -531,10 +583,10 @@ export class ZendeskWebhookProcessor {
         metadata: {
           commentId: comment.id,
           authorId: comment.author_id,
-          subdomain: event.account.subdomain
-        }
+          subdomain: event.account.subdomain,
+        },
       },
-      timestamp: event.event_timestamp
+      timestamp: event.event_timestamp,
     });
   }
 
@@ -557,10 +609,10 @@ export class ZendeskWebhookProcessor {
         metadata: {
           commentId: comment.id,
           authorId: comment.author_id,
-          subdomain: event.account.subdomain
-        }
+          subdomain: event.account.subdomain,
+        },
       },
-      timestamp: event.event_timestamp
+      timestamp: event.event_timestamp,
     });
   }
 
@@ -582,29 +634,39 @@ export class ZendeskWebhookProcessor {
         ticketId: event.body.current.id.toString(),
         status: event.body.current.status,
         subdomain: event.account.subdomain,
-        completedAt: event.event_timestamp
+        completedAt: event.event_timestamp,
       },
-      timestamp: event.event_timestamp
+      timestamp: event.event_timestamp,
     });
   }
 
   /**
    * Verify webhook signature
    */
-  private verifyWebhookSignature(payload: string, signature: string, secret: string): boolean {
-    return zendeskAuthService.verifyWebhookSignature(payload, signature, secret);
+  private verifyWebhookSignature(
+    payload: string,
+    signature: string,
+    secret: string
+  ): boolean {
+    return zendeskAuthService.verifyWebhookSignature(
+      payload,
+      signature,
+      secret
+    );
   }
 
   /**
    * Validate webhook event structure
    */
   private validateWebhookEvent(event: any): event is ZendeskWebhookEvent {
-    return event &&
-           typeof event.id === 'string' &&
-           typeof event.event_type === 'string' &&
-           typeof event.event_timestamp === 'string' &&
-           event.account &&
-           typeof event.account.subdomain === 'string';
+    return (
+      event &&
+      typeof event.id === 'string' &&
+      typeof event.event_type === 'string' &&
+      typeof event.event_timestamp === 'string' &&
+      event.account &&
+      typeof event.account.subdomain === 'string'
+    );
   }
 
   /**
@@ -612,12 +674,12 @@ export class ZendeskWebhookProcessor {
    */
   private mapZendeskStatusToInternal(zendeskStatus: string): string {
     const statusMap: Record<string, string> = {
-      'new': 'OPEN',
-      'open': 'OPEN',
-      'pending': 'WAITING',
-      'hold': 'ON_HOLD',
-      'solved': 'RESOLVED',
-      'closed': 'CLOSED'
+      new: 'OPEN',
+      open: 'OPEN',
+      pending: 'WAITING',
+      hold: 'ON_HOLD',
+      solved: 'RESOLVED',
+      closed: 'CLOSED',
     };
 
     return statusMap[zendeskStatus] || 'OPEN';
@@ -626,7 +688,10 @@ export class ZendeskWebhookProcessor {
   /**
    * Detect changes between current and previous ticket
    */
-  private detectTicketChanges(current: ZendeskTicket, previous?: ZendeskTicket): Record<string, any> {
+  private detectTicketChanges(
+    current: ZendeskTicket,
+    previous?: ZendeskTicket
+  ): Record<string, any> {
     if (!previous) return {};
 
     const changes: Record<string, any> = {};
@@ -643,7 +708,10 @@ export class ZendeskWebhookProcessor {
 
     // Check for assignee changes
     if (current.assignee_id !== previous.assignee_id) {
-      changes.assignee = { from: previous.assignee_id, to: current.assignee_id };
+      changes.assignee = {
+        from: previous.assignee_id,
+        to: current.assignee_id,
+      };
     }
 
     // Check for subject changes
@@ -652,7 +720,10 @@ export class ZendeskWebhookProcessor {
     }
 
     // Check for tag changes
-    if (JSON.stringify(current.tags?.sort()) !== JSON.stringify(previous.tags?.sort())) {
+    if (
+      JSON.stringify(current.tags?.sort()) !==
+      JSON.stringify(previous.tags?.sort())
+    ) {
       changes.tags = { from: previous.tags, to: current.tags };
     }
 
@@ -662,14 +733,17 @@ export class ZendeskWebhookProcessor {
   /**
    * Store webhook event for audit trail
    */
-  private async storeWebhookEvent(event: ZendeskWebhookEvent, installationId: string): Promise<void> {
+  private async storeWebhookEvent(
+    event: ZendeskWebhookEvent,
+    installationId: string
+  ): Promise<void> {
     try {
       // In a real implementation, you'd store this in a webhook_events table
       console.log('Storing webhook event for audit:', {
         eventId: event.id,
         eventType: event.event_type,
         installationId,
-        timestamp: event.event_timestamp
+        timestamp: event.event_timestamp,
       });
     } catch (error) {
       console.error('Error storing webhook event:', error);
@@ -679,12 +753,16 @@ export class ZendeskWebhookProcessor {
   /**
    * Get webhook processing statistics
    */
-  getStats(): { processed: number; errors: number; types: Record<string, number> } {
+  getStats(): {
+    processed: number;
+    errors: number;
+    types: Record<string, number>;
+  } {
     // In a real implementation, you'd maintain these statistics
     return {
       processed: 0,
       errors: 0,
-      types: {}
+      types: {},
     };
   }
 }

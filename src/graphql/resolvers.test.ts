@@ -9,6 +9,7 @@ import { DatabaseService } from '../services/database';
 
 // Mock the database service
 jest.mock('../services/database');
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const mockDatabaseService = jest.mocked(DatabaseService);
 
 describe('GraphQL Resolvers', () => {

@@ -74,7 +74,7 @@ healthRoutes.get(
       // Check Kafka health (only in non-test environments)
       let kafkaStatus = 'skipped';
       let kafkaInfo: any = { status: 'disabled' };
-      
+
       const config = getConfig();
       if (config.environment !== 'test') {
         try {
@@ -94,7 +94,7 @@ healthRoutes.get(
       // Check event processor health (only in non-test environments)
       let processorStatus = 'skipped';
       let processorInfo: any = { status: 'disabled' };
-      
+
       if (config.environment !== 'test') {
         try {
           const eventProcessor = getEventProcessor();
@@ -115,7 +115,7 @@ healthRoutes.get(
       if (config.environment !== 'test') {
         healthyServices.push(kafkaStatus, processorStatus);
       }
-      
+
       const isReady = healthyServices.every(status => status === 'healthy');
       const statusCode = isReady ? 200 : 503;
       const status = isReady ? 'ready' : 'not ready';

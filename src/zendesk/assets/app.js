@@ -3,7 +3,7 @@
  * Handles communication with Zendesk Apps Framework and ConversationIQ API
  */
 
-(function() {
+(function () {
   'use strict';
 
   // App state management
@@ -16,7 +16,7 @@
     sentimentData: null,
     suggestions: [],
     analytics: {},
-    isInitialized: false
+    isInitialized: false,
   };
 
   // API configuration
@@ -26,8 +26,8 @@
       sentiment: '/api/v1/sentiment',
       suggestions: '/api/v1/suggestions',
       analytics: '/api/v1/analytics',
-      events: '/api/v1/events'
-    }
+      events: '/api/v1/events',
+    },
   };
 
   // WebSocket connection for real-time updates
@@ -41,7 +41,7 @@
 
     // Initialize Zendesk Apps Framework client
     ZAFClient.init()
-      .then(function(client) {
+      .then(function (client) {
         AppState.client = client;
         console.log('ConversationIQ: Zendesk client initialized');
 
@@ -50,10 +50,10 @@
           client.metadata(),
           client.context(),
           client.get('currentUser'),
-          client.get('ticket')
+          client.get('ticket'),
         ]);
       })
-      .then(function([metadata, context, currentUser, ticket]) {
+      .then(function ([metadata, context, currentUser, ticket]) {
         AppState.settings = metadata.settings;
         AppState.context = context;
         AppState.currentUser = currentUser.currentUser;
@@ -61,38 +61,40 @@
 
         // Validate required settings
         if (!AppState.settings.api_url || !AppState.settings.api_key) {
-          throw new Error('Missing required app configuration. Please configure API URL and API Key in app settings.');
+          throw new Error(
+            'Missing required app configuration. Please configure API URL and API Key in app settings.'
+          );
         }
 
         API_CONFIG.baseUrl = AppState.settings.api_url;
 
         console.log('ConversationIQ: App context loaded', {
           ticketId: AppState.currentTicket?.id,
-          userId: AppState.currentUser?.id
+          userId: AppState.currentUser?.id,
         });
 
         // Initialize API connection
         return initializeApiConnection();
       })
-      .then(function() {
+      .then(function () {
         // Initialize UI components
         initializeUI();
-        
+
         // Setup event listeners
         setupEventListeners();
-        
+
         // Load initial data
         return loadInitialData();
       })
-      .then(function() {
+      .then(function () {
         AppState.isInitialized = true;
         hideLoadingState();
         showApp();
         updateConnectionStatus('connected');
-        
+
         console.log('ConversationIQ: App fully initialized');
       })
-      .catch(function(error) {
+      .catch(function (error) {
         console.error('ConversationIQ: Initialization error:', error);
         showError(error.message || 'Failed to initialize ConversationIQ');
       });
@@ -102,20 +104,20 @@
    * Initialize API connection and authentication
    */
   function initializeApiConnection() {
-    return new Promise(function(resolve, reject) {
+    return new Promise(function (resolve, reject) {
       // Test API connection
       makeApiRequest('GET', '/health')
-        .then(function(response) {
+        .then(function (response) {
           console.log('ConversationIQ: API connection established');
-          
+
           // Initialize WebSocket connection for real-time updates
           if (AppState.settings.enable_realtime !== false) {
             initializeWebSocket();
           }
-          
+
           resolve();
         })
-        .catch(function(error) {
+        .catch(function (error) {
           console.error('ConversationIQ: API connection failed:', error);
           reject(new Error('Unable to connect to ConversationIQ API'));
         });
@@ -129,32 +131,34 @@
     if (!API_CONFIG.baseUrl) return;
 
     const wsUrl = API_CONFIG.baseUrl.replace(/^http/, 'ws') + '/graphql';
-    
+
     try {
       wsConnection = new WebSocket(wsUrl, 'graphql-ws');
-      
-      wsConnection.onopen = function() {
+
+      wsConnection.onopen = function () {
         console.log('ConversationIQ: WebSocket connected');
-        
+
         // Send connection init message
-        wsConnection.send(JSON.stringify({
-          type: 'connection_init',
-          payload: {
-            authorization: 'Bearer ' + AppState.settings.api_key
-          }
-        }));
+        wsConnection.send(
+          JSON.stringify({
+            type: 'connection_init',
+            payload: {
+              authorization: 'Bearer ' + AppState.settings.api_key,
+            },
+          })
+        );
       };
 
-      wsConnection.onmessage = function(event) {
+      wsConnection.onmessage = function (event) {
         const message = JSON.parse(event.data);
         handleWebSocketMessage(message);
       };
 
-      wsConnection.onerror = function(error) {
+      wsConnection.onerror = function (error) {
         console.error('ConversationIQ: WebSocket error:', error);
       };
 
-      wsConnection.onclose = function() {
+      wsConnection.onclose = function () {
         console.log('ConversationIQ: WebSocket disconnected');
         // Attempt reconnection after 5 seconds
         setTimeout(initializeWebSocket, 5000);
@@ -173,13 +177,13 @@
         console.log('ConversationIQ: WebSocket connection acknowledged');
         subscribeToRealTimeUpdates();
         break;
-        
+
       case 'data':
         if (message.payload && message.payload.data) {
           handleRealTimeUpdate(message.payload.data);
         }
         break;
-        
+
       case 'error':
         console.error('ConversationIQ: WebSocket error:', message.payload);
         break;
@@ -210,9 +214,9 @@
           }
         `,
         variables: {
-          conversationId: `zendesk-${AppState.currentTicket.id}`
-        }
-      }
+          conversationId: `zendesk-${AppState.currentTicket.id}`,
+        },
+      },
     };
 
     wsConnection.send(JSON.stringify(subscription));
@@ -225,11 +229,11 @@
     if (data.sentimentAnalyzed) {
       updateSentimentDisplay(data.sentimentAnalyzed);
     }
-    
+
     if (data.messageAdded) {
       addMessageToTimeline(data.messageAdded);
     }
-    
+
     if (data.responseSuggested) {
       updateSuggestions([data.responseSuggested]);
     }
@@ -243,18 +247,22 @@
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
 
-    tabButtons.forEach(function(button) {
-      button.addEventListener('click', function() {
+    tabButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
         const targetTab = this.dataset.tab;
-        
+
         // Update active tab button
-        tabButtons.forEach(function(btn) { btn.classList.remove('active'); });
+        tabButtons.forEach(function (btn) {
+          btn.classList.remove('active');
+        });
         this.classList.add('active');
-        
+
         // Update active tab content
-        tabContents.forEach(function(content) { content.classList.remove('active'); });
+        tabContents.forEach(function (content) {
+          content.classList.remove('active');
+        });
         document.getElementById(targetTab + '-tab').classList.add('active');
-        
+
         // Load tab-specific data
         loadTabData(targetTab);
       });
@@ -262,13 +270,15 @@
 
     // Filter buttons
     const filterButtons = document.querySelectorAll('.filter-btn');
-    filterButtons.forEach(function(button) {
-      button.addEventListener('click', function() {
+    filterButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
         const filter = this.dataset.filter;
-        
-        filterButtons.forEach(function(btn) { btn.classList.remove('active'); });
+
+        filterButtons.forEach(function (btn) {
+          btn.classList.remove('active');
+        });
         this.classList.add('active');
-        
+
         applyTimelineFilter(filter);
       });
     });
@@ -276,7 +286,7 @@
     // Refresh suggestions button
     const refreshBtn = document.getElementById('refresh-suggestions');
     if (refreshBtn) {
-      refreshBtn.addEventListener('click', function() {
+      refreshBtn.addEventListener('click', function () {
         loadSuggestions(true);
       });
     }
@@ -284,16 +294,16 @@
     // FAB menu
     const fab = document.getElementById('quick-action-fab');
     const fabMenu = document.getElementById('fab-menu');
-    
+
     if (fab && fabMenu) {
-      fab.addEventListener('click', function() {
+      fab.addEventListener('click', function () {
         fabMenu.classList.toggle('hidden');
       });
 
       // FAB menu items
       const fabMenuItems = document.querySelectorAll('.fab-menu-item');
-      fabMenuItems.forEach(function(item) {
-        item.addEventListener('click', function() {
+      fabMenuItems.forEach(function (item) {
+        item.addEventListener('click', function () {
           const action = this.dataset.action;
           handleQuickAction(action);
           fabMenu.classList.add('hidden');
@@ -304,7 +314,7 @@
     // Retry button
     const retryBtn = document.getElementById('retry-btn');
     if (retryBtn) {
-      retryBtn.addEventListener('click', function() {
+      retryBtn.addEventListener('click', function () {
         location.reload();
       });
     }
@@ -317,19 +327,19 @@
     if (!AppState.client) return;
 
     // Listen for ticket updates
-    AppState.client.on('ticket.updated', function(data) {
+    AppState.client.on('ticket.updated', function (data) {
       console.log('ConversationIQ: Ticket updated', data);
       handleTicketUpdate(data);
     });
 
     // Listen for ticket comments (new messages)
-    AppState.client.on('ticket.comments.created', function(data) {
+    AppState.client.on('ticket.comments.created', function (data) {
       console.log('ConversationIQ: New comment created', data);
       handleNewComment(data);
     });
 
     // Listen for app resize events
-    AppState.client.on('app.resize', function(data) {
+    AppState.client.on('app.resize', function (data) {
       handleAppResize(data);
     });
   }
@@ -353,7 +363,7 @@
     // Load analytics data
     promises.push(loadAnalytics());
 
-    return Promise.all(promises).catch(function(error) {
+    return Promise.all(promises).catch(function (error) {
       console.error('ConversationIQ: Error loading initial data:', error);
       // Don't fail completely, just log the error
     });
@@ -366,14 +376,14 @@
     if (!AppState.currentTicket) return Promise.resolve();
 
     const conversationId = `zendesk-${AppState.currentTicket.id}`;
-    
+
     return makeApiRequest('GET', `/api/v1/sentiment/${conversationId}`)
-      .then(function(data) {
+      .then(function (data) {
         AppState.sentimentData = data;
         updateSentimentDisplay(data);
         updateMessageTimeline(data.messages || []);
       })
-      .catch(function(error) {
+      .catch(function (error) {
         console.error('ConversationIQ: Error loading sentiment data:', error);
       });
   }
@@ -386,13 +396,13 @@
 
     const conversationId = `zendesk-${AppState.currentTicket.id}`;
     const url = `/api/v1/suggestions/${conversationId}${forceRefresh ? '?refresh=true' : ''}`;
-    
+
     return makeApiRequest('GET', url)
-      .then(function(data) {
+      .then(function (data) {
         AppState.suggestions = data.suggestions || [];
         updateSuggestionsDisplay(AppState.suggestions);
       })
-      .catch(function(error) {
+      .catch(function (error) {
         console.error('ConversationIQ: Error loading suggestions:', error);
       });
   }
@@ -404,13 +414,13 @@
     if (!AppState.currentTicket) return Promise.resolve();
 
     const conversationId = `zendesk-${AppState.currentTicket.id}`;
-    
+
     return makeApiRequest('GET', `/api/v1/analytics/${conversationId}`)
-      .then(function(data) {
+      .then(function (data) {
         AppState.analytics = data;
         updateAnalyticsDisplay(data);
       })
-      .catch(function(error) {
+      .catch(function (error) {
         console.error('ConversationIQ: Error loading analytics:', error);
       });
   }
@@ -421,11 +431,11 @@
   function updateSentimentDisplay(data) {
     const scoreElement = document.getElementById('sentiment-score');
     const indicatorElement = document.getElementById('sentiment-indicator');
-    
+
     if (scoreElement && data.sentimentScore !== undefined) {
       const score = Math.round(data.sentimentScore * 100);
       scoreElement.textContent = score > 0 ? `+${score}` : score.toString();
-      
+
       // Update indicator class based on sentiment
       indicatorElement.className = 'sentiment-indicator';
       if (score > 20) {
@@ -447,7 +457,7 @@
 
     timelineList.innerHTML = '';
 
-    messages.forEach(function(message) {
+    messages.forEach(function (message) {
       const item = createTimelineItem(message);
       timelineList.appendChild(item);
     });
@@ -459,12 +469,20 @@
   function createTimelineItem(message) {
     const item = document.createElement('div');
     item.className = 'timeline-item';
-    
-    const sentimentClass = message.sentimentScore > 0.2 ? 'positive' : 
-                          message.sentimentScore < -0.2 ? 'negative' : 'neutral';
-    
-    const sentimentIcon = sentimentClass === 'positive' ? '😊' : 
-                         sentimentClass === 'negative' ? '😞' : '😐';
+
+    const sentimentClass =
+      message.sentimentScore > 0.2
+        ? 'positive'
+        : message.sentimentScore < -0.2
+          ? 'negative'
+          : 'neutral';
+
+    const sentimentIcon =
+      sentimentClass === 'positive'
+        ? '😊'
+        : sentimentClass === 'negative'
+          ? '😞'
+          : '😐';
 
     item.innerHTML = `
       <div class="timeline-sentiment ${sentimentClass}">
@@ -493,11 +511,12 @@
     suggestionsContainer.innerHTML = '';
 
     if (!suggestions || suggestions.length === 0) {
-      suggestionsContainer.innerHTML = '<p class="text-center" style="color: #68737d; padding: 20px;">No suggestions available</p>';
+      suggestionsContainer.innerHTML =
+        '<p class="text-center" style="color: #68737d; padding: 20px;">No suggestions available</p>';
       return;
     }
 
-    suggestions.forEach(function(suggestion) {
+    suggestions.forEach(function (suggestion) {
       const card = createSuggestionCard(suggestion);
       suggestionsContainer.appendChild(card);
     });
@@ -509,9 +528,9 @@
   function createSuggestionCard(suggestion) {
     const card = document.createElement('div');
     card.className = 'suggestion-card';
-    
+
     const confidence = Math.round(suggestion.confidence * 100);
-    
+
     card.innerHTML = `
       <div class="suggestion-header">
         <div class="suggestion-type">${suggestion.type || 'Response'}</div>
@@ -545,14 +564,16 @@
     }
 
     if (sentimentTrend && data.sentimentTrend) {
-      const trend = data.sentimentTrend > 0 ? '↗️' : data.sentimentTrend < 0 ? '↘️' : '→';
+      const trend =
+        data.sentimentTrend > 0 ? '↗️' : data.sentimentTrend < 0 ? '↘️' : '→';
       sentimentTrend.textContent = trend;
     }
 
     if (escalationRisk && data.escalationRisk !== undefined) {
       const risk = Math.round(data.escalationRisk * 100);
       escalationRisk.textContent = `${risk}%`;
-      escalationRisk.style.color = risk > 70 ? '#d93651' : risk > 40 ? '#ffd93d' : '#30aabc';
+      escalationRisk.style.color =
+        risk > 70 ? '#d93651' : risk > 40 ? '#ffd93d' : '#30aabc';
     }
 
     // Update insights
@@ -568,17 +589,17 @@
 
     insightsContainer.innerHTML = '';
 
-    insights.forEach(function(insight) {
+    insights.forEach(function (insight) {
       const item = document.createElement('div');
       item.className = 'insight-item';
-      
+
       const icon = getInsightIcon(insight.type);
-      
+
       item.innerHTML = `
         <span class="insight-icon">${icon}</span>
         <span>${escapeHtml(insight.message)}</span>
       `;
-      
+
       insightsContainer.appendChild(item);
     });
   }
@@ -599,7 +620,10 @@
         }
         break;
       case 'analytics':
-        if (!AppState.analytics || Object.keys(AppState.analytics).length === 0) {
+        if (
+          !AppState.analytics ||
+          Object.keys(AppState.analytics).length === 0
+        ) {
           loadAnalytics();
         }
         break;
@@ -626,14 +650,15 @@
   /**
    * Apply suggestion to Zendesk comment
    */
-  window.applySuggestion = function(text) {
+  window.applySuggestion = function (text) {
     if (!AppState.client) return;
 
-    AppState.client.invoke('comment.text', text)
-      .then(function() {
+    AppState.client
+      .invoke('comment.text', text)
+      .then(function () {
         console.log('ConversationIQ: Suggestion applied');
       })
-      .catch(function(error) {
+      .catch(function (error) {
         console.error('ConversationIQ: Error applying suggestion:', error);
       });
   };
@@ -641,13 +666,16 @@
   /**
    * Copy suggestion to clipboard
    */
-  window.copySuggestion = function(text) {
-    navigator.clipboard.writeText(text).then(function() {
-      console.log('ConversationIQ: Suggestion copied to clipboard');
-      // Could show a toast notification here
-    }).catch(function(error) {
-      console.error('ConversationIQ: Error copying to clipboard:', error);
-    });
+  window.copySuggestion = function (text) {
+    navigator.clipboard
+      .writeText(text)
+      .then(function () {
+        console.log('ConversationIQ: Suggestion copied to clipboard');
+        // Could show a toast notification here
+      })
+      .catch(function (error) {
+        console.error('ConversationIQ: Error copying to clipboard:', error);
+      });
   };
 
   /**
@@ -655,28 +683,29 @@
    */
   function makeApiRequest(method, endpoint, data = null) {
     const url = API_CONFIG.baseUrl + endpoint;
-    
+
     const options = {
       method: method,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + AppState.settings.api_key,
+        Authorization: 'Bearer ' + AppState.settings.api_key,
         'X-Zendesk-User-Id': AppState.currentUser?.id,
-        'X-Zendesk-Ticket-Id': AppState.currentTicket?.id
-      }
+        'X-Zendesk-Ticket-Id': AppState.currentTicket?.id,
+      },
     };
 
     if (data) {
       options.body = JSON.stringify(data);
     }
 
-    return fetch(url, options)
-      .then(function(response) {
-        if (!response.ok) {
-          throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-        }
-        return response.json();
-      });
+    return fetch(url, options).then(function (response) {
+      if (!response.ok) {
+        throw new Error(
+          `API request failed: ${response.status} ${response.statusText}`
+        );
+      }
+      return response.json();
+    });
   }
 
   /**
@@ -684,13 +713,13 @@
    */
   function updateConnectionStatus(status) {
     AppState.connectionStatus = status;
-    
+
     const indicator = document.getElementById('connection-indicator');
     const text = document.getElementById('connection-text');
-    
+
     if (indicator && text) {
       indicator.className = `status-indicator ${status}`;
-      
+
       switch (status) {
         case 'connected':
           text.textContent = 'Connected';
@@ -760,24 +789,27 @@
 
   function getInsightIcon(type) {
     const icons = {
-      'positive': '✅',
-      'negative': '⚠️',
-      'neutral': 'ℹ️',
-      'escalation': '🚨',
-      'trend': '📈'
+      positive: '✅',
+      negative: '⚠️',
+      neutral: 'ℹ️',
+      escalation: '🚨',
+      trend: '📈',
     };
     return icons[type] || 'ℹ️';
   }
 
   function applyTimelineFilter(filter) {
     const items = document.querySelectorAll('.timeline-item');
-    
-    items.forEach(function(item) {
+
+    items.forEach(function (item) {
       const sentimentElement = item.querySelector('.timeline-sentiment');
-      const shouldShow = filter === 'all' || 
-                        (filter === 'negative' && sentimentElement.classList.contains('negative')) ||
-                        (filter === 'alerts' && sentimentElement.classList.contains('negative'));
-      
+      const shouldShow =
+        filter === 'all' ||
+        (filter === 'negative' &&
+          sentimentElement.classList.contains('negative')) ||
+        (filter === 'alerts' &&
+          sentimentElement.classList.contains('negative'));
+
       item.style.display = shouldShow ? 'flex' : 'none';
     });
   }
@@ -805,12 +837,13 @@
   // Quick action implementations (placeholder functions)
   function escalateTicket() {
     if (!AppState.client) return;
-    
-    AppState.client.invoke('ticket.tags.add', ['escalated', 'conversationiq-escalation'])
-      .then(function() {
+
+    AppState.client
+      .invoke('ticket.tags.add', ['escalated', 'conversationiq-escalation'])
+      .then(function () {
         console.log('ConversationIQ: Ticket escalated');
       })
-      .catch(function(error) {
+      .catch(function (error) {
         console.error('ConversationIQ: Error escalating ticket:', error);
       });
   }
@@ -818,11 +851,12 @@
   function addTicketTag() {
     const tag = prompt('Enter tag to add:');
     if (tag && AppState.client) {
-      AppState.client.invoke('ticket.tags.add', [tag])
-        .then(function() {
+      AppState.client
+        .invoke('ticket.tags.add', [tag])
+        .then(function () {
           console.log('ConversationIQ: Tag added');
         })
-        .catch(function(error) {
+        .catch(function (error) {
           console.error('ConversationIQ: Error adding tag:', error);
         });
     }
@@ -831,11 +865,15 @@
   function addPrivateNote() {
     const note = prompt('Enter private note:');
     if (note && AppState.client) {
-      AppState.client.invoke('comment.appendText', `\n\n--- ConversationIQ Note ---\n${note}`)
-        .then(function() {
+      AppState.client
+        .invoke(
+          'comment.appendText',
+          `\n\n--- ConversationIQ Note ---\n${note}`
+        )
+        .then(function () {
           console.log('ConversationIQ: Private note added');
         })
-        .catch(function(error) {
+        .catch(function (error) {
           console.error('ConversationIQ: Error adding note:', error);
         });
     }
@@ -847,5 +885,4 @@
   } else {
     initializeApp();
   }
-
 })();

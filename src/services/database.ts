@@ -18,10 +18,15 @@ import type {
 } from '@prisma/client';
 
 export interface CreateConversationData {
+  ticketId?: string;
   zendeskTicketId?: string;
   zendeskChatId?: string;
   customerId: string;
   agentId: string;
+  subject?: string;
+  priority?: string;
+  tags?: string[];
+  source?: string;
   status: ConversationStatus;
   metadata?: Prisma.InputJsonValue;
 }
@@ -31,7 +36,9 @@ export interface CreateMessageData {
   content: string;
   senderType: SenderType;
   senderId: string;
+  source?: string;
   aiAnalysis?: Prisma.InputJsonValue;
+  metadata?: Prisma.InputJsonValue;
 }
 
 export interface CreateResponseSuggestionData {
@@ -175,6 +182,22 @@ export class DatabaseService {
   }
 
   /**
+   * Update conversation
+   * @param id - Conversation ID
+   * @param data - Update data
+   * @returns Updated conversation
+   */
+  async updateConversation(
+    id: string,
+    data: Partial<CreateConversationData>
+  ): Promise<Conversation> {
+    return await this.prisma.conversation.update({
+      where: { id },
+      data,
+    });
+  }
+
+  /**
    * Update conversation status
    * @param id - Conversation ID
    * @param status - New status
@@ -216,6 +239,17 @@ export class DatabaseService {
     return await this.prisma.message.update({
       where: { id: messageId },
       data: { aiAnalysis: analysis as Prisma.InputJsonValue },
+    });
+  }
+
+  /**
+   * Find a message by ID
+   * @param messageId - Message ID
+   * @returns Message or null
+   */
+  async findMessageById(messageId: string): Promise<Message | null> {
+    return await this.prisma.message.findUnique({
+      where: { id: messageId },
     });
   }
 

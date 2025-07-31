@@ -5,9 +5,37 @@
 
 import { PubSub, withFilter } from 'graphql-subscriptions';
 import { GraphQLContext } from './server';
+import { GraphQLError } from 'graphql';
+
+// Helper function for subscription authentication
+function requireAuthForSubscription(context: GraphQLContext | undefined): void {
+  if (!context || !context.user) {
+    throw new GraphQLError('Authentication required for subscription', {
+      extensions: { code: 'UNAUTHENTICATED' },
+    });
+  }
+}
+
+// Helper function for subscription role checking
+function requireRole(
+  context: GraphQLContext | undefined,
+  allowedRoles: string[]
+): void {
+  requireAuthForSubscription(context);
+  if (!context || !allowedRoles.includes(context.user?.role || '')) {
+    throw new GraphQLError(
+      `${allowedRoles.join(' or ')} role required for subscription`,
+      {
+        extensions: { code: 'FORBIDDEN' },
+      }
+    );
+  }
+}
 
 // Create PubSub instance for managing subscriptions
-export const pubsub = new PubSub();
+export const pubsub = new PubSub() as PubSub & {
+  asyncIterator: (topics: string | string[]) => AsyncIterableIterator<any>;
+};
 
 // Subscription event types
 export const SUBSCRIPTION_EVENTS = {
@@ -81,19 +109,7 @@ export interface ConversationAssignedPayload {
   };
 }
 
-// Helper functions for authentication in subscriptions
-function requireAuth(context: GraphQLContext) {
-  if (!context.user) {
-    throw new Error('Authentication required for subscription');
-  }
-}
-
-function requireRole(context: GraphQLContext, allowedRoles: string[]) {
-  requireAuth(context);
-  if (!context.user || !allowedRoles.includes(context.user.role)) {
-    throw new Error(`Subscription requires one of: ${allowedRoles.join(', ')}`);
-  }
-}
+// Helper functions defined above
 
 // Subscription resolvers
 export const subscriptionResolvers = {
@@ -102,15 +118,18 @@ export const subscriptionResolvers = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([SUBSCRIPTION_EVENTS.MESSAGE_ADDED]),
         (
-          payload: MessageAddedPayload,
-          variables: { conversationId?: string },
-          context: GraphQLContext
+          payload: MessageAddedPayload | undefined,
+          variables: { conversationId?: string } | undefined,
+          context: GraphQLContext | undefined
         ) => {
           // Require authentication
-          requireAuth(context);
+          requireAuthForSubscription(context);
+
+          // Guard against undefined payload
+          if (!payload) return false;
 
           // Filter by conversation ID if specified
-          if (variables.conversationId) {
+          if (variables?.conversationId && payload?.messageAdded) {
             return (
               payload.messageAdded.conversationId === variables.conversationId
             );
@@ -127,24 +146,24 @@ export const subscriptionResolvers = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([SUBSCRIPTION_EVENTS.CONVERSATION_UPDATED]),
         (
-          payload: ConversationUpdatedPayload,
-          variables: { conversationId?: string },
-          context: GraphQLContext
+          payload: ConversationUpdatedPayload | undefined,
+          variables: { conversationId?: string } | undefined,
+          context: GraphQLContext | undefined
         ) => {
-          requireAuth(context);
+          requireAuthForSubscription(context);
 
           // Filter by conversation ID if specified
-          if (variables.conversationId) {
+          if (variables?.conversationId && payload?.conversationUpdated) {
             return payload.conversationUpdated.id === variables.conversationId;
           }
 
           // For agents, only show conversations they're assigned to or have access to
-          if (context.user?.role === 'agent') {
+          if (context?.user?.role === 'agent' && payload?.conversationUpdated) {
             return payload.conversationUpdated.agentId === context.user.userId;
           }
 
           // Managers and admins can see all conversations
-          return ['manager', 'admin'].includes(context.user?.role || '');
+          return ['manager', 'admin'].includes(context?.user?.role || '');
         }
       ),
     },
@@ -153,14 +172,14 @@ export const subscriptionResolvers = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([SUBSCRIPTION_EVENTS.SENTIMENT_ANALYZED]),
         (
-          payload: SentimentAnalyzedPayload,
-          variables: { conversationId?: string },
-          context: GraphQLContext
+          payload: SentimentAnalyzedPayload | undefined,
+          variables: { conversationId?: string } | undefined,
+          context: GraphQLContext | undefined
         ) => {
-          requireAuth(context);
+          requireAuthForSubscription(context);
 
           // Filter by conversation ID if specified
-          if (variables.conversationId) {
+          if (variables?.conversationId && payload?.sentimentAnalyzed) {
             return (
               payload.sentimentAnalyzed.conversationId ===
               variables.conversationId
@@ -176,14 +195,14 @@ export const subscriptionResolvers = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([SUBSCRIPTION_EVENTS.RESPONSE_SUGGESTED]),
         (
-          payload: ResponseSuggestedPayload,
-          variables: { conversationId?: string },
-          context: GraphQLContext
+          payload: ResponseSuggestedPayload | undefined,
+          variables: { conversationId?: string } | undefined,
+          context: GraphQLContext | undefined
         ) => {
           requireRole(context, ['agent', 'manager', 'admin']);
 
           // Filter by conversation ID if specified
-          if (variables.conversationId) {
+          if (variables?.conversationId && payload?.responseSuggested) {
             return (
               payload.responseSuggested.conversationId ===
               variables.conversationId
@@ -199,14 +218,14 @@ export const subscriptionResolvers = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([SUBSCRIPTION_EVENTS.AGENT_STATUS_CHANGED]),
         (
-          payload: AgentStatusChangedPayload,
-          variables: { agentId?: string },
-          context: GraphQLContext
+          payload: AgentStatusChangedPayload | undefined,
+          variables: { agentId?: string } | undefined,
+          context: GraphQLContext | undefined
         ) => {
           requireRole(context, ['agent', 'manager', 'admin']);
 
           // Filter by agent ID if specified
-          if (variables.agentId) {
+          if (variables?.agentId && payload?.agentStatusChanged) {
             return payload.agentStatusChanged.agentId === variables.agentId;
           }
 
@@ -219,27 +238,31 @@ export const subscriptionResolvers = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([SUBSCRIPTION_EVENTS.CONVERSATION_ASSIGNED]),
         (
-          payload: ConversationAssignedPayload,
-          variables: { agentId?: string },
-          context: GraphQLContext
+          payload: ConversationAssignedPayload | undefined,
+          variables: { agentId?: string } | undefined,
+          context: GraphQLContext | undefined
         ) => {
-          requireAuth(context);
+          requireAuthForSubscription(context);
 
           // Agents only see assignments to themselves
-          if (context.user?.role === 'agent') {
+          if (
+            context?.user?.role === 'agent' &&
+            payload?.conversationAssigned
+          ) {
             return payload.conversationAssigned.agentId === context.user.userId;
           }
 
           // Filter by agent ID if specified and user is manager/admin
           if (
-            variables.agentId &&
-            ['manager', 'admin'].includes(context.user?.role || '')
+            variables?.agentId &&
+            payload?.conversationAssigned &&
+            ['manager', 'admin'].includes(context?.user?.role || '')
           ) {
             return payload.conversationAssigned.agentId === variables.agentId;
           }
 
           // Managers and admins can see all assignments
-          return ['manager', 'admin'].includes(context.user?.role || '');
+          return ['manager', 'admin'].includes(context?.user?.role || '');
         }
       ),
     },
