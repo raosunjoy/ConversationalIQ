@@ -20,9 +20,11 @@
     "test:coverage": "jest --coverage --coverageThreshold.global.branches=100 --coverageThreshold.global.functions=100 --coverageThreshold.global.lines=100 --coverageThreshold.global.statements=100",
     "test:ci": "jest --ci --coverage --watchAll=false",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:seed": "prisma db seed",
-    "db:reset": "prisma migrate reset",
+    "db:migrate": "tsx scripts/migrate.ts migrate",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:seed": "tsx scripts/migrate.ts seed",
+    "db:reset": "tsx scripts/migrate.ts reset",
+    "db:deploy": "prisma migrate deploy",
     "pre-commit": "npm run lint && npm run type-check && npm run test && npm run build",
     "prepare": "husky install"
   },
@@ -45,8 +47,13 @@
   },
   "homepage": "https://github.com/raosunjoy/ConversationalIQ#readme",
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
     "@types/jest": "^29.5.5",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.6.3",
+    "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^6.7.2",
     "@typescript-eslint/parser": "^6.7.2",
     "eslint": "^8.50.0",
@@ -62,7 +69,18 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
+    "@apollo/server": "^5.0.0",
     "@prisma/client": "^5.3.1",
-    "prisma": "^5.3.1"
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "graphql": "^16.11.0",
+    "graphql-tag": "^2.12.6",
+    "graphql-tools": "^9.0.20",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "prisma": "^5.3.1",
+    "uuid": "^11.1.0"
   }
 }

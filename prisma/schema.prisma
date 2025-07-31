@@ -1,0 +1,146 @@
+// ConversationIQ Database Schema
+// Based on design requirements from DESIGN.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Core conversation tracking
+model Conversation {
+  id               String   @id @default(cuid())
+  zendeskTicketId  String?  @unique @map("zendesk_ticket_id")
+  zendeskChatId    String?  @unique @map("zendesk_chat_id")
+  customerId       String   @map("customer_id")
+  agentId          String   @map("agent_id")
+  status           ConversationStatus
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  metadata         Json?
+
+  // Relationships
+  messages         Message[]
+
+  @@map("conversations")
+  @@index([agentId, status])
+  @@index([customerId])
+  @@index([zendeskTicketId])
+  @@index([zendeskChatId])
+}
+
+enum ConversationStatus {
+  active
+  resolved
+  escalated
+  closed
+
+  @@map("conversation_status")
+}
+
+// Individual messages within conversations
+model Message {
+  id             String      @id @default(cuid())
+  conversationId String      @map("conversation_id")
+  content        String
+  senderType     SenderType  @map("sender_type")
+  senderId       String      @map("sender_id")
+  timestamp      DateTime    @default(now())
+  aiAnalysis     Json?       @map("ai_analysis")
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  // Relationships
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  suggestions    ResponseSuggestion[]
+
+  @@map("messages")
+  @@index([conversationId, timestamp])
+  @@index([senderType])
+}
+
+enum SenderType {
+  customer
+  agent
+  system
+
+  @@map("sender_type")
+}
+
+// AI-generated response suggestions
+model ResponseSuggestion {
+  id               String   @id @default(cuid())
+  messageId        String   @map("message_id")
+  suggestionText   String   @map("suggestion_text")
+  suggestionType   SuggestionType @map("suggestion_type")
+  confidence       Decimal  @db.Decimal(3, 2)
+  reasoning        String?
+  zendeskMacroId   String?  @map("zendesk_macro_id")
+  accepted         Boolean  @default(false)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  // Relationships
+  message          Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("response_suggestions")
+  @@index([messageId])
+  @@index([suggestionType])
+}
+
+enum SuggestionType {
+  template
+  generated
+  macro
+
+  @@map("suggestion_type")
+}
+
+// Daily agent performance tracking
+model AgentPerformanceDaily {
+  agentId              String   @map("agent_id")
+  date                 DateTime @db.Date
+  conversationsHandled Int      @default(0) @map("conversations_handled")
+  avgSentimentScore    Decimal? @db.Decimal(3, 2) @map("avg_sentiment_score")
+  avgResponseTimeSeconds Int?   @map("avg_response_time_seconds")
+  escalationsCount     Int      @default(0) @map("escalations_count")
+  suggestionsAccepted  Int      @default(0) @map("suggestions_accepted")
+  suggestionsTotal     Int      @default(0) @map("suggestions_total")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@id([agentId, date])
+  @@map("agent_performance_daily")
+  @@index([date])
+  @@index([agentId])
+}
+
+// Conversation analytics and trends
+model ConversationAnalytics {
+  id                   String   @id @default(cuid())
+  conversationId       String   @unique @map("conversation_id")
+  totalMessages        Int      @map("total_messages")
+  avgSentimentScore    Decimal? @db.Decimal(3, 2) @map("avg_sentiment_score")
+  sentimentTrend       String?  @map("sentiment_trend") // improving, declining, stable
+  primaryIntent        String?  @map("primary_intent")
+  escalationRisk       Decimal? @db.Decimal(3, 2) @map("escalation_risk")
+  resolutionTime       Int?     @map("resolution_time_seconds")
+  customerSatisfaction Decimal? @db.Decimal(3, 2) @map("customer_satisfaction")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("conversation_analytics")
+  @@index([primaryIntent])
+  @@index([escalationRisk])
+}
+
+// System health and monitoring
+model HealthCheck {
+  id          Int      @id @default(autoincrement())
+  status      String   @default("healthy")
+  lastCheck   DateTime @default(now()) @map("last_check")
+  metadata    Json?
+
+  @@map("health_check")
+}
