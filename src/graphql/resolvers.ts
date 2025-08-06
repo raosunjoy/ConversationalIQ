@@ -7,6 +7,7 @@ import { GraphQLError } from 'graphql';
 import { DatabaseService } from '../services/database';
 import { subscriptionResolvers, publishEvent } from './subscriptions';
 import { aiService } from '../services/ai-service';
+import { aiPipeline } from '../ai/ai-pipeline';
 
 // Context type definition
 interface Context {
@@ -290,6 +291,90 @@ export const resolvers = {
       // Will implement customers query
       throw new GraphQLError('Not implemented yet');
     },
+
+    // Escalation Prevention queries
+    async getActiveEscalationRisks(
+      _: any,
+      __: any,
+      context: Context
+    ) {
+      requireRole(context, ['agent', 'manager', 'admin']);
+      
+      try {
+        const risks = await aiPipeline.getActiveEscalationRisks();
+        return {
+          highRiskConversations: risks.high.map(risk => ({
+            conversationId: risk.conversationId,
+            riskScore: risk.riskScore,
+            riskLevel: risk.riskLevel,
+            timeToEscalation: risk.prediction.timeToEscalation,
+            escalationProbability: risk.prediction.escalationProbability,
+            riskFactors: risk.riskFactors.map(factor => ({
+              type: factor.type,
+              severity: factor.severity,
+              description: factor.description,
+            })),
+            preventionActions: risk.preventionActions.map(action => ({
+              type: action.type,
+              priority: action.priority,
+              description: action.description,
+              estimatedImpact: action.estimatedImpact,
+            })),
+            managerAlert: risk.managerAlert,
+          })),
+          mediumRiskConversations: risks.medium,
+          totalAtRisk: risks.total,
+        };
+      } catch (error) {
+        console.error('Failed to get escalation risks:', error);
+        throw new GraphQLError(
+          `Failed to get escalation risks: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
+    },
+
+    async getConversationContext(
+      _: any,
+      { conversationId }: { conversationId: string },
+      context: Context
+    ) {
+      requireAuth(context);
+      
+      try {
+        // Get conversation memory and customer profile
+        const { conversationContextService } = await import('../ai/context/conversation-context');
+        const memory = await conversationContextService.getConversationMemory(conversationId);
+        const profile = await conversationContextService.getCustomerProfile(conversationId);
+
+        return {
+          conversationId: memory.conversationId,
+          customerProfile: {
+            id: profile.id,
+            email: profile.email,
+            tier: profile.tier,
+            totalTickets: profile.totalTickets,
+            totalSpent: profile.totalSpent,
+            satisfaction: profile.satisfaction,
+            language: profile.language,
+            timezone: profile.timezone,
+            preferences: profile.preferences,
+            history: profile.history,
+            segments: profile.segments,
+          },
+          conversationMemory: {
+            startTime: memory.startTime,
+            context: memory.context,
+            timeline: memory.timeline,
+            summary: memory.summary,
+          },
+        };
+      } catch (error) {
+        console.error('Failed to get conversation context:', error);
+        throw new GraphQLError(
+          `Failed to get conversation context: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
+    },
   },
 
   // Mutation resolvers
@@ -547,6 +632,91 @@ export const resolvers = {
 
       // Will implement activity recording
       throw new GraphQLError('Activity recording not implemented yet');
+    },
+
+    // Escalation Prevention mutations
+    async executePreventionAction(
+      _: any,
+      { 
+        conversationId, 
+        actionType, 
+        agentId 
+      }: { 
+        conversationId: string; 
+        actionType: string; 
+        agentId?: string; 
+      },
+      context: Context
+    ) {
+      requireAuth(context);
+      
+      try {
+        const result = await aiPipeline.executePreventionAction(
+          conversationId, 
+          actionType, 
+          agentId || context.user?.userId
+        );
+
+        // Publish real-time update would go here
+        // TODO: Add prevention action event publisher
+        if (result.success) {
+          console.log('Prevention action executed:', { conversationId, actionType });
+        }
+
+        return {
+          success: result.success,
+          message: result.success 
+            ? `Prevention action "${actionType}" executed successfully`
+            : `Failed to execute prevention action: ${result.result}`,
+          result: result.result,
+        };
+      } catch (error) {
+        console.error('Failed to execute prevention action:', error);
+        throw new GraphQLError(
+          `Failed to execute prevention action: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
+    },
+
+    async reportEscalationOutcome(
+      _: any,
+      {
+        conversationId,
+        escalated,
+        outcome,
+        preventionActionsUsed = []
+      }: {
+        conversationId: string;
+        escalated: boolean;
+        outcome: 'resolved' | 'escalated' | 'abandoned';
+        preventionActionsUsed?: string[];
+      },
+      context: Context
+    ) {
+      requireAuth(context);
+      
+      try {
+        await aiPipeline.reportEscalationOutcome(
+          conversationId,
+          escalated,
+          outcome,
+          preventionActionsUsed
+        );
+
+        // Publish event for analytics and machine learning would go here
+        // TODO: Add escalation outcome event publisher
+        console.log('Escalation outcome reported:', { conversationId, escalated, outcome });
+
+        return {
+          success: true,
+          message: 'Escalation outcome reported successfully',
+        };
+      } catch (error) {
+        console.error('Failed to report escalation outcome:', error);
+        throw new GraphQLError(
+          `Failed to report escalation outcome: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
     },
   },
 

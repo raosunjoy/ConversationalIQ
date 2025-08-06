@@ -108,6 +108,8 @@ export interface AIProcessingResult {
   sentiment: SentimentResult;
   intent: IntentResult;
   suggestions: ResponseSuggestion[];
+  contextualInsights?: any[]; // From conversation context service
+  escalationPrediction?: any; // From escalation prevention service
   processingTime: number;
   timestamp: Date;
   modelVersions: ModelVersions;

@@ -31,6 +31,34 @@ export const typeDefs = gql`
     CLOSE
   }
 
+  enum RiskLevel {
+    LOW
+    MEDIUM
+    HIGH
+    CRITICAL
+  }
+
+  enum PreventionActionType {
+    PROACTIVE_CONTACT
+    ESCALATE_NOW
+    OFFER_COMPENSATION
+    CHANGE_TONE
+    PROVIDE_UPDATE
+    TRANSFER_AGENT
+  }
+
+  enum PreventionActionPriority {
+    IMMEDIATE
+    URGENT
+    NORMAL
+  }
+
+  enum CustomerTier {
+    BASIC
+    PREMIUM
+    ENTERPRISE
+  }
+
   # Core types
   type Conversation {
     id: ID!
@@ -177,6 +205,71 @@ export const typeDefs = gql`
     agent: Agent!
   }
 
+  # Escalation Prevention Types
+  type EscalationRiskFactor {
+    type: String!
+    severity: Float!
+    description: String!
+    weight: Float!
+    mitigable: Boolean!
+  }
+
+  type PreventionAction {
+    type: PreventionActionType!
+    priority: PreventionActionPriority!
+    description: String!
+    estimatedImpact: Float!
+    costEstimate: Float
+    requiresApproval: Boolean!
+    suggestedResponse: String
+  }
+
+  type EscalationRisk {
+    conversationId: ID!
+    riskScore: Float!
+    riskLevel: RiskLevel!
+    timeToEscalation: Int!
+    escalationProbability: Float!
+    riskFactors: [EscalationRiskFactor!]!
+    preventionActions: [PreventionAction!]!
+    managerAlert: Boolean!
+  }
+
+  type EscalationRisksOverview {
+    highRiskConversations: [EscalationRisk!]!
+    mediumRiskConversations: [EscalationRisk!]!
+    totalAtRisk: Int!
+  }
+
+  # Conversation Context Types
+  type CustomerProfile {
+    id: ID!
+    email: String!
+    name: String
+    tier: CustomerTier!
+    totalTickets: Int!
+    totalSpent: Float!
+    satisfaction: Float!
+    language: String!
+    timezone: String!
+    preferences: JSON!
+    history: JSON!
+    segments: [String!]!
+  }
+
+  type ConversationContext {
+    conversationId: ID!
+    customerProfile: CustomerProfile!
+    conversationMemory: JSON!
+  }
+
+  # Action Result Types
+  type ActionResult {
+    success: Boolean!
+    message: String!
+    result: JSON
+  }
+
   # Input types
   input ConversationInput {
     ticketId: String!
@@ -250,6 +343,10 @@ export const typeDefs = gql`
     # Customer queries
     customer(id: ID!): Customer
     customers(pagination: PaginationInput): [Customer!]!
+
+    # Escalation Prevention queries
+    getActiveEscalationRisks: EscalationRisksOverview!
+    getConversationContext(conversationId: ID!): ConversationContext!
   }
 
   # Mutation type
@@ -271,6 +368,19 @@ export const typeDefs = gql`
     # Agent mutations
     updateAgentStatus(agentId: ID!, isActive: Boolean!): Agent!
     recordAgentActivity(agentId: ID!): Agent!
+
+    # Escalation Prevention mutations
+    executePreventionAction(
+      conversationId: ID!
+      actionType: String!
+      agentId: ID
+    ): ActionResult!
+    reportEscalationOutcome(
+      conversationId: ID!
+      escalated: Boolean!
+      outcome: String!
+      preventionActionsUsed: [String!]
+    ): ActionResult!
   }
 
   # Agent status enum

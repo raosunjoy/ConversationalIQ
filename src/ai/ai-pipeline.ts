@@ -17,12 +17,16 @@ import {
 import { SentimentAnalysisService } from './sentiment-analysis';
 import { IntentClassificationService } from './intent-classification';
 import { ResponseGenerationService } from './response-generation';
+import { conversationContextService, ConversationContextService } from './context/conversation-context';
+import { escalationPreventionService, EscalationPreventionService } from './escalation/escalation-prevention';
 import { aiConfig, AIConfig } from './config';
 
 export class AIPipeline extends EventEmitter {
   private sentimentService: SentimentAnalysisService;
   private intentService: IntentClassificationService;
   private responseService: ResponseGenerationService;
+  private contextService: ConversationContextService;
+  private escalationService: EscalationPreventionService;
   private config: AIConfig;
   private metrics: AIMetrics;
   private processing: Map<string, Promise<AIProcessingResult>>;
@@ -34,6 +38,8 @@ export class AIPipeline extends EventEmitter {
     this.sentimentService = new SentimentAnalysisService();
     this.intentService = new IntentClassificationService();
     this.responseService = new ResponseGenerationService();
+    this.contextService = conversationContextService;
+    this.escalationService = escalationPreventionService;
     this.processing = new Map();
     this.cache = new Map();
     this.metrics = this.initializeMetrics();
@@ -53,6 +59,8 @@ export class AIPipeline extends EventEmitter {
         this.sentimentService.initialize(),
         this.intentService.initialize(),
         this.responseService.initialize(),
+        this.contextService.initialize(),
+        this.escalationService.initialize(),
       ];
 
       await Promise.all(initPromises);
@@ -173,7 +181,7 @@ export class AIPipeline extends EventEmitter {
   }
 
   /**
-   * Run all pipeline stages (sentiment, intent, response generation)
+   * Run all pipeline stages (sentiment, intent, context, escalation, response generation)
    */
   private async runPipelineStages(
     message: Message,
@@ -194,20 +202,67 @@ export class AIPipeline extends EventEmitter {
       intentPromise,
     ]);
 
-    // Stage 3: Response Generation (depends on sentiment and intent)
-    const suggestions = await this.responseService.generateSuggestions({
+    // Stage 3: Update conversation memory and context
+    await this.contextService.updateConversationMemory(message.conversationId, {
+      type: 'message',
+      details: message,
+      sentiment,
+      intent,
+    });
+
+    // Stage 4: Generate contextual insights
+    const contextualInsights = await this.contextService.generateContextualInsights(
+      message.conversationId,
+      message
+    );
+
+    // Stage 5: Predict escalation risk
+    const escalationPrediction = await this.escalationService.predictEscalationRisk(
+      message.conversationId,
+      message
+    );
+
+    // Stage 6: Generate context-aware response suggestions
+    const baselineResponses = await this.responseService.generateSuggestions({
       conversationContext,
       messageToRespond: message,
       sentimentAnalysis: sentiment,
       intentAnalysis: intent,
     });
 
+    // Enhance responses with contextual insights
+    const contextAwareResponses = await this.contextService.getContextAwareResponseSuggestions(
+      message.conversationId,
+      message,
+      baselineResponses
+    );
+
+    // Emit escalation alerts if high risk detected
+    if (escalationPrediction.riskLevel === 'high' || escalationPrediction.riskLevel === 'critical') {
+      this.emit('escalationRiskDetected', {
+        messageId: message.id,
+        conversationId: message.conversationId,
+        prediction: escalationPrediction,
+      });
+    }
+
+    // Emit contextual insights for frontend display
+    if (contextualInsights.length > 0) {
+      this.emit('contextualInsights', {
+        messageId: message.id,
+        conversationId: message.conversationId,
+        insights: contextualInsights,
+      });
+    }
+
     return {
       messageId: message.id,
       conversationId: message.conversationId,
       sentiment,
       intent,
-      suggestions,
+      suggestions: contextAwareResponses,
+      contextualInsights,
+      escalationPrediction,
       modelVersions: this.getModelVersions(),
     };
   }
@@ -368,6 +423,8 @@ export class AIPipeline extends EventEmitter {
       sentiment: await this.sentimentService.isHealthy(),
       intent: await this.intentService.isHealthy(),
       response: await this.responseService.isHealthy(),
+      context: await this.contextService.isHealthy(),
+      escalation: await this.escalationService.isHealthy(),
       cache: this.cache.size < 10000, // Simple cache health check
       pipeline: this.processing.size < this.config.processing.maxConcurrent,
     };
@@ -389,6 +446,76 @@ export class AIPipeline extends EventEmitter {
       components,
       metrics: this.getMetrics(),
     };
+  }
+
+  /**
+   * Execute escalation prevention action
+   */
+   async executePreventionAction(
+    conversationId: string,
+    actionType: string,
+    agentId?: string
+  ): Promise<{success: boolean; result: any}> {
+    try {
+      // Get current escalation prediction
+      const prediction = await this.escalationService.predictEscalationRisk(conversationId);
+      
+      // Find the matching prevention action
+      const action = prediction.preventionActions.find(a => a.type === actionType);
+      if (!action) {
+        return {
+          success: false,
+          result: `Prevention action "${actionType}" not found for conversation`,
+        };
+      }
+
+      // Execute the action
+      const result = await this.escalationService.executePreventionAction(
+        conversationId,
+        action,
+        agentId
+      );
+
+      // Emit event for tracking
+      this.emit('preventionActionExecuted', {
+        conversationId,
+        action: actionType,
+        success: result.success,
+        agentId,
+      });
+
+      return result;
+    } catch (error) {
+      console.error(`Failed to execute prevention action ${actionType}:`, error);
+      return {
+        success: false,
+        result: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Get active escalation risks across all conversations
+   */
+  async getActiveEscalationRisks() {
+    return await this.escalationService.getActiveEscalationRisks();
+  }
+
+  /**
+   * Report escalation outcome for machine learning
+   */
+  async reportEscalationOutcome(
+    conversationId: string,
+    escalated: boolean,
+    outcome: 'resolved' | 'escalated' | 'abandoned',
+    preventionActionsUsed: string[] = []
+  ): Promise<void> {
+    await this.escalationService.reportEscalationOutcome(
+      conversationId,
+      escalated,
+      outcome,
+      preventionActionsUsed
+    );
   }
 
   /**
@@ -416,6 +543,8 @@ export class AIPipeline extends EventEmitter {
       this.sentimentService.shutdown(),
       this.intentService.shutdown(),
       this.responseService.shutdown(),
+      // this.contextService.shutdown?.(), // No shutdown method on context service
+      this.escalationService.shutdown(),
     ]);
 
     // Clear cache and processing maps
