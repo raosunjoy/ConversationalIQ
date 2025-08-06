@@ -37,7 +37,6 @@
     
     // Interop Constraints
     "isolatedModules": true,
-    "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     
     // Language and Environment
