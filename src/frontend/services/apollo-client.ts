@@ -18,8 +18,9 @@ import { createClient } from 'graphql-ws';
 import { getZendeskAuth } from './zendesk-auth';
 
 // Get configuration from environment or Zendesk settings
-const API_URL = window.__ZENDESK_APP_SETTINGS__?.api_url || 
-  (typeof process !== 'undefined' ? process.env.VITE_API_URL : '') || 
+const API_URL =
+  window.__ZENDESK_APP_SETTINGS__?.api_url ||
+  (typeof process !== 'undefined' ? process.env.VITE_API_URL : '') ||
   'http://localhost:3000';
 
 const WS_URL = API_URL.replace(/^https?/, 'ws').replace(/^http/, 'ws');
@@ -48,7 +49,7 @@ const wsLink = new GraphQLWsLink(
 // Auth link to add JWT token to requests
 const authLink = setContext(async (_, { headers }) => {
   const auth = await getZendeskAuth();
-  
+
   return {
     headers: {
       ...headers,
@@ -60,31 +61,35 @@ const authLink = setContext(async (_, { headers }) => {
 });
 
 // Error link for handling GraphQL errors
-const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
-  if (graphQLErrors) {
-    graphQLErrors.forEach(({ message, locations, path, extensions }) => {
-      console.error(
-        `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`,
-        extensions
-      );
-      
-      // Handle authentication errors
-      if (extensions?.code === 'UNAUTHENTICATED') {
-        // Trigger re-authentication
-        window.dispatchEvent(new CustomEvent('auth-error', { detail: message }));
-      }
-    });
-  }
+const errorLink = onError(
+  ({ graphQLErrors, networkError, operation, forward }) => {
+    if (graphQLErrors) {
+      graphQLErrors.forEach(({ message, locations, path, extensions }) => {
+        console.error(
+          `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`,
+          extensions
+        );
 
-  if (networkError) {
-    console.error(`[Network error]: ${networkError}`);
-    
-    // Dispatch network error event for UI handling
-    window.dispatchEvent(
-      new CustomEvent('network-error', { detail: networkError.message })
-    );
+        // Handle authentication errors
+        if (extensions?.code === 'UNAUTHENTICATED') {
+          // Trigger re-authentication
+          window.dispatchEvent(
+            new CustomEvent('auth-error', { detail: message })
+          );
+        }
+      });
+    }
+
+    if (networkError) {
+      console.error(`[Network error]: ${networkError}`);
+
+      // Dispatch network error event for UI handling
+      window.dispatchEvent(
+        new CustomEvent('network-error', { detail: networkError.message })
+      );
+    }
   }
-});
+);
 
 // Split link to route queries/mutations to HTTP and subscriptions to WebSocket
 const splitLink = split(
@@ -121,8 +126,10 @@ export const apolloClient = new ApolloClient({
                   merged.push(incomingMessage);
                 }
               });
-              return merged.sort((a: any, b: any) => 
-                new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+              return merged.sort(
+                (a: any, b: any) =>
+                  new Date(a.createdAt).getTime() -
+                  new Date(b.createdAt).getTime()
               );
             },
           },
@@ -154,7 +161,7 @@ export const apolloClient = new ApolloClient({
       },
     },
   }),
-  
+
   // Default options
   defaultOptions: {
     watchQuery: {
@@ -169,7 +176,7 @@ export const apolloClient = new ApolloClient({
       errorPolicy: 'all',
     },
   },
-  
+
   // Enable developer tools in development
   connectToDevTools: __DEV__,
 });
@@ -187,7 +194,9 @@ export const refetchAllQueries = () => {
 export const getClient = () => apolloClient;
 
 // Connection status monitoring
-export const onConnectionStatusChange = (callback: (status: string) => void) => {
+export const onConnectionStatusChange = (
+  callback: (status: string) => void
+) => {
   // Monitor WebSocket connection status
   const wsClient = wsLink as any;
   if (wsClient.client) {

@@ -7,10 +7,10 @@ import React from 'react';
 import { ConversationTimelineProps, MessageTimelineItem } from '../../types';
 import SentimentIndicator from './SentimentIndicator';
 
-const ConversationTimeline: React.FC<ConversationTimelineProps> = ({ 
-  messages, 
+const ConversationTimeline: React.FC<ConversationTimelineProps> = ({
+  messages,
   onMessageClick,
-  filterType = 'all' 
+  filterType = 'all',
 }) => {
   if (!messages || messages.length === 0) {
     return (
@@ -32,7 +32,7 @@ const ConversationTimeline: React.FC<ConversationTimelineProps> = ({
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
-    
+
     return timestamp.toLocaleDateString();
   };
 
@@ -50,8 +50,8 @@ const ConversationTimeline: React.FC<ConversationTimelineProps> = ({
   return (
     <div className="conversation-timeline">
       <div className="timeline-list">
-        {messages.map((message) => (
-          <div 
+        {messages.map(message => (
+          <div
             key={message.id}
             className={`timeline-item ${message.isAlert ? 'alert' : ''} ${
               message.author === 'Customer' ? 'customer' : 'agent'
@@ -78,7 +78,7 @@ const ConversationTimeline: React.FC<ConversationTimelineProps> = ({
 
               <div className="message-footer">
                 <div className="sentiment-container">
-                  <SentimentIndicator 
+                  <SentimentIndicator
                     sentiment={message.sentiment}
                     compact={true}
                   />

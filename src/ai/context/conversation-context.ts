@@ -69,7 +69,11 @@ export interface ConversationMemory {
 }
 
 export interface ContextualInsight {
-  type: 'customer_history' | 'product_knowledge' | 'similar_cases' | 'escalation_risk';
+  type:
+    | 'customer_history'
+    | 'product_knowledge'
+    | 'similar_cases'
+    | 'escalation_risk';
   confidence: number;
   insight: string;
   actionable: boolean;
@@ -109,9 +113,11 @@ export class ConversationContextService extends EventEmitter {
       this.initialized = true;
       console.log('Conversation Context Service initialized successfully');
       this.emit('initialized');
-
     } catch (error) {
-      console.error('Failed to initialize Conversation Context Service:', error);
+      console.error(
+        'Failed to initialize Conversation Context Service:',
+        error
+      );
       throw new AIProcessingError(
         'Context service initialization failed',
         'CONTEXT_INIT_ERROR',
@@ -124,7 +130,10 @@ export class ConversationContextService extends EventEmitter {
   /**
    * Get or create customer profile
    */
-  async getCustomerProfile(customerId: string, email?: string): Promise<CustomerProfile> {
+  async getCustomerProfile(
+    customerId: string,
+    email?: string
+  ): Promise<CustomerProfile> {
     let profile = this.customerProfiles.get(customerId);
 
     if (!profile) {
@@ -137,7 +146,9 @@ export class ConversationContextService extends EventEmitter {
   /**
    * Get conversation memory with context
    */
-  async getConversationMemory(conversationId: string): Promise<ConversationMemory> {
+  async getConversationMemory(
+    conversationId: string
+  ): Promise<ConversationMemory> {
     let memory = this.conversationMemories.get(conversationId);
 
     if (!memory) {
@@ -156,22 +167,36 @@ export class ConversationContextService extends EventEmitter {
   ): Promise<ContextualInsight[]> {
     const insights: ContextualInsight[] = [];
     const memory = await this.getConversationMemory(conversationId);
-    const customerProfile = await this.getCustomerProfile(message.conversationId || '');
+    const customerProfile = await this.getCustomerProfile(
+      message.conversationId || ''
+    );
 
     // Customer history insights
-    const historyInsight = await this.generateCustomerHistoryInsight(customerProfile, message);
+    const historyInsight = await this.generateCustomerHistoryInsight(
+      customerProfile,
+      message
+    );
     if (historyInsight) insights.push(historyInsight);
 
     // Product knowledge insights
-    const productInsight = await this.generateProductKnowledgeInsight(memory, message);
+    const productInsight = await this.generateProductKnowledgeInsight(
+      memory,
+      message
+    );
     if (productInsight) insights.push(productInsight);
 
     // Similar cases insight
-    const similarCasesInsight = await this.generateSimilarCasesInsight(memory, message);
+    const similarCasesInsight = await this.generateSimilarCasesInsight(
+      memory,
+      message
+    );
     if (similarCasesInsight) insights.push(similarCasesInsight);
 
     // Escalation risk insight
-    const escalationInsight = await this.generateEscalationRiskInsight(customerProfile, memory);
+    const escalationInsight = await this.generateEscalationRiskInsight(
+      customerProfile,
+      memory
+    );
     if (escalationInsight) insights.push(escalationInsight);
 
     return insights.sort((a, b) => b.confidence - a.confidence);
@@ -212,7 +237,7 @@ export class ConversationContextService extends EventEmitter {
 
     // Save updated memory
     this.conversationMemories.set(conversationId, memory);
-    
+
     this.emit('memoryUpdated', { conversationId, memory });
   }
 
@@ -225,21 +250,32 @@ export class ConversationContextService extends EventEmitter {
     baselineResponses: any[]
   ): Promise<any[]> {
     const memory = await this.getConversationMemory(conversationId);
-    const customerProfile = await this.getCustomerProfile(message.conversationId || '');
-    const insights = await this.generateContextualInsights(conversationId, message);
+    const customerProfile = await this.getCustomerProfile(
+      message.conversationId || ''
+    );
+    const insights = await this.generateContextualInsights(
+      conversationId,
+      message
+    );
 
     // Enhance responses with context
     const contextualResponses = baselineResponses.map(response => {
-      return this.enhanceResponseWithContext(response, customerProfile, memory, insights);
+      return this.enhanceResponseWithContext(
+        response,
+        customerProfile,
+        memory,
+        insights
+      );
     });
 
     // Add context-specific responses
-    const contextSpecificResponses = await this.generateContextSpecificResponses(
-      customerProfile,
-      memory,
-      insights,
-      message
-    );
+    const contextSpecificResponses =
+      await this.generateContextSpecificResponses(
+        customerProfile,
+        memory,
+        insights,
+        message
+      );
 
     // Combine and rank by contextual relevance
     const allResponses = [...contextualResponses, ...contextSpecificResponses];
@@ -264,19 +300,23 @@ export class ConversationContextService extends EventEmitter {
   private async initializeKnowledgeBase(): Promise<void> {
     // Initialize with sample knowledge base entries
     const sampleKnowledge = {
-      'billing_issues': {
+      billing_issues: {
         commonCauses: ['payment_failure', 'plan_confusion', 'billing_cycle'],
         solutions: ['verify_payment_method', 'explain_billing', 'adjust_plan'],
         escalationTriggers: ['disputed_charges', 'recurring_issues'],
       },
-      'technical_issues': {
+      technical_issues: {
         commonCauses: ['user_error', 'software_bug', 'integration_problem'],
         solutions: ['troubleshooting_steps', 'bug_report', 'technical_support'],
         escalationTriggers: ['critical_system_down', 'data_loss'],
       },
-      'account_issues': {
+      account_issues: {
         commonCauses: ['locked_account', 'password_reset', 'permissions'],
-        solutions: ['unlock_account', 'reset_credentials', 'adjust_permissions'],
+        solutions: [
+          'unlock_account',
+          'reset_credentials',
+          'adjust_permissions',
+        ],
         escalationTriggers: ['security_breach', 'unauthorized_access'],
       },
     };
@@ -322,7 +362,9 @@ export class ConversationContextService extends EventEmitter {
     return profile;
   }
 
-  private async createConversationMemory(conversationId: string): Promise<ConversationMemory> {
+  private async createConversationMemory(
+    conversationId: string
+  ): Promise<ConversationMemory> {
     const memory: ConversationMemory = {
       conversationId,
       startTime: new Date(),
@@ -403,7 +445,7 @@ export class ConversationContextService extends EventEmitter {
     // This would query a database of similar cases
     // For now, simulate finding similar cases
     const similarCases = await this.findSimilarConversations(message.content);
-    
+
     if (similarCases.length === 0) return null;
 
     return {
@@ -429,11 +471,11 @@ export class ConversationContextService extends EventEmitter {
     if (profile.history.escalationCount > 2) riskScore += 0.3;
     if (profile.satisfaction < 0.6) riskScore += 0.2;
     if (memory.timeline.length > 10) riskScore += 0.2; // Long conversation
-    
+
     const recentNegativeSentiment = memory.timeline
       .slice(-3)
       .filter(event => event.sentiment && event.sentiment < -0.3).length;
-    
+
     if (recentNegativeSentiment >= 2) riskScore += 0.3;
 
     if (riskScore < 0.5) return null;
@@ -449,7 +491,10 @@ export class ConversationContextService extends EventEmitter {
         'Switch to more empathetic tone',
         'Provide direct contact information',
       ],
-      relevantData: { riskScore, factors: { profile, timeline: memory.timeline } },
+      relevantData: {
+        riskScore,
+        factors: { profile, timeline: memory.timeline },
+      },
     };
   }
 
@@ -469,7 +514,7 @@ export class ConversationContextService extends EventEmitter {
     const typedEntities = entities.map(entity => ({
       type: entity.type as 'person' | 'product' | 'location' | 'organization',
       value: entity.value,
-      confidence: entity.confidence
+      confidence: entity.confidence,
     }));
     memory.context.entities.push(...typedEntities);
 
@@ -514,8 +559,13 @@ export class ConversationContextService extends EventEmitter {
       .filter(s => s !== undefined) as number[];
 
     if (recentSentiments.length > 0) {
-      const avgSentiment = recentSentiments.reduce((sum, s) => sum + s, 0) / recentSentiments.length;
-      memory.summary.satisfactionPredicted = Math.max(0, Math.min(1, (avgSentiment + 1) / 2));
+      const avgSentiment =
+        recentSentiments.reduce((sum, s) => sum + s, 0) /
+        recentSentiments.length;
+      memory.summary.satisfactionPredicted = Math.max(
+        0,
+        Math.min(1, (avgSentiment + 1) / 2)
+      );
     }
   }
 
@@ -536,7 +586,10 @@ export class ConversationContextService extends EventEmitter {
 
     // Add context-specific confidence boost
     const contextRelevance = this.calculateContextRelevance(response, insights);
-    enhanced.confidence = Math.min(1, enhanced.confidence + contextRelevance * 0.1);
+    enhanced.confidence = Math.min(
+      1,
+      enhanced.confidence + contextRelevance * 0.1
+    );
 
     // Add context reasoning
     if (contextRelevance > 0.5) {
@@ -564,7 +617,10 @@ export class ConversationContextService extends EventEmitter {
             content: this.generateActionResponse(action, insight, profile),
             confidence: insight.confidence * 0.9,
             category: 'context_aware',
-            tone: profile.preferences.communicationStyle === 'formal' ? 'professional' : 'friendly',
+            tone:
+              profile.preferences.communicationStyle === 'formal'
+                ? 'professional'
+                : 'friendly',
             tags: ['context_aware', insight.type],
             reasoning: `Context-aware suggestion based on ${insight.type}: ${insight.insight}`,
             contextInsight: insight,
@@ -589,7 +645,10 @@ export class ConversationContextService extends EventEmitter {
       if (b.category === 'context_aware') scoreB += 0.1;
 
       // Boost responses that match customer communication style
-      const preferredTone = profile.preferences.communicationStyle === 'formal' ? 'professional' : 'friendly';
+      const preferredTone =
+        profile.preferences.communicationStyle === 'formal'
+          ? 'professional'
+          : 'friendly';
       if (a.tone === preferredTone) scoreA += 0.05;
       if (b.tone === preferredTone) scoreB += 0.05;
 
@@ -600,22 +659,30 @@ export class ConversationContextService extends EventEmitter {
   // Utility methods
   private extractKeywords(content: string): string[] {
     // Simple keyword extraction - in production, use NLP libraries
-    const words = content.toLowerCase()
+    const words = content
+      .toLowerCase()
       .replace(/[^\w\s]/g, '')
       .split(/\s+/)
       .filter(word => word.length > 3);
-    
+
     return [...new Set(words)];
   }
 
-  private extractEntities(content: string): Array<{type: string; value: string; confidence: number}> {
+  private extractEntities(
+    content: string
+  ): Array<{ type: string; value: string; confidence: number }> {
     // Simple entity extraction - in production, use NER models
-    const entities: Array<{type: string; value: string; confidence: number}> = [];
-    
+    const entities: Array<{ type: string; value: string; confidence: number }> =
+      [];
+
     // Email pattern
-    const emails = content.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g);
+    const emails = content.match(
+      /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g
+    );
     if (emails) {
-      emails.forEach(email => entities.push({type: 'email', value: email, confidence: 0.9}));
+      emails.forEach(email =>
+        entities.push({ type: 'email', value: email, confidence: 0.9 })
+      );
     }
 
     return entities;
@@ -623,7 +690,7 @@ export class ConversationContextService extends EventEmitter {
 
   private extractProductMentions(content: string): string[] {
     const products = ['billing_issues', 'technical_issues', 'account_issues'];
-    return products.filter(product => 
+    return products.filter(product =>
       content.toLowerCase().includes(product.replace('_', ' '))
     );
   }
@@ -637,10 +704,13 @@ export class ConversationContextService extends EventEmitter {
     ];
   }
 
-  private calculateContextRelevance(response: any, insights: ContextualInsight[]): number {
+  private calculateContextRelevance(
+    response: any,
+    insights: ContextualInsight[]
+  ): number {
     // Calculate how relevant the response is based on available insights
     let relevance = 0;
-    
+
     insights.forEach(insight => {
       if (response.tags?.some((tag: string) => insight.type.includes(tag))) {
         relevance += insight.confidence * 0.3;
@@ -656,15 +726,17 @@ export class ConversationContextService extends EventEmitter {
     profile: CustomerProfile
   ): string {
     const templates = {
-      'reference_previous_resolution': `I see you've had a similar issue before. Based on your previous case, let me apply the same solution that worked for you.`,
-      'verify_payment_method': `Let me help you verify your payment method. I'll check your account details to ensure everything is up to date.`,
-      'consider_proactive_escalation': `I want to make sure we resolve this quickly for you. Let me connect you with a specialist who can provide immediate assistance.`,
-      'offer_compensation': `I apologize for the inconvenience. As a valued customer, I'd like to discuss how we can make this right for you.`,
+      reference_previous_resolution: `I see you've had a similar issue before. Based on your previous case, let me apply the same solution that worked for you.`,
+      verify_payment_method: `Let me help you verify your payment method. I'll check your account details to ensure everything is up to date.`,
+      consider_proactive_escalation: `I want to make sure we resolve this quickly for you. Let me connect you with a specialist who can provide immediate assistance.`,
+      offer_compensation: `I apologize for the inconvenience. As a valued customer, I'd like to discuss how we can make this right for you.`,
     };
 
     const actionKey = action.replace(/\s+/g, '_').toLowerCase();
-    return templates[actionKey as keyof typeof templates] || 
-           `Let me help you with ${action.replace('_', ' ')}.`;
+    return (
+      templates[actionKey as keyof typeof templates] ||
+      `Let me help you with ${action.replace('_', ' ')}.`
+    );
   }
 
   /**

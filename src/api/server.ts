@@ -13,11 +13,23 @@ import { DatabaseService } from '../services/database';
 import { healthRoutes } from './routes/health';
 import { zendeskRoutes } from './routes/zendesk';
 import { webhookRoutes } from './routes/webhooks';
+import { privacyRoutes } from './routes/privacy';
+import { monitoringRoutes } from './routes/monitoring';
 import { initializeKafka, shutdownKafka } from '../messaging/kafka';
 import {
   startEventProcessor,
   stopEventProcessor,
 } from '../messaging/event-processor';
+import {
+  rateLimitConfigs,
+  securityHeaders,
+  sanitizeInput,
+  sqlInjectionProtection,
+  auditSecurity,
+  requestSizeLimit,
+} from '../security/security-middleware';
+import { monitoringService } from '../monitoring/monitoring-service';
+import { encryptionService } from '../security/encryption-service';
 
 export interface ServerError extends Error {
   status?: number;
@@ -48,20 +60,21 @@ export async function createServer(): Promise<{
     database,
   };
 
-  // Security middleware
-  app.use(
-    helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          scriptSrc: ["'self'"],
-          imgSrc: ["'self'", 'data:', 'https:'],
-        },
-      },
-      crossOriginEmbedderPolicy: false, // Disable for iframe embedding in Zendesk
-    })
-  );
+  // Comprehensive security middleware
+  app.use(securityHeaders);
+  
+  // Request size limiting
+  app.use(requestSizeLimit(10 * 1024 * 1024)); // 10MB limit
+  
+  // General rate limiting
+  app.use(rateLimitConfigs.general);
+  
+  // Input sanitization and SQL injection protection
+  app.use(sanitizeInput);
+  app.use(sqlInjectionProtection);
+  
+  // Security audit logging
+  app.use(auditSecurity);
 
   // CORS configuration
   app.use(
@@ -96,11 +109,17 @@ export async function createServer(): Promise<{
   // Health check routes
   app.use('/health', healthRoutes);
 
-  // Zendesk app routes
-  app.use('/zendesk', zendeskRoutes);
+  // Privacy and GDPR compliance routes
+  app.use('/privacy', privacyRoutes);
 
-  // Webhook routes
-  app.use('/webhooks', webhookRoutes);
+  // Monitoring and observability routes
+  app.use('/monitoring', monitoringRoutes);
+
+  // Zendesk app routes (with auth rate limiting)
+  app.use('/zendesk', rateLimitConfigs.auth, zendeskRoutes);
+
+  // Webhook routes (with webhook rate limiting)
+  app.use('/webhooks', rateLimitConfigs.webhook, webhookRoutes);
 
   // GraphQL endpoint (placeholder for now)
   app.use('/graphql', (req: Request, res: Response) => {
@@ -177,6 +196,37 @@ export async function createServer(): Promise<{
 
     // Connect to database
     await database.connect();
+
+    // Initialize security and monitoring services
+    if (config.environment !== 'test') {
+      try {
+        // Register health checks for monitoring service
+        monitoringService.registerHealthCheck('database', async () => ({
+          name: 'database',
+          status: database.isConnected() ? 'healthy' : 'unhealthy',
+          latency: 0,
+          timestamp: new Date(),
+        }));
+
+        monitoringService.registerHealthCheck('encryption', async () => {
+          const stats = encryptionService.getEncryptionStats();
+          return {
+            name: 'encryption',
+            status: stats.totalKeysInCache > 0 ? 'healthy' : 'degraded',
+            latency: 0,
+            timestamp: new Date(),
+            details: stats,
+          };
+        });
+
+        console.log('🛡️ Security and monitoring services initialized');
+      } catch (error) {
+        console.error('❌ Failed to initialize security services:', error);
+        if (config.isProduction) {
+          throw error;
+        }
+      }
+    }
 
     // Initialize Kafka and event processing
     if (config.environment !== 'test') {

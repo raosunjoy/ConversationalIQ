@@ -11,11 +11,11 @@ interface SuggestionsState {
   loading: boolean;
   error: string | null;
   timestamp: Date | null;
-  
+
   // User Interactions
   appliedSuggestions: string[]; // IDs of suggestions used
   feedbackGiven: Record<string, { rating: number; helpful: boolean }>;
-  
+
   // Filters & Preferences
   categoryFilter: string[];
   minConfidence: number;
@@ -27,10 +27,10 @@ const initialState: SuggestionsState = {
   loading: false,
   error: null,
   timestamp: null,
-  
+
   appliedSuggestions: [],
   feedbackGiven: {},
-  
+
   categoryFilter: [],
   minConfidence: 0.6,
   showOnlyRelevant: false,
@@ -45,9 +45,11 @@ const suggestionsSlice = createSlice({
       state.timestamp = new Date();
       state.error = null;
     },
-    
+
     addSuggestion: (state, action: PayloadAction<ResponseSuggestion>) => {
-      const existingIndex = state.suggestions.findIndex(s => s.id === action.payload.id);
+      const existingIndex = state.suggestions.findIndex(
+        s => s.id === action.payload.id
+      );
       if (existingIndex >= 0) {
         state.suggestions[existingIndex] = action.payload;
       } else {
@@ -55,43 +57,46 @@ const suggestionsSlice = createSlice({
       }
       state.timestamp = new Date();
     },
-    
+
     applySuggestion: (state, action: PayloadAction<string>) => {
       const suggestionId = action.payload;
       if (!state.appliedSuggestions.includes(suggestionId)) {
         state.appliedSuggestions.push(suggestionId);
       }
     },
-    
-    provideFeedback: (state, action: PayloadAction<{ id: string; rating: number; helpful: boolean }>) => {
+
+    provideFeedback: (
+      state,
+      action: PayloadAction<{ id: string; rating: number; helpful: boolean }>
+    ) => {
       const { id, rating, helpful } = action.payload;
       state.feedbackGiven[id] = { rating, helpful };
     },
-    
+
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
     },
-    
+
     setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
       if (action.payload) {
         state.loading = false;
       }
     },
-    
+
     setCategoryFilter: (state, action: PayloadAction<string[]>) => {
       state.categoryFilter = action.payload;
     },
-    
+
     setMinConfidence: (state, action: PayloadAction<number>) => {
       state.minConfidence = Math.max(0, Math.min(1, action.payload));
     },
-    
+
     setShowOnlyRelevant: (state, action: PayloadAction<boolean>) => {
       state.showOnlyRelevant = action.payload;
     },
-    
-    clearSuggestions: (state) => {
+
+    clearSuggestions: state => {
       state.suggestions = [];
       state.timestamp = null;
       state.error = null;

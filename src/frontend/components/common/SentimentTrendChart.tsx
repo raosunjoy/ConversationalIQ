@@ -28,13 +28,17 @@ const SentimentTrendChart: React.FC<SentimentTrendChartProps> = ({
 
   const width = 200;
   const padding = 10;
-  
+
   const minScore = Math.min(-1, Math.min(...data.map(d => d.sentiment.score)));
   const maxScore = Math.max(1, Math.max(...data.map(d => d.sentiment.score)));
   const scoreRange = maxScore - minScore;
 
   const getY = (score: number): number => {
-    return height - padding - ((score - minScore) / scoreRange) * (height - 2 * padding);
+    return (
+      height -
+      padding -
+      ((score - minScore) / scoreRange) * (height - 2 * padding)
+    );
   };
 
   const getX = (index: number): number => {
@@ -68,7 +72,7 @@ const SentimentTrendChart: React.FC<SentimentTrendChartProps> = ({
           strokeWidth="1"
           strokeDasharray="2,2"
         />
-        
+
         {/* Trend line */}
         <path
           d={pathData}
@@ -78,7 +82,7 @@ const SentimentTrendChart: React.FC<SentimentTrendChartProps> = ({
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-        
+
         {/* Data points */}
         {data.map((point, index) => (
           <circle
@@ -90,13 +94,15 @@ const SentimentTrendChart: React.FC<SentimentTrendChartProps> = ({
           />
         ))}
       </svg>
-      
+
       <div className="chart-labels">
         <span className="chart-label start">
-          {data[0].sentiment.score > 0 ? '+' : ''}{data[0].sentiment.score.toFixed(2)}
+          {data[0].sentiment.score > 0 ? '+' : ''}
+          {data[0].sentiment.score.toFixed(2)}
         </span>
         <span className="chart-label end">
-          {data[data.length - 1].sentiment.score > 0 ? '+' : ''}{data[data.length - 1].sentiment.score.toFixed(2)}
+          {data[data.length - 1].sentiment.score > 0 ? '+' : ''}
+          {data[data.length - 1].sentiment.score.toFixed(2)}
         </span>
       </div>
     </div>

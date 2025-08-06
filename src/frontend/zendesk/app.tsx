@@ -10,18 +10,18 @@ import { ApolloProvider } from '@apollo/client';
 import { ThemeProvider } from '@zendeskgarden/react-theming';
 import { store } from '../store';
 import { apolloClient } from '../services/apollo-client';
-import { 
-  initializeZendeskClient, 
-  getCurrentUser, 
-  getCurrentTicket, 
-  onTicketChange 
+import {
+  initializeZendeskClient,
+  getCurrentUser,
+  getCurrentTicket,
+  onTicketChange,
 } from '../services/zendesk-auth';
-import { 
-  setUser, 
-  setTicket, 
-  setConnectionStatus, 
-  setError, 
-  setLoading 
+import {
+  setUser,
+  setTicket,
+  setConnectionStatus,
+  setError,
+  setLoading,
 } from '../store/slices/app-slice';
 import { setCurrentConversationId } from '../store/slices/conversation-slice';
 import AgentDashboard from '../components/AgentDashboard';
@@ -50,7 +50,7 @@ const ConversationIQApp: React.FC = () => {
       // Get current user and ticket
       const [user, ticket] = await Promise.all([
         getCurrentUser(),
-        getCurrentTicket()
+        getCurrentTicket(),
       ]);
 
       if (user) {
@@ -65,7 +65,7 @@ const ConversationIQApp: React.FC = () => {
       }
 
       // Set up ticket change listener
-      onTicketChange((updatedTicket) => {
+      onTicketChange(updatedTicket => {
         store.dispatch(setTicket(updatedTicket));
         store.dispatch(setCurrentConversationId(`zendesk-${updatedTicket.id}`));
         console.log('Ticket updated:', updatedTicket.id);
@@ -73,17 +73,19 @@ const ConversationIQApp: React.FC = () => {
 
       store.dispatch(setConnectionStatus('connected'));
       setIsInitialized(true);
-
     } catch (error: any) {
       console.error('App initialization failed:', error);
-      const errorMessage = error.message || 'Failed to initialize ConversationIQ';
+      const errorMessage =
+        error.message || 'Failed to initialize ConversationIQ';
       setInitError(errorMessage);
-      store.dispatch(setError({
-        code: 'INIT_ERROR',
-        message: errorMessage,
-        timestamp: new Date(),
-        recoverable: true,
-      }));
+      store.dispatch(
+        setError({
+          code: 'INIT_ERROR',
+          message: errorMessage,
+          timestamp: new Date(),
+          recoverable: true,
+        })
+      );
       store.dispatch(setConnectionStatus('error'));
     } finally {
       store.dispatch(setLoading(false));
@@ -103,10 +105,7 @@ const ConversationIQApp: React.FC = () => {
           <div className="error-icon">⚠️</div>
           <h3>Unable to load ConversationIQ</h3>
           <p className="error-message">{initError}</p>
-          <button 
-            className="retry-btn"
-            onClick={handleRetry}
-          >
+          <button className="retry-btn" onClick={handleRetry}>
             Retry
           </button>
         </div>

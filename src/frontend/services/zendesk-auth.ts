@@ -37,7 +37,7 @@ export const initializeZendeskClient = (): Promise<any> => {
 
     try {
       zafClient = window.ZAFClient.init();
-      
+
       // Wait for client to be ready
       zafClient.on('app.registered', () => {
         console.log('Zendesk App Framework initialized');
@@ -49,7 +49,6 @@ export const initializeZendeskClient = (): Promise<any> => {
         console.error('Zendesk App Framework error:', error);
         reject(new Error(`Zendesk initialization failed: ${error.message}`));
       });
-
     } catch (error) {
       reject(error);
     }
@@ -67,7 +66,7 @@ export const getCurrentUser = async (): Promise<ZendeskUser | null> => {
   try {
     const userData = await zafClient.get('currentUser');
     const user = userData.currentUser;
-    
+
     const zendeskUser: ZendeskUser = {
       id: user.id,
       name: user.name,
@@ -96,7 +95,7 @@ export const getCurrentTicket = async (): Promise<ZendeskTicket | null> => {
   try {
     const ticketData = await zafClient.get('ticket');
     const ticket = ticketData.ticket;
-    
+
     const zendeskTicket: ZendeskTicket = {
       id: ticket.id,
       subject: ticket.subject,
@@ -109,10 +108,12 @@ export const getCurrentTicket = async (): Promise<ZendeskTicket | null> => {
         name: ticket.requester.name,
         email: ticket.requester.email,
       },
-      assignee: ticket.assignee ? {
-        id: ticket.assignee.id,
-        name: ticket.assignee.name,
-      } : undefined,
+      assignee: ticket.assignee
+        ? {
+            id: ticket.assignee.id,
+            name: ticket.assignee.name,
+          }
+        : undefined,
       tags: ticket.tags || [],
       createdAt: ticket.createdAt,
       updatedAt: ticket.updatedAt,
@@ -202,9 +203,10 @@ export const authenticateWithAPI = async (): Promise<string | null> => {
 export const getZendeskAuth = async () => {
   // Check if we need to refresh authentication
   const now = new Date();
-  const shouldRefresh = !authState.token || 
-    !authState.lastRefresh || 
-    (now.getTime() - authState.lastRefresh.getTime()) > 55 * 60 * 1000; // 55 minutes
+  const shouldRefresh =
+    !authState.token ||
+    !authState.lastRefresh ||
+    now.getTime() - authState.lastRefresh.getTime() > 55 * 60 * 1000; // 55 minutes
 
   if (shouldRefresh) {
     try {
@@ -248,8 +250,7 @@ export const logout = (): void => {
  * Get API URL from app settings or environment
  */
 const getAPIUrl = (): string => {
-  return window.__ZENDESK_APP_SETTINGS__?.api_url || 
-    'http://localhost:3000';
+  return window.__ZENDESK_APP_SETTINGS__?.api_url || 'http://localhost:3000';
 };
 
 /**
@@ -260,14 +261,14 @@ export const makeAuthenticatedRequest = async (
   options: RequestInit = {}
 ): Promise<Response> => {
   const auth = await getZendeskAuth();
-  
+
   if (!auth.isAuthenticated || !auth.token) {
     throw new Error('Not authenticated');
   }
 
   const headers = {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${auth.token}`,
+    Authorization: `Bearer ${auth.token}`,
     'X-Zendesk-Subdomain': auth.subdomain || '',
     ...options.headers,
   };
@@ -281,7 +282,9 @@ export const makeAuthenticatedRequest = async (
 /**
  * Listen for ticket changes
  */
-export const onTicketChange = (callback: (ticket: ZendeskTicket) => void): void => {
+export const onTicketChange = (
+  callback: (ticket: ZendeskTicket) => void
+): void => {
   if (!zafClient) return;
 
   zafClient.on('ticket.save', async () => {
@@ -328,7 +331,7 @@ export const resizeApp = (height?: number): void => {
  * Show notification in Zendesk
  */
 export const showNotification = (
-  message: string, 
+  message: string,
   type: 'notice' | 'alert' | 'error' = 'notice'
 ): void => {
   if (!zafClient) return;

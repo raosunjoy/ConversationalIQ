@@ -23,35 +23,35 @@ const HealthIndicator: React.FC<HealthIndicatorProps> = ({
           color: '#228f67',
           icon: '💚',
           label: 'Excellent',
-          description: 'Conversation is proceeding very well'
+          description: 'Conversation is proceeding very well',
         };
       case 'good':
         return {
           color: '#87c442',
           icon: '💛',
-          label: 'Good', 
-          description: 'Conversation is on track'
+          label: 'Good',
+          description: 'Conversation is on track',
         };
       case 'concerning':
         return {
           color: '#f79a3e',
           icon: '🧡',
           label: 'Concerning',
-          description: 'Some issues detected'
+          description: 'Some issues detected',
         };
       case 'critical':
         return {
           color: '#d93954',
           icon: '❤️',
           label: 'Critical',
-          description: 'Immediate attention required'
+          description: 'Immediate attention required',
         };
       default:
         return {
           color: '#68737d',
           icon: '⚪',
           label: 'Unknown',
-          description: 'Status unknown'
+          description: 'Status unknown',
         };
     }
   };
@@ -60,29 +60,19 @@ const HealthIndicator: React.FC<HealthIndicatorProps> = ({
 
   return (
     <div className={`health-indicator ${size} ${health}`}>
-      <div className="health-icon">
-        {config.icon}
-      </div>
-      
+      <div className="health-icon">{config.icon}</div>
+
       <div className="health-content">
-        <div 
-          className="health-label"
-          style={{ color: config.color }}
-        >
+        <div className="health-label" style={{ color: config.color }}>
           {config.label}
         </div>
-        
+
         {showDetails && (
-          <div className="health-description">
-            {config.description}
-          </div>
+          <div className="health-description">{config.description}</div>
         )}
       </div>
-      
-      <div 
-        className="health-bar"
-        style={{ backgroundColor: config.color }}
-      />
+
+      <div className="health-bar" style={{ backgroundColor: config.color }} />
     </div>
   );
 };

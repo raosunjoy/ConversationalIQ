@@ -24,17 +24,23 @@ const MetricCard: React.FC<MetricCardProps> = ({
 }) => {
   const getTrendIcon = (trend?: string): string => {
     switch (trend) {
-      case 'positive': return '📈';
-      case 'negative': return '📉';
-      default: return '📊';
+      case 'positive':
+        return '📈';
+      case 'negative':
+        return '📉';
+      default:
+        return '📊';
     }
   };
 
   const getTrendColor = (trend?: string): string => {
     switch (trend) {
-      case 'positive': return '#228f67';
-      case 'negative': return '#d93954';
-      default: return '#68737d';
+      case 'positive':
+        return '#228f67';
+      case 'negative':
+        return '#d93954';
+      default:
+        return '#68737d';
     }
   };
 
@@ -44,7 +50,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
         {icon && <span className="metric-icon">{icon}</span>}
         <span className="metric-title">{title}</span>
         {trend && (
-          <span 
+          <span
             className="trend-indicator"
             style={{ color: getTrendColor(trend) }}
           >
@@ -52,19 +58,15 @@ const MetricCard: React.FC<MetricCardProps> = ({
           </span>
         )}
       </div>
-      
+
       <div className="metric-body">
-        <div 
+        <div
           className="metric-value"
           style={{ color: color || (trend ? getTrendColor(trend) : undefined) }}
         >
           {value}
         </div>
-        {subtitle && (
-          <div className="metric-subtitle">
-            {subtitle}
-          </div>
-        )}
+        {subtitle && <div className="metric-subtitle">{subtitle}</div>}
       </div>
     </div>
   );

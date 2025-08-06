@@ -18,7 +18,7 @@ export const store = configureStore({
     analytics: analyticsSlice,
     team: teamSlice,
   },
-  middleware: (getDefaultMiddleware) =>
+  middleware: getDefaultMiddleware =>
     getDefaultMiddleware({
       serializableCheck: {
         // Ignore these action types for serialization

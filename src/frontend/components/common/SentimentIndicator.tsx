@@ -13,11 +13,11 @@ interface SentimentIndicatorProps {
   compact?: boolean;
 }
 
-const SentimentIndicator: React.FC<SentimentIndicatorProps> = ({ 
-  sentiment, 
-  showTrend = false, 
+const SentimentIndicator: React.FC<SentimentIndicatorProps> = ({
+  sentiment,
+  showTrend = false,
   size = 'medium',
-  compact = false 
+  compact = false,
 }) => {
   if (!sentiment) {
     return (
@@ -36,17 +36,23 @@ const SentimentIndicator: React.FC<SentimentIndicatorProps> = ({
 
   const getSentimentIcon = (label: string): string => {
     switch (label) {
-      case 'POSITIVE': return '😊';
-      case 'NEGATIVE': return '😟';
-      default: return '😐';
+      case 'POSITIVE':
+        return '😊';
+      case 'NEGATIVE':
+        return '😟';
+      default:
+        return '😐';
     }
   };
 
   const getTrendIcon = (trend: string): string => {
     switch (trend) {
-      case 'improving': return '↗️';
-      case 'declining': return '↘️';
-      default: return '→';
+      case 'improving':
+        return '↗️';
+      case 'declining':
+        return '↘️';
+      default:
+        return '→';
     }
   };
 
@@ -65,7 +71,9 @@ const SentimentIndicator: React.FC<SentimentIndicatorProps> = ({
   if (compact) {
     return (
       <div className={`sentiment-indicator compact ${sentimentColor}`}>
-        <span className="sentiment-icon">{getSentimentIcon(sentiment.label)}</span>
+        <span className="sentiment-icon">
+          {getSentimentIcon(sentiment.label)}
+        </span>
         <span className="sentiment-score">{formatScore(sentiment.score)}</span>
         {showTrend && (
           <span className="trend-icon">{getTrendIcon(sentiment.trend)}</span>
@@ -81,9 +89,7 @@ const SentimentIndicator: React.FC<SentimentIndicatorProps> = ({
           {getSentimentIcon(sentiment.label)}
         </div>
         <div className="sentiment-details">
-          <div className="score-value">
-            {formatScore(sentiment.score)}
-          </div>
+          <div className="score-value">{formatScore(sentiment.score)}</div>
           <div className="score-label">
             {sentiment.label.charAt(0) + sentiment.label.slice(1).toLowerCase()}
           </div>
@@ -102,7 +108,7 @@ const SentimentIndicator: React.FC<SentimentIndicatorProps> = ({
       {/* Visual sentiment bar */}
       <div className="sentiment-bar-container">
         <div className="sentiment-bar">
-          <div 
+          <div
             className={`sentiment-fill ${sentimentColor}`}
             style={{ width: `${scorePercentage}%` }}
           />

@@ -11,7 +11,11 @@ import {
   IntentResult,
   AIProcessingError,
 } from '../models';
-import { conversationContextService, CustomerProfile, ConversationMemory } from '../context/conversation-context';
+import {
+  conversationContextService,
+  CustomerProfile,
+  ConversationMemory,
+} from '../context/conversation-context';
 import { DatabaseService } from '../../services/database';
 
 export interface EscalationPrediction {
@@ -29,7 +33,13 @@ export interface EscalationPrediction {
 }
 
 export interface EscalationRiskFactor {
-  type: 'sentiment_decline' | 'repeat_issue' | 'response_delay' | 'complexity' | 'customer_history' | 'agent_performance';
+  type:
+    | 'sentiment_decline'
+    | 'repeat_issue'
+    | 'response_delay'
+    | 'complexity'
+    | 'customer_history'
+    | 'agent_performance';
   severity: number; // 0-1
   description: string;
   weight: number;
@@ -37,7 +47,13 @@ export interface EscalationRiskFactor {
 }
 
 export interface PreventionAction {
-  type: 'proactive_contact' | 'escalate_now' | 'offer_compensation' | 'change_tone' | 'provide_update' | 'transfer_agent';
+  type:
+    | 'proactive_contact'
+    | 'escalate_now'
+    | 'offer_compensation'
+    | 'change_tone'
+    | 'provide_update'
+    | 'transfer_agent';
   priority: 'immediate' | 'urgent' | 'normal';
   description: string;
   estimatedImpact: number; // 0-1
@@ -107,9 +123,11 @@ export class EscalationPreventionService extends EventEmitter {
       this.initialized = true;
       console.log('Escalation Prevention Service initialized successfully');
       this.emit('initialized');
-
     } catch (error) {
-      console.error('Failed to initialize Escalation Prevention Service:', error);
+      console.error(
+        'Failed to initialize Escalation Prevention Service:',
+        error
+      );
       throw new AIProcessingError(
         'Escalation prevention service initialization failed',
         'ESCALATION_INIT_ERROR',
@@ -135,17 +153,27 @@ export class EscalationPreventionService extends EventEmitter {
       );
     }
 
-    const memory = await conversationContextService.getConversationMemory(conversationId);
-    const customerProfile = await conversationContextService.getCustomerProfile(conversationId);
+    const memory =
+      await conversationContextService.getConversationMemory(conversationId);
+    const customerProfile =
+      await conversationContextService.getCustomerProfile(conversationId);
 
     // Analyze risk factors
-    const riskFactors = await this.analyzeRiskFactors(memory, customerProfile, currentMessage);
+    const riskFactors = await this.analyzeRiskFactors(
+      memory,
+      customerProfile,
+      currentMessage
+    );
 
     // Calculate overall risk score
     const riskScore = this.calculateOverallRiskScore(riskFactors);
 
     // Generate prediction
-    const prediction = await this.generateEscalationPrediction(riskScore, riskFactors, memory);
+    const prediction = await this.generateEscalationPrediction(
+      riskScore,
+      riskFactors,
+      memory
+    );
 
     // Determine prevention actions
     const preventionActions = await this.generatePreventionActions(
@@ -156,7 +184,8 @@ export class EscalationPreventionService extends EventEmitter {
     );
 
     // Check if manager alert is needed
-    const managerAlert = riskScore >= 0.8 || riskFactors.some(f => f.severity >= 0.9);
+    const managerAlert =
+      riskScore >= 0.8 || riskFactors.some(f => f.severity >= 0.9);
 
     const escalationPrediction: EscalationPrediction = {
       conversationId,
@@ -170,8 +199,10 @@ export class EscalationPreventionService extends EventEmitter {
 
     // Update stats
     this.preventionStats.predictionsGenerated++;
-    this.preventionStats.averageRiskScore = 
-      (this.preventionStats.averageRiskScore * (this.preventionStats.predictionsGenerated - 1) + riskScore) / 
+    this.preventionStats.averageRiskScore =
+      (this.preventionStats.averageRiskScore *
+        (this.preventionStats.predictionsGenerated - 1) +
+        riskScore) /
       this.preventionStats.predictionsGenerated;
 
     // Emit prediction event
@@ -192,7 +223,7 @@ export class EscalationPreventionService extends EventEmitter {
     conversationId: string,
     action: PreventionAction,
     agentId?: string
-  ): Promise<{success: boolean; result: any}> {
+  ): Promise<{ success: boolean; result: any }> {
     try {
       let result: any = null;
 
@@ -201,7 +232,10 @@ export class EscalationPreventionService extends EventEmitter {
           result = await this.executeProactiveContact(conversationId, action);
           break;
         case 'escalate_now':
-          result = await this.executeImmediateEscalation(conversationId, action);
+          result = await this.executeImmediateEscalation(
+            conversationId,
+            action
+          );
           break;
         case 'offer_compensation':
           result = await this.executeCompensationOffer(conversationId, action);
@@ -228,17 +262,22 @@ export class EscalationPreventionService extends EventEmitter {
       });
 
       return { success: true, result };
-
     } catch (error) {
-      console.error(`Failed to execute prevention action ${action.type}:`, error);
-      
+      console.error(
+        `Failed to execute prevention action ${action.type}:`,
+        error
+      );
+
       this.emit('preventionActionFailed', {
         conversationId,
         action,
         error: error instanceof Error ? error.message : String(error),
       });
 
-      return { success: false, result: error instanceof Error ? error.message : String(error) };
+      return {
+        success: false,
+        result: error instanceof Error ? error.message : String(error),
+      };
     }
   }
 
@@ -253,7 +292,7 @@ export class EscalationPreventionService extends EventEmitter {
   ): Promise<void> {
     // Update model accuracy
     const wasPreventionSuccessful = !escalated && actualOutcome === 'resolved';
-    
+
     if (wasPreventionSuccessful) {
       this.preventionStats.escalationsPrevented++;
     }
@@ -261,10 +300,16 @@ export class EscalationPreventionService extends EventEmitter {
     // Calculate accuracy (simplified)
     const totalPredictions = this.preventionStats.predictionsGenerated;
     const successfulPreventions = this.preventionStats.escalationsPrevented;
-    this.preventionStats.accuracyScore = totalPredictions > 0 ? successfulPreventions / totalPredictions : 0;
+    this.preventionStats.accuracyScore =
+      totalPredictions > 0 ? successfulPreventions / totalPredictions : 0;
 
     // Learn from the outcome to improve future predictions
-    await this.updatePredictionModels(conversationId, escalated, actualOutcome, preventionActionsUsed);
+    await this.updatePredictionModels(
+      conversationId,
+      escalated,
+      actualOutcome,
+      preventionActionsUsed
+    );
 
     this.emit('escalationOutcomeReported', {
       conversationId,
@@ -341,7 +386,7 @@ export class EscalationPreventionService extends EventEmitter {
   private async initializePredictionModels(): Promise<void> {
     // Initialize ML models for escalation prediction
     // In production, this would load trained models
-    
+
     const baseModel = {
       version: '1.0.0',
       accuracy: 0.85,
@@ -459,7 +504,7 @@ export class EscalationPreventionService extends EventEmitter {
     const monitor = setInterval(async () => {
       try {
         const prediction = await this.predictEscalationRisk(conversationId);
-        
+
         if (prediction.riskScore < 0.5) {
           // Risk has decreased, stop intensive monitoring
           clearInterval(monitor);
@@ -471,9 +516,11 @@ export class EscalationPreventionService extends EventEmitter {
         if (prediction.riskLevel === 'critical' && prediction.managerAlert) {
           this.emit('immediateActionRequired', prediction);
         }
-
       } catch (error) {
-        console.error(`Error monitoring conversation ${conversationId}:`, error);
+        console.error(
+          `Error monitoring conversation ${conversationId}:`,
+          error
+        );
       }
     }, 30000); // Check every 30 seconds for high-risk conversations
 
@@ -510,7 +557,9 @@ export class EscalationPreventionService extends EventEmitter {
     return riskFactors;
   }
 
-  private analyzeSentimentRisk(memory: ConversationMemory): EscalationRiskFactor | null {
+  private analyzeSentimentRisk(
+    memory: ConversationMemory
+  ): EscalationRiskFactor | null {
     const recentSentiments = memory.timeline
       .slice(-5)
       .map(event => event.sentiment)
@@ -519,8 +568,11 @@ export class EscalationPreventionService extends EventEmitter {
     if (recentSentiments.length < 3) return null;
 
     // Calculate sentiment trend
-    const trend = (recentSentiments[recentSentiments.length - 1] || 0) - (recentSentiments[0] || 0);
-    const avgSentiment = recentSentiments.reduce((sum, s) => sum + s, 0) / recentSentiments.length;
+    const trend =
+      (recentSentiments[recentSentiments.length - 1] || 0) -
+      (recentSentiments[0] || 0);
+    const avgSentiment =
+      recentSentiments.reduce((sum, s) => sum + s, 0) / recentSentiments.length;
 
     if (trend < -0.3 || avgSentiment < -0.5) {
       return {
@@ -535,9 +587,12 @@ export class EscalationPreventionService extends EventEmitter {
     return null;
   }
 
-  private analyzeRepeatIssueRisk(profile: CustomerProfile, memory: ConversationMemory): EscalationRiskFactor | null {
+  private analyzeRepeatIssueRisk(
+    profile: CustomerProfile,
+    memory: ConversationMemory
+  ): EscalationRiskFactor | null {
     const currentIssues = memory.context.issues;
-    const repeatCount = currentIssues.filter(issue => 
+    const repeatCount = currentIssues.filter(issue =>
       profile.history.previousIssues.includes(issue)
     ).length;
 
@@ -554,20 +609,25 @@ export class EscalationPreventionService extends EventEmitter {
     return null;
   }
 
-  private analyzeResponseDelayRisk(memory: ConversationMemory): EscalationRiskFactor | null {
+  private analyzeResponseDelayRisk(
+    memory: ConversationMemory
+  ): EscalationRiskFactor | null {
     // Analyze time gaps between customer messages and agent responses
     const timeline = memory.timeline.filter(event => event.event === 'message');
-    
+
     if (timeline.length < 2) return null;
 
     let totalDelay = 0;
     let delayCount = 0;
 
     for (let i = 1; i < timeline.length; i++) {
-      const timeDiff = (timeline[i]?.timestamp.getTime() || 0) - (timeline[i - 1]?.timestamp.getTime() || 0);
+      const timeDiff =
+        (timeline[i]?.timestamp.getTime() || 0) -
+        (timeline[i - 1]?.timestamp.getTime() || 0);
       const hoursDiff = timeDiff / (1000 * 60 * 60);
-      
-      if (hoursDiff > 2) { // Consider delays > 2 hours
+
+      if (hoursDiff > 2) {
+        // Consider delays > 2 hours
         totalDelay += hoursDiff;
         delayCount++;
       }
@@ -587,13 +647,17 @@ export class EscalationPreventionService extends EventEmitter {
     return null;
   }
 
-  private analyzeComplexityRisk(memory: ConversationMemory): EscalationRiskFactor | null {
-    const messageCount = memory.timeline.filter(event => event.event === 'message').length;
+  private analyzeComplexityRisk(
+    memory: ConversationMemory
+  ): EscalationRiskFactor | null {
+    const messageCount = memory.timeline.filter(
+      event => event.event === 'message'
+    ).length;
     const issueCount = memory.context.issues.length;
-    
+
     // Complex conversations have many messages or multiple issues
-    const complexityScore = (messageCount * 0.1) + (issueCount * 0.3);
-    
+    const complexityScore = messageCount * 0.1 + issueCount * 0.3;
+
     if (complexityScore > 0.5) {
       return {
         type: 'complexity',
@@ -607,10 +671,13 @@ export class EscalationPreventionService extends EventEmitter {
     return null;
   }
 
-  private analyzeCustomerHistoryRisk(profile: CustomerProfile): EscalationRiskFactor | null {
+  private analyzeCustomerHistoryRisk(
+    profile: CustomerProfile
+  ): EscalationRiskFactor | null {
     if (profile.history.escalationCount > 0 || profile.satisfaction < 0.6) {
-      const historySeverity = (profile.history.escalationCount * 0.2) + (1 - profile.satisfaction);
-      
+      const historySeverity =
+        profile.history.escalationCount * 0.2 + (1 - profile.satisfaction);
+
       return {
         type: 'customer_history',
         severity: Math.min(1, historySeverity),
@@ -623,15 +690,20 @@ export class EscalationPreventionService extends EventEmitter {
     return null;
   }
 
-  private calculateOverallRiskScore(riskFactors: EscalationRiskFactor[]): number {
+  private calculateOverallRiskScore(
+    riskFactors: EscalationRiskFactor[]
+  ): number {
     if (riskFactors.length === 0) return 0;
 
     const weightedSum = riskFactors.reduce((sum, factor) => {
-      return sum + (factor.severity * factor.weight);
+      return sum + factor.severity * factor.weight;
     }, 0);
 
-    const totalWeight = riskFactors.reduce((sum, factor) => sum + factor.weight, 0);
-    
+    const totalWeight = riskFactors.reduce(
+      (sum, factor) => sum + factor.weight,
+      0
+    );
+
     return totalWeight > 0 ? Math.min(1, weightedSum / totalWeight) : 0;
   }
 
@@ -642,16 +714,19 @@ export class EscalationPreventionService extends EventEmitter {
   ): Promise<EscalationPrediction['prediction']> {
     // Predict time to escalation based on risk factors
     let baseTimeToEscalation = 240; // 4 hours baseline
-    
+
     riskFactors.forEach(factor => {
-      if (factor.type === 'sentiment_decline') baseTimeToEscalation *= (1 - factor.severity * 0.5);
-      if (factor.type === 'repeat_issue') baseTimeToEscalation *= (1 - factor.severity * 0.3);
-      if (factor.type === 'response_delay') baseTimeToEscalation *= (1 + factor.severity * 0.5);
+      if (factor.type === 'sentiment_decline')
+        baseTimeToEscalation *= 1 - factor.severity * 0.5;
+      if (factor.type === 'repeat_issue')
+        baseTimeToEscalation *= 1 - factor.severity * 0.3;
+      if (factor.type === 'response_delay')
+        baseTimeToEscalation *= 1 + factor.severity * 0.5;
     });
 
     const timeToEscalation = Math.max(5, baseTimeToEscalation); // Minimum 5 minutes
     const escalationProbability = riskScore;
-    const confidence = Math.min(0.95, 0.6 + (riskFactors.length * 0.1));
+    const confidence = Math.min(0.95, 0.6 + riskFactors.length * 0.1);
 
     return {
       timeToEscalation: Math.round(timeToEscalation),
@@ -669,12 +744,16 @@ export class EscalationPreventionService extends EventEmitter {
     const actions: PreventionAction[] = [];
 
     // Find applicable playbooks
-    const applicablePlaybooks = Array.from(this.playbooks.values()).filter(playbook => {
-      return riskScore >= playbook.triggerConditions.riskScore &&
-             playbook.triggerConditions.riskFactors.some(factor =>
-               riskFactors.some(rf => rf.type.includes(factor))
-             );
-    });
+    const applicablePlaybooks = Array.from(this.playbooks.values()).filter(
+      playbook => {
+        return (
+          riskScore >= playbook.triggerConditions.riskScore &&
+          playbook.triggerConditions.riskFactors.some(factor =>
+            riskFactors.some(rf => rf.type.includes(factor))
+          )
+        );
+      }
+    );
 
     // Add playbook actions
     applicablePlaybooks.forEach(playbook => {
@@ -701,17 +780,21 @@ export class EscalationPreventionService extends EventEmitter {
     }
 
     // Sort by priority and impact
-    return actions.sort((a, b) => {
-      const priorityOrder = { immediate: 3, urgent: 2, normal: 1 };
-      const aPriority = priorityOrder[a.priority];
-      const bPriority = priorityOrder[b.priority];
-      
-      if (aPriority !== bPriority) return bPriority - aPriority;
-      return b.estimatedImpact - a.estimatedImpact;
-    }).slice(0, 5); // Limit to top 5 actions
+    return actions
+      .sort((a, b) => {
+        const priorityOrder = { immediate: 3, urgent: 2, normal: 1 };
+        const aPriority = priorityOrder[a.priority];
+        const bPriority = priorityOrder[b.priority];
+
+        if (aPriority !== bPriority) return bPriority - aPriority;
+        return b.estimatedImpact - a.estimatedImpact;
+      })
+      .slice(0, 5); // Limit to top 5 actions
   }
 
-  private generateFactorSpecificAction(factor: EscalationRiskFactor): PreventionAction | null {
+  private generateFactorSpecificAction(
+    factor: EscalationRiskFactor
+  ): PreventionAction | null {
     switch (factor.type) {
       case 'sentiment_decline':
         return {
@@ -720,7 +803,8 @@ export class EscalationPreventionService extends EventEmitter {
           description: 'Switch to more empathetic communication style',
           estimatedImpact: 0.7,
           requiresApproval: false,
-          suggestedResponse: 'I understand your frustration, and I want to make sure we resolve this properly for you.',
+          suggestedResponse:
+            'I understand your frustration, and I want to make sure we resolve this properly for you.',
         };
       case 'response_delay':
         return {
@@ -729,14 +813,17 @@ export class EscalationPreventionService extends EventEmitter {
           description: 'Provide immediate status update to address delays',
           estimatedImpact: 0.6,
           requiresApproval: false,
-          suggestedResponse: 'I apologize for the delay. Let me give you an immediate update on where we stand.',
+          suggestedResponse:
+            'I apologize for the delay. Let me give you an immediate update on where we stand.',
         };
       default:
         return null;
     }
   }
 
-  private getRiskLevel(riskScore: number): 'low' | 'medium' | 'high' | 'critical' {
+  private getRiskLevel(
+    riskScore: number
+  ): 'low' | 'medium' | 'high' | 'critical' {
     if (riskScore >= 0.8) return 'critical';
     if (riskScore >= 0.6) return 'high';
     if (riskScore >= 0.3) return 'medium';
@@ -744,7 +831,10 @@ export class EscalationPreventionService extends EventEmitter {
   }
 
   // Prevention action execution methods
-  private async executeProactiveContact(conversationId: string, action: PreventionAction): Promise<any> {
+  private async executeProactiveContact(
+    conversationId: string,
+    action: PreventionAction
+  ): Promise<any> {
     // Simulate proactive contact execution
     return {
       type: 'proactive_contact',
@@ -753,7 +843,10 @@ export class EscalationPreventionService extends EventEmitter {
     };
   }
 
-  private async executeImmediateEscalation(conversationId: string, action: PreventionAction): Promise<any> {
+  private async executeImmediateEscalation(
+    conversationId: string,
+    action: PreventionAction
+  ): Promise<any> {
     // Execute immediate escalation
     return {
       type: 'escalation',
@@ -762,7 +855,10 @@ export class EscalationPreventionService extends EventEmitter {
     };
   }
 
-  private async executeCompensationOffer(conversationId: string, action: PreventionAction): Promise<any> {
+  private async executeCompensationOffer(
+    conversationId: string,
+    action: PreventionAction
+  ): Promise<any> {
     // Execute compensation offer
     return {
       type: 'compensation',
@@ -772,7 +868,10 @@ export class EscalationPreventionService extends EventEmitter {
     };
   }
 
-  private async executeToneChange(conversationId: string, action: PreventionAction): Promise<any> {
+  private async executeToneChange(
+    conversationId: string,
+    action: PreventionAction
+  ): Promise<any> {
     // Signal tone change to agent interface
     return {
       type: 'tone_change',
@@ -782,7 +881,10 @@ export class EscalationPreventionService extends EventEmitter {
     };
   }
 
-  private async executeStatusUpdate(conversationId: string, action: PreventionAction): Promise<any> {
+  private async executeStatusUpdate(
+    conversationId: string,
+    action: PreventionAction
+  ): Promise<any> {
     // Provide status update
     return {
       type: 'status_update',
@@ -791,7 +893,10 @@ export class EscalationPreventionService extends EventEmitter {
     };
   }
 
-  private async executeAgentTransfer(conversationId: string, action: PreventionAction): Promise<any> {
+  private async executeAgentTransfer(
+    conversationId: string,
+    action: PreventionAction
+  ): Promise<any> {
     // Execute agent transfer
     return {
       type: 'agent_transfer',
@@ -807,8 +912,10 @@ export class EscalationPreventionService extends EventEmitter {
     actionsUsed: string[]
   ): Promise<void> {
     // Update ML models based on actual outcomes
-    console.log(`Learning from outcome: conversation ${conversationId}, escalated: ${escalated}, outcome: ${outcome}`);
-    
+    console.log(
+      `Learning from outcome: conversation ${conversationId}, escalated: ${escalated}, outcome: ${outcome}`
+    );
+
     // In production, this would update model weights and retrain
   }
 
@@ -836,9 +943,9 @@ export class EscalationPreventionService extends EventEmitter {
    */
   async shutdown(): Promise<void> {
     console.log('Shutting down Escalation Prevention Service...');
-    
+
     // Clear all monitoring intervals
-    this.activeMonitoring.forEach((timer) => clearInterval(timer));
+    this.activeMonitoring.forEach(timer => clearInterval(timer));
     this.activeMonitoring.clear();
 
     this.initialized = false;

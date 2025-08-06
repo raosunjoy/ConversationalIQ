@@ -88,8 +88,16 @@ const GET_ACTIVE_ESCALATION_RISKS = gql`
 `;
 
 const EXECUTE_PREVENTION_ACTION = gql`
-  mutation ExecutePreventionAction($conversationId: ID!, $actionType: String!, $agentId: ID) {
-    executePreventionAction(conversationId: $conversationId, actionType: $actionType, agentId: $agentId) {
+  mutation ExecutePreventionAction(
+    $conversationId: ID!
+    $actionType: String!
+    $agentId: ID
+  ) {
+    executePreventionAction(
+      conversationId: $conversationId
+      actionType: $actionType
+      agentId: $agentId
+    ) {
       success
       message
       result
@@ -99,32 +107,45 @@ const EXECUTE_PREVENTION_ACTION = gql`
 
 export const EscalationAlerts: React.FC = () => {
   const dispatch = useDispatch();
-  const { activeConversationId } = useSelector((state: RootState) => state.conversation);
+  const { activeConversationId } = useSelector(
+    (state: RootState) => state.conversation
+  );
   const { user } = useSelector((state: RootState) => state.app);
-  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
-  const [executingActions, setExecutingActions] = useState<Set<string>>(new Set());
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(
+    new Set()
+  );
+  const [executingActions, setExecutingActions] = useState<Set<string>>(
+    new Set()
+  );
 
   // Query for escalation risks
-  const { data: risksData, loading: risksLoading, refetch } = useQuery<{
-    getActiveEscalationRisks: EscalationRisksOverview
+  const {
+    data: risksData,
+    loading: risksLoading,
+    refetch,
+  } = useQuery<{
+    getActiveEscalationRisks: EscalationRisksOverview;
   }>(GET_ACTIVE_ESCALATION_RISKS, {
     pollInterval: 30000, // Poll every 30 seconds
   });
 
   // Mutation for executing prevention actions
   const [executePreventionAction] = useMutation(EXECUTE_PREVENTION_ACTION, {
-    onCompleted: (data) => {
+    onCompleted: data => {
       if (data.executePreventionAction.success) {
         // Refresh the risks data
         refetch();
       }
     },
-    onError: (error) => {
+    onError: error => {
       console.error('Failed to execute prevention action:', error);
-    }
+    },
   });
 
-  const handleExecuteAction = async (conversationId: string, actionType: string) => {
+  const handleExecuteAction = async (
+    conversationId: string,
+    actionType: string
+  ) => {
     const actionKey = `${conversationId}:${actionType}`;
     setExecutingActions(prev => new Set(prev).add(actionKey));
 
@@ -134,7 +155,7 @@ export const EscalationAlerts: React.FC = () => {
           conversationId,
           actionType,
           agentId: user?.userId,
-        }
+        },
       });
     } finally {
       setExecutingActions(prev => {
@@ -149,22 +170,33 @@ export const EscalationAlerts: React.FC = () => {
     setDismissedAlerts(prev => new Set(prev).add(conversationId));
   };
 
-  const getRiskLevelColor = (level: string): 'grey' | 'yellow' | 'red' | 'red' => {
+  const getRiskLevelColor = (
+    level: string
+  ): 'grey' | 'yellow' | 'red' | 'red' => {
     switch (level) {
-      case 'LOW': return 'grey';
-      case 'MEDIUM': return 'yellow';
-      case 'HIGH': return 'red';
-      case 'CRITICAL': return 'red';
-      default: return 'grey';
+      case 'LOW':
+        return 'grey';
+      case 'MEDIUM':
+        return 'yellow';
+      case 'HIGH':
+        return 'red';
+      case 'CRITICAL':
+        return 'red';
+      default:
+        return 'grey';
     }
   };
 
   const getPriorityColor = (priority: string): 'grey' | 'yellow' | 'red' => {
     switch (priority) {
-      case 'NORMAL': return 'grey';
-      case 'URGENT': return 'yellow';
-      case 'IMMEDIATE': return 'red';
-      default: return 'grey';
+      case 'NORMAL':
+        return 'grey';
+      case 'URGENT':
+        return 'yellow';
+      case 'IMMEDIATE':
+        return 'red';
+      default:
+        return 'grey';
     }
   };
 
@@ -187,7 +219,11 @@ export const EscalationAlerts: React.FC = () => {
   }
 
   const risks = risksData?.getActiveEscalationRisks;
-  if (!risks || (risks.highRiskConversations.length === 0 && risks.mediumRiskConversations.length === 0)) {
+  if (
+    !risks ||
+    (risks.highRiskConversations.length === 0 &&
+      risks.mediumRiskConversations.length === 0)
+  ) {
     return (
       <div className="escalation-alerts empty">
         <div className="empty-state">
@@ -198,8 +234,13 @@ export const EscalationAlerts: React.FC = () => {
     );
   }
 
-  const allRisks = [...risks.highRiskConversations, ...risks.mediumRiskConversations];
-  const visibleRisks = allRisks.filter(risk => !dismissedAlerts.has(risk.conversationId));
+  const allRisks = [
+    ...risks.highRiskConversations,
+    ...risks.mediumRiskConversations,
+  ];
+  const visibleRisks = allRisks.filter(
+    risk => !dismissedAlerts.has(risk.conversationId)
+  );
 
   return (
     <div className="escalation-alerts">
@@ -211,7 +252,7 @@ export const EscalationAlerts: React.FC = () => {
       </div>
 
       <div className="alerts-list">
-        {visibleRisks.map((risk) => (
+        {visibleRisks.map(risk => (
           <Alert
             key={risk.conversationId}
             type={risk.riskLevel === 'CRITICAL' ? 'error' : 'warning'}
@@ -273,20 +314,33 @@ export const EscalationAlerts: React.FC = () => {
                 {risk.preventionActions.slice(0, 2).map((action, index) => (
                   <div key={index} className="prevention-action">
                     <div className="action-info">
-                      <Badge hue={getPriorityColor(action.priority)} size="small">
+                      <Badge
+                        hue={getPriorityColor(action.priority)}
+                        size="small"
+                      >
                         {action.priority}
                       </Badge>
-                      <span className="action-description">{action.description}</span>
+                      <span className="action-description">
+                        {action.description}
+                      </span>
                       <span className="impact-score">
                         Impact: {Math.round(action.estimatedImpact * 100)}%
                       </span>
                     </div>
                     <Button
                       size="small"
-                      onClick={() => handleExecuteAction(risk.conversationId, action.type)}
-                      disabled={executingActions.has(`${risk.conversationId}:${action.type}`)}
+                      onClick={() =>
+                        handleExecuteAction(risk.conversationId, action.type)
+                      }
+                      disabled={executingActions.has(
+                        `${risk.conversationId}:${action.type}`
+                      )}
                     >
-                      {executingActions.has(`${risk.conversationId}:${action.type}`) ? 'Executing...' : 'Execute'}
+                      {executingActions.has(
+                        `${risk.conversationId}:${action.type}`
+                      )
+                        ? 'Executing...'
+                        : 'Execute'}
                     </Button>
                   </div>
                 ))}
@@ -295,8 +349,12 @@ export const EscalationAlerts: React.FC = () => {
 
             {risk.managerAlert && (
               <div className="manager-alert">
-                <Badge hue="red" size="small">Manager Alert</Badge>
-                <span>This conversation requires immediate manager attention</span>
+                <Badge hue="red" size="small">
+                  Manager Alert
+                </Badge>
+                <span>
+                  This conversation requires immediate manager attention
+                </span>
               </div>
             )}
           </Alert>
@@ -305,10 +363,7 @@ export const EscalationAlerts: React.FC = () => {
 
       {risks.totalAtRisk > visibleRisks.length && (
         <div className="alerts-footer">
-          <Button
-            isLink
-            onClick={() => setDismissedAlerts(new Set())}
-          >
+          <Button isLink onClick={() => setDismissedAlerts(new Set())}>
             Show all alerts ({risks.totalAtRisk})
           </Button>
         </div>

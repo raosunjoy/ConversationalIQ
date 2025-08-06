@@ -28,20 +28,29 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({
 
   const getCategoryIcon = (category: string): string => {
     switch (category) {
-      case 'template': return '📄';
-      case 'generated': return '🤖';
-      case 'macro': return '⚡';
-      default: return '💡';
+      case 'template':
+        return '📄';
+      case 'generated':
+        return '🤖';
+      case 'macro':
+        return '⚡';
+      default:
+        return '💡';
     }
   };
 
   const getToneColor = (tone: string): string => {
     switch (tone) {
-      case 'professional': return '#1f73b7';
-      case 'friendly': return '#228f67';
-      case 'empathetic': return '#cc8400';
-      case 'formal': return '#68737d';
-      default: return '#2f3941';
+      case 'professional':
+        return '#1f73b7';
+      case 'friendly':
+        return '#228f67';
+      case 'empathetic':
+        return '#cc8400';
+      case 'formal':
+        return '#68737d';
+      default:
+        return '#2f3941';
     }
   };
 
@@ -56,21 +65,28 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({
     setShowFeedback(false);
   };
 
-  const truncateContent = (content: string, maxLength: number = 200): string => {
+  const truncateContent = (
+    content: string,
+    maxLength: number = 200
+  ): string => {
     if (content.length <= maxLength) return content;
     return content.substring(0, maxLength) + '...';
   };
 
   return (
-    <div className={`suggestion-card ${isApplied ? 'applied' : ''} ${disabled ? 'disabled' : ''}`}>
+    <div
+      className={`suggestion-card ${isApplied ? 'applied' : ''} ${disabled ? 'disabled' : ''}`}
+    >
       {/* Header */}
       <div className="suggestion-header">
         <div className="suggestion-meta">
           <span className="category-badge">
-            <span className="category-icon">{getCategoryIcon(suggestion.category)}</span>
+            <span className="category-icon">
+              {getCategoryIcon(suggestion.category)}
+            </span>
             <span className="category-text">{suggestion.category}</span>
           </span>
-          <span 
+          <span
             className="tone-badge"
             style={{ backgroundColor: getToneColor(suggestion.tone) }}
           >
@@ -78,11 +94,13 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({
           </span>
         </div>
         <div className="confidence-indicator">
-          <div 
+          <div
             className="confidence-bar"
-            style={{ backgroundColor: getConfidenceColor(suggestion.confidence) }}
+            style={{
+              backgroundColor: getConfidenceColor(suggestion.confidence),
+            }}
           >
-            <div 
+            <div
               className="confidence-fill"
               style={{ width: `${suggestion.confidence * 100}%` }}
             />
@@ -95,10 +113,8 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({
 
       {/* Content */}
       <div className="suggestion-content">
-        <p className="suggestion-text">
-          {truncateContent(suggestion.content)}
-        </p>
-        
+        <p className="suggestion-text">{truncateContent(suggestion.content)}</p>
+
         {suggestion.reasoning && (
           <div className="suggestion-reasoning">
             <span className="reasoning-icon">🧠</span>
@@ -124,22 +140,13 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({
       {/* Actions */}
       <div className="suggestion-actions">
         <div className="primary-actions">
-          <Button
-            isPrimary
-            size="small"
-            onClick={onApply}
-            disabled={disabled}
-          >
+          <Button isPrimary size="small" onClick={onApply} disabled={disabled}>
             <span className="btn-icon">📝</span>
             {isApplied ? 'Applied' : 'Use This'}
           </Button>
-          
+
           {suggestion.macroId && (
-            <Button
-              size="small"
-              onClick={onApply}
-              disabled={disabled}
-            >
+            <Button size="small" onClick={onApply} disabled={disabled}>
               <span className="btn-icon">⚡</span>
               Apply Macro
             </Button>
@@ -168,7 +175,7 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({
           </div>
           <div className="feedback-options">
             <div className="rating-buttons">
-              {[1, 2, 3, 4, 5].map((rating) => (
+              {[1, 2, 3, 4, 5].map(rating => (
                 <button
                   key={rating}
                   className="rating-btn"
@@ -202,9 +209,7 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({
           <span className="feedback-icon">
             {feedbackGiven.helpful ? '👍' : '👎'}
           </span>
-          <span className="feedback-text">
-            Thank you for your feedback!
-          </span>
+          <span className="feedback-text">Thank you for your feedback!</span>
         </div>
       )}
 
@@ -215,7 +220,7 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({
             Estimated customer satisfaction:
           </div>
           <div className="satisfaction-bar">
-            <div 
+            <div
               className="satisfaction-fill"
               style={{ width: `${suggestion.estimatedSatisfaction * 100}%` }}
             />

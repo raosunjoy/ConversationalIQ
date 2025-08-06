@@ -178,7 +178,11 @@ export interface AgentPerformance {
 
 export interface ConversationInsight {
   id: string;
-  type: 'escalation_risk' | 'positive_feedback' | 'training_opportunity' | 'best_practice';
+  type:
+    | 'escalation_risk'
+    | 'positive_feedback'
+    | 'training_opportunity'
+    | 'best_practice';
   title: string;
   description: string;
   severity: 'low' | 'medium' | 'high' | 'critical';

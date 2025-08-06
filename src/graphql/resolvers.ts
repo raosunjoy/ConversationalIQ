@@ -293,13 +293,9 @@ export const resolvers = {
     },
 
     // Escalation Prevention queries
-    async getActiveEscalationRisks(
-      _: any,
-      __: any,
-      context: Context
-    ) {
+    async getActiveEscalationRisks(_: any, __: any, context: Context) {
       requireRole(context, ['agent', 'manager', 'admin']);
-      
+
       try {
         const risks = await aiPipeline.getActiveEscalationRisks();
         return {
@@ -339,12 +335,18 @@ export const resolvers = {
       context: Context
     ) {
       requireAuth(context);
-      
+
       try {
         // Get conversation memory and customer profile
-        const { conversationContextService } = await import('../ai/context/conversation-context');
-        const memory = await conversationContextService.getConversationMemory(conversationId);
-        const profile = await conversationContextService.getCustomerProfile(conversationId);
+        const { conversationContextService } = await import(
+          '../ai/context/conversation-context'
+        );
+        const memory =
+          await conversationContextService.getConversationMemory(
+            conversationId
+          );
+        const profile =
+          await conversationContextService.getCustomerProfile(conversationId);
 
         return {
           conversationId: memory.conversationId,
@@ -637,35 +639,38 @@ export const resolvers = {
     // Escalation Prevention mutations
     async executePreventionAction(
       _: any,
-      { 
-        conversationId, 
-        actionType, 
-        agentId 
-      }: { 
-        conversationId: string; 
-        actionType: string; 
-        agentId?: string; 
+      {
+        conversationId,
+        actionType,
+        agentId,
+      }: {
+        conversationId: string;
+        actionType: string;
+        agentId?: string;
       },
       context: Context
     ) {
       requireAuth(context);
-      
+
       try {
         const result = await aiPipeline.executePreventionAction(
-          conversationId, 
-          actionType, 
+          conversationId,
+          actionType,
           agentId || context.user?.userId
         );
 
         // Publish real-time update would go here
         // TODO: Add prevention action event publisher
         if (result.success) {
-          console.log('Prevention action executed:', { conversationId, actionType });
+          console.log('Prevention action executed:', {
+            conversationId,
+            actionType,
+          });
         }
 
         return {
           success: result.success,
-          message: result.success 
+          message: result.success
             ? `Prevention action "${actionType}" executed successfully`
             : `Failed to execute prevention action: ${result.result}`,
           result: result.result,
@@ -684,7 +689,7 @@ export const resolvers = {
         conversationId,
         escalated,
         outcome,
-        preventionActionsUsed = []
+        preventionActionsUsed = [],
       }: {
         conversationId: string;
         escalated: boolean;
@@ -694,7 +699,7 @@ export const resolvers = {
       context: Context
     ) {
       requireAuth(context);
-      
+
       try {
         await aiPipeline.reportEscalationOutcome(
           conversationId,
@@ -705,7 +710,11 @@ export const resolvers = {
 
         // Publish event for analytics and machine learning would go here
         // TODO: Add escalation outcome event publisher
-        console.log('Escalation outcome reported:', { conversationId, escalated, outcome });
+        console.log('Escalation outcome reported:', {
+          conversationId,
+          escalated,
+          outcome,
+        });
 
         return {
           success: true,

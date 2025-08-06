@@ -16,6 +16,8 @@ import type {
   SuggestionType,
   Prisma,
 } from '@prisma/client';
+import { encryptionService, privacyService } from '../security/encryption-service';
+import { monitoringService } from '../monitoring/monitoring-service';
 
 export interface CreateConversationData {
   ticketId?: string;
@@ -70,9 +72,11 @@ export interface AIAnalysisData {
 
 export class DatabaseService {
   private prisma: PrismaClient;
+  private encryptSensitiveData: boolean;
 
   constructor(prismaClient?: PrismaClient) {
     this.prisma = prismaClient ?? new PrismaClient();
+    this.encryptSensitiveData = process.env.NODE_ENV === 'production';
   }
 
   /**
@@ -87,6 +91,146 @@ export class DatabaseService {
    */
   async disconnect(): Promise<void> {
     await this.prisma.$disconnect();
+  }
+
+  /**
+   * Check if database is connected
+   */
+  isConnected(): boolean {
+    // Simple check - in production would use proper connection status
+    return this.prisma !== null;
+  }
+
+  /**
+   * Encrypt sensitive content before storage
+   */
+  private async encryptSensitiveContent(content: string, tableName: string, fieldName: string): Promise<string> {
+    if (!this.encryptSensitiveData) {
+      return content;
+    }
+
+    try {
+      // Check for PII in content
+      const piiResult = encryptionService.detectPII(content);
+      
+      // Log PII detection for compliance
+      if (piiResult.hasPII) {
+        monitoringService.recordMetric(
+          'pii_detected',
+          1,
+          'count',
+          { table: tableName, field: fieldName, types: piiResult.detectedTypes.join(',') }
+        );
+      }
+
+      // Encrypt if contains PII or is sensitive field
+      const sensitiveFields = ['content', 'subject', 'email', 'phone', 'address'];
+      if (piiResult.hasPII || sensitiveFields.includes(fieldName)) {
+        const encryptedField = await encryptionService.encryptField(tableName, fieldName, content);
+        return JSON.stringify(encryptedField);
+      }
+
+      return content;
+    } catch (error) {
+      console.error('Encryption failed, storing unencrypted:', error);
+      return content;
+    }
+  }
+
+  /**
+   * Decrypt sensitive content after retrieval
+   */
+  private async decryptSensitiveContent(content: string): Promise<string> {
+    if (!this.encryptSensitiveData) {
+      return content;
+    }
+
+    try {
+      // Check if content is encrypted (JSON format)
+      const parsed = JSON.parse(content);
+      if (parsed.data && parsed.iv && parsed.authTag) {
+        return await encryptionService.decryptData(parsed);
+      }
+      return content;
+    } catch (error) {
+      // Not encrypted or decryption failed, return as-is
+      return content;
+    }
+  }
+
+  /**
+   * Process data subject access request (GDPR)
+   */
+  async handleDataSubjectAccessRequest(email: string): Promise<any> {
+    monitoringService.recordMetric('gdpr_access_request', 1, 'count', { type: 'access' });
+    
+    try {
+      // This would collect all data associated with the email
+      const conversations = await this.prisma.conversation.findMany({
+        where: {
+          OR: [
+            { customerId: email },
+            { metadata: { path: ['customerEmail'], equals: email } }
+          ]
+        },
+        include: {
+          messages: true,
+          responseSuggestions: true,
+        }
+      });
+
+      // Return via privacy service for proper formatting
+      return await privacyService.handleDataAccessRequest(email);
+    } catch (error) {
+      console.error('Data access request failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Process data subject deletion request (GDPR)
+   */
+  async handleDataSubjectDeletionRequest(email: string): Promise<{ success: boolean; deletedRecords: number }> {
+    monitoringService.recordMetric('gdpr_deletion_request', 1, 'count', { type: 'deletion' });
+    
+    try {
+      let deletedRecords = 0;
+
+      // Find all conversations associated with the email
+      const conversations = await this.prisma.conversation.findMany({
+        where: {
+          OR: [
+            { customerId: email },
+            { metadata: { path: ['customerEmail'], equals: email } }
+          ]
+        }
+      });
+
+      // Delete associated data in proper order (respecting foreign key constraints)
+      for (const conversation of conversations) {
+        // Delete response suggestions
+        await this.prisma.responseSuggestion.deleteMany({
+          where: { messageId: { in: conversation.messages?.map(m => m.id) || [] } }
+        });
+
+        // Delete messages
+        await this.prisma.message.deleteMany({
+          where: { conversationId: conversation.id }
+        });
+
+        // Delete conversation
+        await this.prisma.conversation.delete({
+          where: { id: conversation.id }
+        });
+
+        deletedRecords++;
+      }
+
+      return await privacyService.handleDataDeletionRequest(email);
+    } catch (error) {
+      console.error('Data deletion request failed:', error);
+      throw error;
+    }
   }
 
   /**
@@ -216,14 +360,46 @@ export class DatabaseService {
   // Message Operations
 
   /**
-   * Create a new message
+   * Create a new message with encryption
    * @param data - Message data
    * @returns Created message
    */
   async createMessage(data: CreateMessageData): Promise<Message> {
-    return await this.prisma.message.create({
-      data,
-    });
+    const startTime = Date.now();
+    
+    try {
+      // Encrypt sensitive content
+      const encryptedContent = await this.encryptSensitiveContent(
+        data.content, 
+        'message', 
+        'content'
+      );
+
+      const message = await this.prisma.message.create({
+        data: {
+          ...data,
+          content: encryptedContent,
+        },
+      });
+
+      // Record performance metrics
+      monitoringService.recordPerformanceMetric(
+        'database_create_message',
+        Date.now() - startTime,
+        true,
+        { encrypted: this.encryptSensitiveData.toString() }
+      );
+
+      return message;
+    } catch (error) {
+      monitoringService.recordPerformanceMetric(
+        'database_create_message',
+        Date.now() - startTime,
+        false,
+        { error: error instanceof Error ? error.message : 'unknown' }
+      );
+      throw error;
+    }
   }
 
   /**

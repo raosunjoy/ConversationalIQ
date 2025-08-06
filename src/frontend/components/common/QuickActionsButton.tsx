@@ -20,7 +20,7 @@ const QuickActionsButton: React.FC<QuickActionsButtonProps> = ({
   const handleAction = (action: string) => {
     console.log('Quick action:', action);
     setIsOpen(false);
-    
+
     // Handle different actions
     switch (action) {
       case 'escalate':
@@ -64,7 +64,7 @@ const QuickActionsButton: React.FC<QuickActionsButtonProps> = ({
                 <span className="menu-label">Escalate</span>
               </button>
             )}
-            
+
             <button
               className="fab-menu-item tag"
               onClick={() => handleAction('tag')}
@@ -73,7 +73,7 @@ const QuickActionsButton: React.FC<QuickActionsButtonProps> = ({
               <span className="menu-icon">🏷️</span>
               <span className="menu-label">Tag</span>
             </button>
-            
+
             <button
               className="fab-menu-item note"
               onClick={() => handleAction('note')}
@@ -88,10 +88,7 @@ const QuickActionsButton: React.FC<QuickActionsButtonProps> = ({
 
       {/* Backdrop */}
       {isOpen && (
-        <div 
-          className="fab-backdrop"
-          onClick={() => setIsOpen(false)}
-        />
+        <div className="fab-backdrop" onClick={() => setIsOpen(false)} />
       )}
     </div>
   );

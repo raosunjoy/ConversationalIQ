@@ -7,24 +7,24 @@ import React, { useEffect, useState } from 'react';
 import { useQuery, useSubscription } from '@apollo/client';
 // import { Tabs, TabList, Tab, TabPanel } from '@zendeskgarden/react-tabs';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
-import { 
-  selectActiveTab, 
-  selectTicket, 
-  selectUser, 
-  selectConnectionStatus 
+import {
+  selectActiveTab,
+  selectTicket,
+  selectUser,
+  selectConnectionStatus,
 } from '../store/slices/app-slice';
-import { 
+import {
   selectCurrentConversationId,
   selectOverallSentiment,
   selectAnalytics,
-  selectFilteredMessages
+  selectFilteredMessages,
 } from '../store/slices/conversation-slice';
 import { setActiveTab } from '../store/slices/app-slice';
-import { 
+import {
   GET_CONVERSATION_BY_TICKET,
   GET_CONVERSATION_ANALYTICS,
   SENTIMENT_ANALYZED_SUBSCRIPTION,
-  ANALYTICS_UPDATED_SUBSCRIPTION
+  ANALYTICS_UPDATED_SUBSCRIPTION,
 } from '../services/graphql-queries';
 import SentimentPanel from './panels/SentimentPanel';
 import SuggestionsPanel from './panels/SuggestionsPanel';
@@ -46,14 +46,15 @@ const AgentDashboard: React.FC = () => {
   // const [tabHeight, setTabHeight] = useState(400);
 
   // Query conversation data when ticket changes
-  const { data: conversationData, loading: loadingConversation, error: conversationError } = useQuery(
-    GET_CONVERSATION_BY_TICKET,
-    {
-      variables: { ticketId: ticket?.id?.toString() || '' },
-      skip: !ticket?.id,
-      fetchPolicy: 'cache-and-network',
-    }
-  );
+  const {
+    data: conversationData,
+    loading: loadingConversation,
+    error: conversationError,
+  } = useQuery(GET_CONVERSATION_BY_TICKET, {
+    variables: { ticketId: ticket?.id?.toString() || '' },
+    skip: !ticket?.id,
+    fetchPolicy: 'cache-and-network',
+  });
 
   // Query analytics data
   const { data: analyticsData, loading: loadingAnalytics } = useQuery(
@@ -149,26 +150,32 @@ const AgentDashboard: React.FC = () => {
       {/* Main Content */}
       <div className="dashboard-tabs">
         <div className="tab-nav">
-          <button 
+          <button
             className={`tab-btn ${activeTab === 'sentiment' ? 'active' : ''}`}
             onClick={() => dispatch(setActiveTab('sentiment'))}
           >
             <span className="tab-icon">😊</span>
             Sentiment
             {overallSentiment && (
-              <span className={`sentiment-indicator ${overallSentiment.label.toLowerCase()}`}>
-                {overallSentiment.score > 0 ? '↗' : overallSentiment.score < 0 ? '↘' : '→'}
+              <span
+                className={`sentiment-indicator ${overallSentiment.label.toLowerCase()}`}
+              >
+                {overallSentiment.score > 0
+                  ? '↗'
+                  : overallSentiment.score < 0
+                    ? '↘'
+                    : '→'}
               </span>
             )}
           </button>
-          <button 
+          <button
             className={`tab-btn ${activeTab === 'suggestions' ? 'active' : ''}`}
             onClick={() => dispatch(setActiveTab('suggestions'))}
           >
             <span className="tab-icon">💡</span>
             Suggestions
           </button>
-          <button 
+          <button
             className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
             onClick={() => dispatch(setActiveTab('analytics'))}
           >
@@ -182,22 +189,19 @@ const AgentDashboard: React.FC = () => {
 
         <div className="tab-content">
           {activeTab === 'sentiment' && (
-            <SentimentPanel 
+            <SentimentPanel
               conversationId={conversationId}
               ticket={ticket}
               loading={loadingConversation}
             />
           )}
-          
+
           {activeTab === 'suggestions' && (
-            <SuggestionsPanel 
-              conversationId={conversationId}
-              ticket={ticket}
-            />
+            <SuggestionsPanel conversationId={conversationId} ticket={ticket} />
           )}
-          
+
           {activeTab === 'analytics' && (
-            <AnalyticsPanel 
+            <AnalyticsPanel
               conversationId={conversationId}
               analytics={analyticsData?.analytics}
               loading={loadingAnalytics}
@@ -207,7 +211,7 @@ const AgentDashboard: React.FC = () => {
       </div>
 
       {/* Quick Actions Button */}
-      <QuickActionsButton 
+      <QuickActionsButton
         conversationId={conversationId}
         escalationRisk={analytics?.escalationRisk || 0}
       />

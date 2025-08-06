@@ -11,10 +11,10 @@ interface LoadingSpinnerProps {
   overlay?: boolean;
 }
 
-const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
-  size = 'medium', 
-  message = '', 
-  overlay = false 
+const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
+  size = 'medium',
+  message = '',
+  overlay = false,
 }) => {
   const spinnerClass = `loading-spinner ${size}`;
   const containerClass = `loading-container ${overlay ? 'overlay' : ''}`;

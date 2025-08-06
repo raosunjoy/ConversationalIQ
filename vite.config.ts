@@ -9,12 +9,12 @@ import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  
+
   // Build configuration for Zendesk assets
   build: {
     outDir: 'dist/zendesk/assets',
     emptyOutDir: false, // Don't clear the entire dist folder
-    
+
     rollupOptions: {
       input: {
         // Main Zendesk app entry points
@@ -26,14 +26,14 @@ export default defineConfig({
         assetFileNames: '[name].[ext]',
       },
     },
-    
+
     // Target modern browsers (Zendesk supports modern browsers)
     target: 'es2020',
-    
+
     // Source maps for debugging
     sourcemap: true,
   },
-  
+
   // Development server configuration
   server: {
     port: 3001,
@@ -50,7 +50,7 @@ export default defineConfig({
       },
     },
   },
-  
+
   // TypeScript and path resolution
   resolve: {
     alias: {
@@ -59,12 +59,12 @@ export default defineConfig({
       '@ai': resolve(__dirname, 'src/ai'),
     },
   },
-  
+
   // Environment variables
   define: {
     __DEV__: JSON.stringify(process.env.NODE_ENV === 'development'),
   },
-  
+
   // CSS configuration
   css: {
     modules: {

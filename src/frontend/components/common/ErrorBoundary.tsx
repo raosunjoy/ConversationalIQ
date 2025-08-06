@@ -24,8 +24,8 @@ class ErrorBoundary extends Component<Props, State> {
 
   public static getDerivedStateFromError(error: Error): State {
     // Update state so the next render will show the fallback UI
-    return { 
-      hasError: true, 
+    return {
+      hasError: true,
       error,
       errorInfo: null,
     };
@@ -33,7 +33,7 @@ class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
+
     this.setState({
       error,
       errorInfo,
@@ -43,7 +43,8 @@ class ErrorBoundary extends Component<Props, State> {
     // For example: Sentry, LogRocket, etc.
     if (window.ZAFClient) {
       try {
-        window.ZAFClient.init().invoke('notify', 
+        window.ZAFClient.init().invoke(
+          'notify',
           'ConversationIQ encountered an error. Please refresh the page.',
           'error'
         );
@@ -54,10 +55,10 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleRetry = () => {
-    this.setState({ 
-      hasError: false, 
-      error: null, 
-      errorInfo: null 
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null,
     });
   };
 
@@ -73,9 +74,10 @@ class ErrorBoundary extends Component<Props, State> {
             <div className="error-icon">⚠️</div>
             <h3>Something went wrong</h3>
             <p className="error-message">
-              ConversationIQ encountered an unexpected error. This has been logged for investigation.
+              ConversationIQ encountered an unexpected error. This has been
+              logged for investigation.
             </p>
-            
+
             {__DEV__ && this.state.error && (
               <details className="error-details">
                 <summary>Error Details (Development)</summary>
@@ -89,16 +91,10 @@ class ErrorBoundary extends Component<Props, State> {
             )}
 
             <div className="error-actions">
-              <button 
-                className="btn btn-primary"
-                onClick={this.handleRetry}
-              >
+              <button className="btn btn-primary" onClick={this.handleRetry}>
                 Try Again
               </button>
-              <button 
-                className="btn btn-secondary"
-                onClick={this.handleReload}
-              >
+              <button className="btn btn-secondary" onClick={this.handleReload}>
                 Reload Page
               </button>
             </div>

@@ -17,8 +17,14 @@ import {
 import { SentimentAnalysisService } from './sentiment-analysis';
 import { IntentClassificationService } from './intent-classification';
 import { ResponseGenerationService } from './response-generation';
-import { conversationContextService, ConversationContextService } from './context/conversation-context';
-import { escalationPreventionService, EscalationPreventionService } from './escalation/escalation-prevention';
+import {
+  conversationContextService,
+  ConversationContextService,
+} from './context/conversation-context';
+import {
+  escalationPreventionService,
+  EscalationPreventionService,
+} from './escalation/escalation-prevention';
 import { aiConfig, AIConfig } from './config';
 
 export class AIPipeline extends EventEmitter {
@@ -211,16 +217,18 @@ export class AIPipeline extends EventEmitter {
     });
 
     // Stage 4: Generate contextual insights
-    const contextualInsights = await this.contextService.generateContextualInsights(
-      message.conversationId,
-      message
-    );
+    const contextualInsights =
+      await this.contextService.generateContextualInsights(
+        message.conversationId,
+        message
+      );
 
     // Stage 5: Predict escalation risk
-    const escalationPrediction = await this.escalationService.predictEscalationRisk(
-      message.conversationId,
-      message
-    );
+    const escalationPrediction =
+      await this.escalationService.predictEscalationRisk(
+        message.conversationId,
+        message
+      );
 
     // Stage 6: Generate context-aware response suggestions
     const baselineResponses = await this.responseService.generateSuggestions({
@@ -231,14 +239,18 @@ export class AIPipeline extends EventEmitter {
     });
 
     // Enhance responses with contextual insights
-    const contextAwareResponses = await this.contextService.getContextAwareResponseSuggestions(
-      message.conversationId,
-      message,
-      baselineResponses
-    );
+    const contextAwareResponses =
+      await this.contextService.getContextAwareResponseSuggestions(
+        message.conversationId,
+        message,
+        baselineResponses
+      );
 
     // Emit escalation alerts if high risk detected
-    if (escalationPrediction.riskLevel === 'high' || escalationPrediction.riskLevel === 'critical') {
+    if (
+      escalationPrediction.riskLevel === 'high' ||
+      escalationPrediction.riskLevel === 'critical'
+    ) {
       this.emit('escalationRiskDetected', {
         messageId: message.id,
         conversationId: message.conversationId,
@@ -451,17 +463,20 @@ export class AIPipeline extends EventEmitter {
   /**
    * Execute escalation prevention action
    */
-   async executePreventionAction(
+  async executePreventionAction(
     conversationId: string,
     actionType: string,
     agentId?: string
-  ): Promise<{success: boolean; result: any}> {
+  ): Promise<{ success: boolean; result: any }> {
     try {
       // Get current escalation prediction
-      const prediction = await this.escalationService.predictEscalationRisk(conversationId);
-      
+      const prediction =
+        await this.escalationService.predictEscalationRisk(conversationId);
+
       // Find the matching prevention action
-      const action = prediction.preventionActions.find(a => a.type === actionType);
+      const action = prediction.preventionActions.find(
+        a => a.type === actionType
+      );
       if (!action) {
         return {
           success: false,
@@ -486,7 +501,10 @@ export class AIPipeline extends EventEmitter {
 
       return result;
     } catch (error) {
-      console.error(`Failed to execute prevention action ${actionType}:`, error);
+      console.error(
+        `Failed to execute prevention action ${actionType}:`,
+        error
+      );
       return {
         success: false,
         result: error instanceof Error ? error.message : 'Unknown error',

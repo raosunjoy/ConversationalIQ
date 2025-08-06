@@ -16,7 +16,10 @@ import {
   setOverallSentiment,
   setMessages,
 } from '../../store/slices/conversation-slice';
-import { GET_MESSAGE_SENTIMENT, ANALYZE_MESSAGE } from '../../services/graphql-queries';
+import {
+  GET_MESSAGE_SENTIMENT,
+  ANALYZE_MESSAGE,
+} from '../../services/graphql-queries';
 import { ZendeskTicket } from '../../types';
 import SentimentIndicator from '../common/SentimentIndicator';
 import ConversationTimeline from '../common/ConversationTimeline';
@@ -28,10 +31,10 @@ interface SentimentPanelProps {
   loading?: boolean;
 }
 
-const SentimentPanel: React.FC<SentimentPanelProps> = ({ 
-  conversationId, 
-  ticket, 
-  loading = false 
+const SentimentPanel: React.FC<SentimentPanelProps> = ({
+  conversationId,
+  ticket,
+  loading = false,
 }) => {
   const dispatch = useAppDispatch();
   const messages = useAppSelector(selectFilteredMessages);
@@ -41,12 +44,12 @@ const SentimentPanel: React.FC<SentimentPanelProps> = ({
 
   // Mutation to trigger sentiment analysis
   const [analyzeMessage] = useMutation(ANALYZE_MESSAGE, {
-    onCompleted: (data) => {
+    onCompleted: data => {
       if (data?.result?.sentiment) {
         dispatch(setOverallSentiment(data.result.sentiment));
       }
     },
-    onError: (error) => {
+    onError: error => {
       console.error('Failed to analyze message:', error);
     },
   });
@@ -72,7 +75,9 @@ const SentimentPanel: React.FC<SentimentPanelProps> = ({
           score: -0.4,
           label: 'NEGATIVE' as const,
           confidence: 0.85,
-          emotions: [{ emotion: 'frustration', confidence: 0.8, intensity: 0.6 }],
+          emotions: [
+            { emotion: 'frustration', confidence: 0.8, intensity: 0.6 },
+          ],
           trend: 'stable' as const,
         },
         isAlert: true,
@@ -81,7 +86,7 @@ const SentimentPanel: React.FC<SentimentPanelProps> = ({
       {
         id: '2',
         content: 'Thank you for your help!',
-        author: 'Customer', 
+        author: 'Customer',
         timestamp: new Date(Date.now() - 1800000),
         sentiment: {
           score: 0.8,
@@ -96,16 +101,25 @@ const SentimentPanel: React.FC<SentimentPanelProps> = ({
     ];
 
     dispatch(setMessages(mockMessages));
-    
+
     // Calculate overall sentiment
-    const avgScore = mockMessages.reduce((sum, msg) => sum + msg.sentiment.score, 0) / mockMessages.length;
-    dispatch(setOverallSentiment({
-      score: avgScore,
-      label: avgScore > 0.1 ? 'POSITIVE' : avgScore < -0.1 ? 'NEGATIVE' : 'NEUTRAL',
-      confidence: 0.8,
-      emotions: [],
-      trend: 'improving',
-    }));
+    const avgScore =
+      mockMessages.reduce((sum, msg) => sum + msg.sentiment.score, 0) /
+      mockMessages.length;
+    dispatch(
+      setOverallSentiment({
+        score: avgScore,
+        label:
+          avgScore > 0.1
+            ? 'POSITIVE'
+            : avgScore < -0.1
+              ? 'NEGATIVE'
+              : 'NEUTRAL',
+        confidence: 0.8,
+        emotions: [],
+        trend: 'improving',
+      })
+    );
   };
 
   const handleFilterChange = (filter: 'all' | 'negative' | 'alerts') => {
@@ -133,14 +147,14 @@ const SentimentPanel: React.FC<SentimentPanelProps> = ({
       {/* Sentiment Overview */}
       <div className="sentiment-overview">
         <div className="sentiment-score-card">
-          <SentimentIndicator 
+          <SentimentIndicator
             sentiment={overallSentiment}
             showTrend={true}
             size="large"
           />
           <div className="sentiment-actions">
-            <Button 
-              size="small" 
+            <Button
+              size="small"
               onClick={handleRefreshSentiment}
               disabled={loading || !conversationId}
             >
@@ -153,10 +167,7 @@ const SentimentPanel: React.FC<SentimentPanelProps> = ({
         {/* Sentiment Trend Chart */}
         {sentimentHistory.length > 1 && (
           <div className="sentiment-trend">
-            <SentimentTrendChart 
-              data={sentimentHistory}
-              height={80}
-            />
+            <SentimentTrendChart data={sentimentHistory} height={80} />
           </div>
         )}
       </div>
@@ -190,9 +201,9 @@ const SentimentPanel: React.FC<SentimentPanelProps> = ({
           </div>
         </div>
 
-        <ConversationTimeline 
+        <ConversationTimeline
           messages={messages}
-          onMessageClick={(messageId) => {
+          onMessageClick={messageId => {
             console.log('Message clicked:', messageId);
             // Could trigger detailed analysis
           }}
@@ -211,14 +222,14 @@ const SentimentPanel: React.FC<SentimentPanelProps> = ({
           </div>
           <div className="insight-card">
             <div className="insight-value">
-              {overallSentiment?.confidence ? `${Math.round(overallSentiment.confidence * 100)}%` : '--'}
+              {overallSentiment?.confidence
+                ? `${Math.round(overallSentiment.confidence * 100)}%`
+                : '--'}
             </div>
             <div className="insight-label">Confidence</div>
           </div>
           <div className="insight-card">
-            <div className="insight-value">
-              {messages.length}
-            </div>
+            <div className="insight-value">{messages.length}</div>
             <div className="insight-label">Messages</div>
           </div>
         </div>
@@ -230,7 +241,10 @@ const SentimentPanel: React.FC<SentimentPanelProps> = ({
           <div className="warning-icon">⚠️</div>
           <div className="warning-content">
             <strong>Escalation Recommended</strong>
-            <p>Sentiment is strongly negative. Consider escalating to a supervisor.</p>
+            <p>
+              Sentiment is strongly negative. Consider escalating to a
+              supervisor.
+            </p>
           </div>
         </div>
       )}
