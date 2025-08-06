@@ -152,8 +152,8 @@ zendeskRoutes.get(
       const { conversationId } = req.params;
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { refresh = 'false' } = req.query;
-      // Installation context available but not used in this endpoint
-      // const installation = (req as any).zendeskInstallation;
+      // Installation context needed for generating suggestions
+      const installation = (req as any).zendeskInstallation;
 
       // Get conversation context
       const dbService = new DatabaseService();

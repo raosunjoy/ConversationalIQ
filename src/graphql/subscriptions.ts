@@ -24,7 +24,7 @@ function requireRole(
   requireAuthForSubscription(context);
   if (!context || !allowedRoles.includes(context.user?.role || '')) {
     throw new GraphQLError(
-      `${allowedRoles.join(' or ')} role required for subscription`,
+      `Subscription requires one of: ${allowedRoles.join(', ')}`,
       {
         extensions: { code: 'FORBIDDEN' },
       }
@@ -116,15 +116,20 @@ export const subscriptionResolvers = {
   Subscription: {
     messageAdded: {
       subscribe: withFilter(
-        () => pubsub.asyncIterator([SUBSCRIPTION_EVENTS.MESSAGE_ADDED]),
+        (
+          _parent: any,
+          _args: { conversationId?: string } = {},
+          context: GraphQLContext | undefined
+        ) => {
+          // Require authentication at subscription time
+          requireAuthForSubscription(context);
+          return pubsub.asyncIterator([SUBSCRIPTION_EVENTS.MESSAGE_ADDED]);
+        },
         (
           payload: MessageAddedPayload | undefined,
           variables: { conversationId?: string } | undefined,
-          context: GraphQLContext | undefined
+          _context: GraphQLContext | undefined
         ) => {
-          // Require authentication
-          requireAuthForSubscription(context);
-
           // Guard against undefined payload
           if (!payload) return false;
 
@@ -144,14 +149,21 @@ export const subscriptionResolvers = {
 
     conversationUpdated: {
       subscribe: withFilter(
-        () => pubsub.asyncIterator([SUBSCRIPTION_EVENTS.CONVERSATION_UPDATED]),
+        (
+          _parent: any,
+          _args: { conversationId?: string } = {},
+          context: GraphQLContext | undefined
+        ) => {
+          requireAuthForSubscription(context);
+          return pubsub.asyncIterator([
+            SUBSCRIPTION_EVENTS.CONVERSATION_UPDATED,
+          ]);
+        },
         (
           payload: ConversationUpdatedPayload | undefined,
           variables: { conversationId?: string } | undefined,
           context: GraphQLContext | undefined
         ) => {
-          requireAuthForSubscription(context);
-
           // Filter by conversation ID if specified
           if (variables?.conversationId && payload?.conversationUpdated) {
             return payload.conversationUpdated.id === variables.conversationId;
@@ -170,14 +182,19 @@ export const subscriptionResolvers = {
 
     sentimentAnalyzed: {
       subscribe: withFilter(
-        () => pubsub.asyncIterator([SUBSCRIPTION_EVENTS.SENTIMENT_ANALYZED]),
         (
-          payload: SentimentAnalyzedPayload | undefined,
-          variables: { conversationId?: string } | undefined,
+          _parent: any,
+          _args: { conversationId?: string } = {},
           context: GraphQLContext | undefined
         ) => {
           requireAuthForSubscription(context);
-
+          return pubsub.asyncIterator([SUBSCRIPTION_EVENTS.SENTIMENT_ANALYZED]);
+        },
+        (
+          payload: SentimentAnalyzedPayload | undefined,
+          variables: { conversationId?: string } | undefined,
+          _context: GraphQLContext | undefined
+        ) => {
           // Filter by conversation ID if specified
           if (variables?.conversationId && payload?.sentimentAnalyzed) {
             return (
@@ -193,14 +210,19 @@ export const subscriptionResolvers = {
 
     responseSuggested: {
       subscribe: withFilter(
-        () => pubsub.asyncIterator([SUBSCRIPTION_EVENTS.RESPONSE_SUGGESTED]),
         (
-          payload: ResponseSuggestedPayload | undefined,
-          variables: { conversationId?: string } | undefined,
+          _parent: any,
+          _args: { conversationId?: string } = {},
           context: GraphQLContext | undefined
         ) => {
           requireRole(context, ['agent', 'manager', 'admin']);
-
+          return pubsub.asyncIterator([SUBSCRIPTION_EVENTS.RESPONSE_SUGGESTED]);
+        },
+        (
+          payload: ResponseSuggestedPayload | undefined,
+          variables: { conversationId?: string } | undefined,
+          _context: GraphQLContext | undefined
+        ) => {
           // Filter by conversation ID if specified
           if (variables?.conversationId && payload?.responseSuggested) {
             return (
@@ -216,14 +238,21 @@ export const subscriptionResolvers = {
 
     agentStatusChanged: {
       subscribe: withFilter(
-        () => pubsub.asyncIterator([SUBSCRIPTION_EVENTS.AGENT_STATUS_CHANGED]),
         (
-          payload: AgentStatusChangedPayload | undefined,
-          variables: { agentId?: string } | undefined,
+          _parent: any,
+          _args: { agentId?: string } = {},
           context: GraphQLContext | undefined
         ) => {
           requireRole(context, ['agent', 'manager', 'admin']);
-
+          return pubsub.asyncIterator([
+            SUBSCRIPTION_EVENTS.AGENT_STATUS_CHANGED,
+          ]);
+        },
+        (
+          payload: AgentStatusChangedPayload | undefined,
+          variables: { agentId?: string } | undefined,
+          _context: GraphQLContext | undefined
+        ) => {
           // Filter by agent ID if specified
           if (variables?.agentId && payload?.agentStatusChanged) {
             return payload.agentStatusChanged.agentId === variables.agentId;
@@ -236,14 +265,21 @@ export const subscriptionResolvers = {
 
     conversationAssigned: {
       subscribe: withFilter(
-        () => pubsub.asyncIterator([SUBSCRIPTION_EVENTS.CONVERSATION_ASSIGNED]),
+        (
+          _parent: any,
+          _args: { agentId?: string } = {},
+          context: GraphQLContext | undefined
+        ) => {
+          requireAuthForSubscription(context);
+          return pubsub.asyncIterator([
+            SUBSCRIPTION_EVENTS.CONVERSATION_ASSIGNED,
+          ]);
+        },
         (
           payload: ConversationAssignedPayload | undefined,
           variables: { agentId?: string } | undefined,
           context: GraphQLContext | undefined
         ) => {
-          requireAuthForSubscription(context);
-
           // Agents only see assignments to themselves
           if (
             context?.user?.role === 'agent' &&

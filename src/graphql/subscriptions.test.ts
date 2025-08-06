@@ -15,7 +15,9 @@ import { PubSub } from 'graphql-subscriptions';
 
 // Mock graphql-subscriptions
 jest.mock('graphql-subscriptions', () => {
-  const mockAsyncIterator = jest.fn();
+  const mockAsyncIterator = jest.fn().mockReturnValue({
+    [Symbol.asyncIterator]: () => ({ next: jest.fn() }),
+  });
   const mockPublish = jest.fn();
 
   return {
@@ -23,10 +25,14 @@ jest.mock('graphql-subscriptions', () => {
       asyncIterator: mockAsyncIterator,
       publish: mockPublish,
     })),
-    withFilter: jest.fn((iteratorFn, filterFn) => ({
-      subscribe: iteratorFn,
-      filter: filterFn,
-    })),
+    withFilter: jest.fn((iteratorFn, filterFn) => {
+      // Return the actual function that would be the subscribe function
+      // This function should call the iteratorFn with the provided arguments
+      return async (parent: any, args: any, context: any) => {
+        const iterator = await iteratorFn(parent, args, context);
+        return iterator;
+      };
+    }),
   };
 });
 
@@ -34,17 +40,21 @@ import {
   subscriptionResolvers,
   publishEvent,
   SUBSCRIPTION_EVENTS,
+  pubsub,
 } from './subscriptions';
 import { GraphQLContext } from './server';
 
 // Mock context for testing
 const createMockContext = (user?: any): GraphQLContext => ({
   db: {} as any,
-  user: user || {
-    userId: 'agent_123',
-    email: 'agent@test.com',
-    role: 'agent',
-  },
+  user:
+    user !== null
+      ? user || {
+          userId: 'agent_123',
+          email: 'agent@test.com',
+          role: 'agent',
+        }
+      : null,
 });
 
 // Mock subscription iterator

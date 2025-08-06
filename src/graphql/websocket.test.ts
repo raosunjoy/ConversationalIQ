@@ -23,14 +23,14 @@ import { GraphQLContext } from './server';
 
 // Mock dependencies
 jest.mock('ws');
-jest.mock('graphql-ws/lib/use/ws');
+jest.mock('graphql-ws');
 jest.mock('../auth/jwt');
 
 const MockWebSocketServer = jest.mocked(WebSocketServer);
 const mockUseServer = jest.fn();
 
 // Mock graphql-ws useServer
-jest.mock('graphql-ws/lib/use/ws', () => ({
+jest.mock('graphql-ws', () => ({
   useServer: mockUseServer,
 }));
 

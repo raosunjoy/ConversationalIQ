@@ -6,6 +6,7 @@
 import { GraphQLError } from 'graphql';
 import { DatabaseService } from '../services/database';
 import { subscriptionResolvers, publishEvent } from './subscriptions';
+import { aiService } from '../services/ai-service';
 
 // Context type definition
 interface Context {
@@ -363,6 +364,20 @@ export const resolvers = {
 
       const message = await context.db.createMessage(messageData);
 
+      // Trigger AI processing in the background (don't wait for completion)
+      aiService
+        .processMessage(message.id, message.conversationId, {
+          publishEvents: true,
+          storeResults: true,
+          skipIfProcessed: false,
+        })
+        .catch(error => {
+          console.error(
+            `Background AI processing failed for message ${message.id}:`,
+            error
+          );
+        });
+
       // Publish real-time event
       publishEvent.messageAdded({
         id: message.id,
@@ -384,8 +399,55 @@ export const resolvers = {
     ) {
       requireAuth(context);
 
-      // Will implement AI analysis integration
-      throw new GraphQLError('Message analysis not implemented yet');
+      try {
+        // Get message to find conversation ID
+        const message = await context.db.findMessageById(messageId);
+        if (!message) {
+          throw new GraphQLError('Message not found');
+        }
+
+        // Process through AI pipeline
+        const result = await aiService.processMessage(
+          messageId,
+          message.conversationId,
+          {
+            publishEvents: true,
+            storeResults: true,
+            skipIfProcessed: false, // Force re-analysis
+          }
+        );
+
+        return {
+          messageId: result.messageId,
+          sentiment: {
+            score: result.sentiment.score,
+            label: result.sentiment.label,
+            confidence: result.sentiment.confidence,
+            emotions:
+              result.sentiment.emotions?.map(e => e.emotion.toString()) || [],
+          },
+          intent: {
+            category: result.intent.primaryIntent.category,
+            confidence: result.intent.confidence,
+            urgency: result.intent.primaryIntent.urgency,
+            actionRequired: result.intent.primaryIntent.actionRequired,
+          },
+          suggestions: result.suggestions.map(s => ({
+            id: s.id,
+            content: s.content,
+            confidence: s.confidence,
+            category: s.category,
+            tone: s.tone,
+            tags: s.tags,
+          })),
+          processingTime: result.processingTime,
+        };
+      } catch (error) {
+        console.error('Message analysis failed:', error);
+        throw new GraphQLError(
+          `Message analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
     },
 
     // Response suggestion mutations
@@ -395,9 +457,44 @@ export const resolvers = {
       context: Context
     ) {
       requireAuth(context);
-      // This should generate suggestions and create them, but for now return empty array
-      // TODO: Implement actual AI-powered response suggestion generation
-      return [];
+
+      try {
+        // Get message to find conversation ID
+        const message = await context.db.findMessageById(messageId);
+        if (!message) {
+          throw new GraphQLError('Message not found');
+        }
+
+        // Process through AI pipeline to get suggestions
+        const result = await aiService.processMessage(
+          messageId,
+          message.conversationId,
+          {
+            publishEvents: false, // Don't publish events for just suggestion generation
+            storeResults: false, // Don't store full analysis results
+            skipIfProcessed: true, // Use cached results if available
+          }
+        );
+
+        // Return formatted suggestions
+        return result.suggestions.map(s => ({
+          id: s.id,
+          messageId: result.messageId,
+          content: s.content,
+          confidence: s.confidence,
+          category: s.category,
+          tone: s.tone,
+          tags: s.tags,
+          reasoning: s.reasoning,
+          estimatedSatisfaction: s.estimatedSatisfaction,
+          createdAt: new Date(),
+        }));
+      } catch (error) {
+        console.error('Response suggestion generation failed:', error);
+        throw new GraphQLError(
+          `Failed to generate suggestions: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
     },
 
     async acceptSuggestion(
