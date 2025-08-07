@@ -1,0 +1,65 @@
+{
+  "name": "ConversationIQ - AI-Powered Customer Service Intelligence",
+  "version": "1.2.0",
+  "frameworkVersion": "2.0",
+  "author": {
+    "name": "ConversationIQ Inc.",
+    "email": "support@conversationiq.com",
+    "url": "https://www.conversationiq.com"
+  },
+  "defaultLocale": "en",
+  "private": false,
+  "singleInstall": false,
+  "signedUrls": true,
+  "location": {
+    "support": {
+      "ticket_sidebar": {
+        "url": "assets/iframe.html",
+        "size": {
+          "width": "100%",
+          "height": "600px"
+        }
+      },
+      "new_ticket_sidebar": {
+        "url": "assets/iframe.html",
+        "size": {
+          "width": "100%",
+          "height": "600px"
+        }
+      }
+    },
+    "chat": {
+      "chat_sidebar": {
+        "url": "assets/iframe.html",
+        "size": {
+          "width": "100%",
+          "height": "600px"
+        }
+      }
+    },
+    "nav_bar": {
+      "url": "assets/iframe.html"
+    }
+  },
+  "parameters": [
+    {
+      "name": "api_endpoint",
+      "type": "url",
+      "default": "https://api.conversationiq.com/v1"
+    },
+    {
+      "name": "subscription_tier",
+      "type": "text",
+      "default": "trial"
+    }
+  ],
+  "domainWhitelist": [
+    "*.conversationiq.com",
+    "api.conversationiq.com",
+    "app.conversationiq.com",
+    "assets.conversationiq.com"
+  ],
+  "marketing": {
+    "promoted": true
+  }
+}
