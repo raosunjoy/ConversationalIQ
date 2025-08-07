@@ -72,7 +72,7 @@ export class TestRunner {
     this.testSuites = [];
     this.results = [];
     this.startTime = 0;
-    
+
     this.initializeTestSuites();
   }
 
@@ -194,7 +194,7 @@ export class TestRunner {
 
     // Execute test suites in dependency order
     const executionOrder = this.calculateExecutionOrder();
-    
+
     for (const suite of executionOrder) {
       await this.executeSuite(suite);
     }
@@ -204,10 +204,10 @@ export class TestRunner {
 
     // Generate comprehensive report
     const report = await this.generateComprehensiveReport();
-    
+
     console.log('\n📊 Test Execution Complete!');
     this.printReportSummary(report);
-    
+
     return report;
   }
 
@@ -220,7 +220,7 @@ export class TestRunner {
     const processed = new Set<string>();
 
     while (remaining.length > 0) {
-      const canExecute = remaining.filter(suite => 
+      const canExecute = remaining.filter(suite =>
         suite.dependencies.every(dep => processed.has(dep))
       );
 
@@ -233,6 +233,10 @@ export class TestRunner {
         const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
         return priorityOrder[b.priority] - priorityOrder[a.priority];
       })[0];
+
+      if (!next) {
+        throw new Error('No next test suite found');
+      }
 
       ordered.push(next);
       processed.add(next.name);
@@ -247,7 +251,7 @@ export class TestRunner {
    */
   private async executeSuite(suite: TestSuite): Promise<void> {
     console.log(`\n🧪 Executing: ${suite.name} (${suite.type})`);
-    
+
     const suiteStartTime = Date.now();
     let attempt = 0;
     let lastError: Error | null = null;
@@ -256,7 +260,10 @@ export class TestRunner {
       try {
         // Set timeout
         const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('Test suite timeout')), suite.timeout);
+          setTimeout(
+            () => reject(new Error('Test suite timeout')),
+            suite.timeout
+          );
         });
 
         // Execute test suite
@@ -274,13 +281,14 @@ export class TestRunner {
         } else {
           throw new Error(`Test suite failed: ${result.errors.join(', ')}`);
         }
-
       } catch (error) {
         lastError = error as Error;
         attempt++;
 
         if (attempt <= suite.retryCount) {
-          console.log(`   🔄 Retry ${attempt}/${suite.retryCount}: ${suite.name}`);
+          console.log(
+            `   🔄 Retry ${attempt}/${suite.retryCount}: ${suite.name}`
+          );
           await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
         }
       }
@@ -296,11 +304,15 @@ export class TestRunner {
       errors: [lastError?.message || 'Unknown error'],
       warnings: [],
       metrics: {},
-      recommendations: [`Review ${suite.name} failures before production deployment`],
+      recommendations: [
+        `Review ${suite.name} failures before production deployment`,
+      ],
     };
 
     this.results.push(failedResult);
-    console.log(`   ❌ ${suite.name}: FAILED (${duration}ms) - ${lastError?.message}`);
+    console.log(
+      `   ❌ ${suite.name}: FAILED (${duration}ms) - ${lastError?.message}`
+    );
 
     // Skip subsequent tests if this is a blocker
     if (!suite.skipOnFailure && suite.priority === 'critical') {
@@ -323,7 +335,10 @@ export class TestRunner {
       errors: testResult.errors,
       warnings: testResult.warnings,
       metrics: { testsRun: 156, assertionsRun: 1240 },
-      recommendations: testResult.coverage < 90 ? ['Increase test coverage to at least 90%'] : [],
+      recommendations:
+        testResult.coverage < 90
+          ? ['Increase test coverage to at least 90%']
+          : [],
     };
   }
 
@@ -338,7 +353,9 @@ export class TestRunner {
       errors: testResult.errors,
       warnings: testResult.warnings,
       metrics: { queriesExecuted: 450, transactionsCompleted: 89 },
-      recommendations: testResult.success ? [] : ['Review database connection pooling and query optimization'],
+      recommendations: testResult.success
+        ? []
+        : ['Review database connection pooling and query optimization'],
     };
   }
 
@@ -353,7 +370,9 @@ export class TestRunner {
       errors: testResult.errors,
       warnings: testResult.warnings,
       metrics: { endpointsTested: 35, requestsExecuted: 890 },
-      recommendations: testResult.success ? [] : ['Review API error handling and response times'],
+      recommendations: testResult.success
+        ? []
+        : ['Review API error handling and response times'],
     };
   }
 
@@ -366,7 +385,9 @@ export class TestRunner {
       type: 'performance',
       passed: performancePassed,
       duration,
-      errors: performancePassed ? [] : ['Some benchmarks exceeded acceptable thresholds'],
+      errors: performancePassed
+        ? []
+        : ['Some benchmarks exceeded acceptable thresholds'],
       warnings: ['Monitor memory usage under sustained load'],
       metrics: {
         averageResponseTime: 245,
@@ -374,14 +395,17 @@ export class TestRunner {
         throughput: 125,
         errorRate: 0.8,
       },
-      recommendations: performancePassed ? [] : ['Optimize slow database queries', 'Consider implementing caching'],
+      recommendations: performancePassed
+        ? []
+        : ['Optimize slow database queries', 'Consider implementing caching'],
     };
   }
 
   private async runSecurityTests(): Promise<TestResult> {
-    const scanId = await vulnerabilityManagementService.runSecurityScan('manual');
+    const scanId =
+      await vulnerabilityManagementService.runSecurityScan('manual');
     const scanResult = vulnerabilityManagementService.getScanResult(scanId);
-    
+
     const criticalVulns = scanResult?.summary.critical || 0;
     const highVulns = scanResult?.summary.high || 0;
     const passed = criticalVulns === 0 && highVulns < 3;
@@ -391,14 +415,22 @@ export class TestRunner {
       type: 'security',
       passed,
       duration: 45000,
-      errors: passed ? [] : [`Found ${criticalVulns} critical and ${highVulns} high vulnerabilities`],
-      warnings: scanResult?.summary.medium ? [`${scanResult.summary.medium} medium vulnerabilities found`] : [],
+      errors: passed
+        ? []
+        : [
+            `Found ${criticalVulns} critical and ${highVulns} high vulnerabilities`,
+          ],
+      warnings: scanResult?.summary.medium
+        ? [`${scanResult.summary.medium} medium vulnerabilities found`]
+        : [],
       metrics: {
         vulnerabilitiesFound: scanResult?.summary.total || 0,
         criticalVulns,
         highVulns,
       },
-      recommendations: passed ? [] : ['Address all critical and high-severity vulnerabilities'],
+      recommendations: passed
+        ? []
+        : ['Address all critical and high-severity vulnerabilities'],
     };
   }
 
@@ -413,7 +445,9 @@ export class TestRunner {
       errors: e2eResult.errors,
       warnings: e2eResult.warnings,
       metrics: { scenariosExecuted: 25, stepsCompleted: 340 },
-      recommendations: e2eResult.success ? [] : ['Review browser compatibility and user workflows'],
+      recommendations: e2eResult.success
+        ? []
+        : ['Review browser compatibility and user workflows'],
     };
   }
 
@@ -442,7 +476,9 @@ export class TestRunner {
       'comprehensive_load_test',
       async () => {
         // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
+        await new Promise(resolve =>
+          setTimeout(resolve, Math.random() * 100 + 50)
+        );
         return { success: Math.random() > 0.02 }; // 2% error rate
       },
       {
@@ -457,10 +493,17 @@ export class TestRunner {
       type: 'performance',
       passed: loadTest.passed,
       duration: 35000,
-      errors: loadTest.passed ? [] : ['Load test failed to meet performance criteria'],
-      warnings: loadTest.metrics.errorRate > 1 ? ['Error rate higher than expected'] : [],
+      errors: loadTest.passed
+        ? []
+        : ['Load test failed to meet performance criteria'],
+      warnings:
+        loadTest.metrics.errorRate > 1
+          ? ['Error rate higher than expected']
+          : [],
       metrics: loadTest.metrics,
-      recommendations: loadTest.passed ? [] : ['Optimize for higher concurrent load'],
+      recommendations: loadTest.passed
+        ? []
+        : ['Optimize for higher concurrent load'],
     };
   }
 
@@ -468,8 +511,8 @@ export class TestRunner {
    * Simulate test execution (for demonstration)
    */
   private async simulateTestExecution(
-    type: string, 
-    baseSuccessRate: number, 
+    type: string,
+    baseSuccessRate: number,
     baseDuration: number
   ): Promise<{
     success: boolean;
@@ -479,8 +522,10 @@ export class TestRunner {
     warnings: string[];
   }> {
     const duration = baseDuration + Math.random() * 20000 - 10000; // ±10 seconds
-    await new Promise(resolve => setTimeout(resolve, Math.min(duration / 100, 2000))); // Simulate actual time (capped)
-    
+    await new Promise(resolve =>
+      setTimeout(resolve, Math.min(duration / 100, 2000))
+    ); // Simulate actual time (capped)
+
     const successRate = baseSuccessRate + Math.random() * 10 - 5; // ±5% variation
     const success = Math.random() * 100 < successRate;
     const coverage = Math.max(70, Math.random() * 30 + 70); // 70-100% coverage
@@ -503,13 +548,26 @@ export class TestRunner {
 
     // Security analysis
     const securityResults = this.results.filter(r => r.type === 'security');
-    const totalVulns = securityResults.reduce((sum, r) => sum + (r.metrics.vulnerabilitiesFound || 0), 0);
-    const avgComplianceScore = securityResults.reduce((sum, r) => sum + (r.metrics.complianceScore || 0), 0) / Math.max(securityResults.length, 1);
+    const totalVulns = securityResults.reduce(
+      (sum, r) => sum + (r.metrics.vulnerabilitiesFound || 0),
+      0
+    );
+    const avgComplianceScore =
+      securityResults.reduce(
+        (sum, r) => sum + (r.metrics.complianceScore || 0),
+        0
+      ) / Math.max(securityResults.length, 1);
 
     // Performance analysis
-    const performanceResults = this.results.filter(r => r.type === 'performance');
+    const performanceResults = this.results.filter(
+      r => r.type === 'performance'
+    );
     const benchmarksPassed = performanceResults.filter(r => r.passed).length;
-    const avgResponseTime = performanceResults.reduce((sum, r) => sum + (r.metrics.averageResponseTime || 0), 0) / Math.max(performanceResults.length, 1);
+    const avgResponseTime =
+      performanceResults.reduce(
+        (sum, r) => sum + (r.metrics.averageResponseTime || 0),
+        0
+      ) / Math.max(performanceResults.length, 1);
 
     // Readiness assessment
     const readinessAssessment = this.assessProductionReadiness();
@@ -528,7 +586,7 @@ export class TestRunner {
       security: {
         vulnerabilities: totalVulns,
         complianceScore: Math.round(avgComplianceScore),
-        criticalIssues: this.results.flatMap(r => 
+        criticalIssues: this.results.flatMap(r =>
           r.errors.filter(e => e.includes('critical') || e.includes('Critical'))
         ),
       },
@@ -548,9 +606,10 @@ export class TestRunner {
   private calculateOverallCoverage(): number {
     const coverageResults = this.results.filter(r => r.coverage !== undefined);
     if (coverageResults.length === 0) return 0;
-    
+
     return Math.round(
-      coverageResults.reduce((sum, r) => sum + (r.coverage || 0), 0) / coverageResults.length
+      coverageResults.reduce((sum, r) => sum + (r.coverage || 0), 0) /
+        coverageResults.length
     );
   }
 
@@ -565,18 +624,28 @@ export class TestRunner {
       security: 0.1,
     };
 
-    const passRate = (this.results.filter(r => r.passed).length / Math.max(this.results.length, 1)) * 100;
+    const passRate =
+      (this.results.filter(r => r.passed).length /
+        Math.max(this.results.length, 1)) *
+      100;
     const coverage = this.calculateOverallCoverage();
-    const performanceScore = this.results.filter(r => r.type === 'performance' && r.passed).length / 
-                            Math.max(this.results.filter(r => r.type === 'performance').length, 1) * 100;
-    const securityScore = this.results.filter(r => r.type === 'security' && r.passed).length /
-                         Math.max(this.results.filter(r => r.type === 'security').length, 1) * 100;
+    const performanceScore =
+      (this.results.filter(r => r.type === 'performance' && r.passed).length /
+        Math.max(
+          this.results.filter(r => r.type === 'performance').length,
+          1
+        )) *
+      100;
+    const securityScore =
+      (this.results.filter(r => r.type === 'security' && r.passed).length /
+        Math.max(this.results.filter(r => r.type === 'security').length, 1)) *
+      100;
 
     return Math.round(
       passRate * weights.passRate +
-      coverage * weights.coverage +
-      performanceScore * weights.performance +
-      securityScore * weights.security
+        coverage * weights.coverage +
+        performanceScore * weights.performance +
+        securityScore * weights.security
     );
   }
 
@@ -584,9 +653,15 @@ export class TestRunner {
    * Assess production readiness
    */
   private assessProductionReadiness(): ComprehensiveTestReport['readinessAssessment'] {
-    const criticalFailures = this.results.filter(r => !r.passed && r.type !== 'e2e').length;
-    const securityIssues = this.results.filter(r => r.type === 'security' && !r.passed).length;
-    const performanceIssues = this.results.filter(r => r.type === 'performance' && !r.passed).length;
+    const criticalFailures = this.results.filter(
+      r => !r.passed && r.type !== 'e2e'
+    ).length;
+    const securityIssues = this.results.filter(
+      r => r.type === 'security' && !r.passed
+    ).length;
+    const performanceIssues = this.results.filter(
+      r => r.type === 'performance' && !r.passed
+    ).length;
 
     const blockers: string[] = [];
     const recommendations: string[] = [];
@@ -628,47 +703,69 @@ export class TestRunner {
     console.log('\n' + '='.repeat(60));
     console.log('📊 COMPREHENSIVE TEST REPORT SUMMARY');
     console.log('='.repeat(60));
-    
+
     console.log(`\n📈 Overall Results:`);
     console.log(`   • Test Suites: ${report.summary.totalSuites} total`);
     console.log(`   • Passed: ${report.summary.passedSuites} ✅`);
     console.log(`   • Failed: ${report.summary.failedSuites} ❌`);
-    console.log(`   • Success Rate: ${Math.round((report.summary.passedSuites / report.summary.totalSuites) * 100)}%`);
+    console.log(
+      `   • Success Rate: ${Math.round((report.summary.passedSuites / report.summary.totalSuites) * 100)}%`
+    );
     console.log(`   • Quality Score: ${report.summary.qualityScore}/100`);
     console.log(`   • Test Coverage: ${report.summary.overallCoverage}%`);
-    console.log(`   • Duration: ${Math.round(report.summary.totalDuration / 1000)}s`);
+    console.log(
+      `   • Duration: ${Math.round(report.summary.totalDuration / 1000)}s`
+    );
 
     console.log(`\n🔒 Security:`);
-    console.log(`   • Vulnerabilities Found: ${report.security.vulnerabilities}`);
+    console.log(
+      `   • Vulnerabilities Found: ${report.security.vulnerabilities}`
+    );
     console.log(`   • Compliance Score: ${report.security.complianceScore}%`);
-    console.log(`   • Critical Issues: ${report.security.criticalIssues.length}`);
+    console.log(
+      `   • Critical Issues: ${report.security.criticalIssues.length}`
+    );
 
     console.log(`\n⚡ Performance:`);
-    console.log(`   • Benchmarks Passed: ${report.performance.benchmarksPassed}`);
-    console.log(`   • Average Response Time: ${report.performance.averageResponseTime}ms`);
+    console.log(
+      `   • Benchmarks Passed: ${report.performance.benchmarksPassed}`
+    );
+    console.log(
+      `   • Average Response Time: ${report.performance.averageResponseTime}ms`
+    );
 
     console.log(`\n🚀 Production Readiness:`);
-    console.log(`   • Ready for Production: ${report.readinessAssessment.productionReady ? '✅ YES' : '❌ NO'}`);
-    console.log(`   • Risk Level: ${report.readinessAssessment.riskLevel.toUpperCase()}`);
-    
+    console.log(
+      `   • Ready for Production: ${report.readinessAssessment.productionReady ? '✅ YES' : '❌ NO'}`
+    );
+    console.log(
+      `   • Risk Level: ${report.readinessAssessment.riskLevel.toUpperCase()}`
+    );
+
     if (report.readinessAssessment.blockers.length > 0) {
       console.log(`   • Blockers:`);
-      report.readinessAssessment.blockers.forEach(blocker => console.log(`     - ${blocker}`));
+      report.readinessAssessment.blockers.forEach(blocker =>
+        console.log(`     - ${blocker}`)
+      );
     }
 
     if (report.readinessAssessment.recommendations.length > 0) {
       console.log(`   • Recommendations:`);
-      report.readinessAssessment.recommendations.forEach(rec => console.log(`     - ${rec}`));
+      report.readinessAssessment.recommendations.forEach(rec =>
+        console.log(`     - ${rec}`)
+      );
     }
 
     console.log('\n' + '='.repeat(60));
-    
+
     if (report.readinessAssessment.productionReady) {
       console.log('🎉 CONGRATULATIONS! ConversationIQ is PRODUCTION READY! 🎉');
     } else {
-      console.log('⚠️ ATTENTION: Address blockers before production deployment');
+      console.log(
+        '⚠️ ATTENTION: Address blockers before production deployment'
+      );
     }
-    
+
     console.log('='.repeat(60) + '\n');
   }
 }

@@ -24,7 +24,13 @@ export interface DeploymentStatus {
   id: string;
   environment: string;
   version: string;
-  status: 'pending' | 'deploying' | 'testing' | 'complete' | 'failed' | 'rolled-back';
+  status:
+    | 'pending'
+    | 'deploying'
+    | 'testing'
+    | 'complete'
+    | 'failed'
+    | 'rolled-back';
   startTime: Date;
   endTime?: Date;
   healthCheck: 'pending' | 'passed' | 'failed';
@@ -52,14 +58,21 @@ export interface InfrastructureHealth {
 export class DeploymentService extends EventEmitter {
   private deployments: Map<string, DeploymentStatus>;
   private configs: Map<string, DeploymentConfig>;
-  private scalingHistory: Array<{ timestamp: Date; action: string; reason: string; details: any }>;
+  public logs: string[];
+  private scalingHistory: Array<{
+    timestamp: Date;
+    action: string;
+    reason: string;
+    details: any;
+  }>;
 
   constructor() {
     super();
     this.deployments = new Map();
     this.configs = new Map();
+    this.logs = [];
     this.scalingHistory = [];
-    
+
     this.initializeConfigurations();
     this.startInfrastructureMonitoring();
   }
@@ -69,46 +82,57 @@ export class DeploymentService extends EventEmitter {
    */
   private initializeConfigurations(): void {
     const configs: Array<[string, DeploymentConfig]> = [
-      ['development', {
-        environment: 'development',
-        region: 'us-east-1',
-        instanceType: 't3.medium',
-        minInstances: 1,
-        maxInstances: 3,
-        autoScaling: true,
-        healthCheckPath: '/health',
-        rollbackOnFailure: true,
-        blueGreenDeployment: false,
-      }],
-      ['staging', {
-        environment: 'staging',
-        region: 'us-east-1',
-        instanceType: 't3.large',
-        minInstances: 2,
-        maxInstances: 5,
-        autoScaling: true,
-        healthCheckPath: '/health',
-        rollbackOnFailure: true,
-        blueGreenDeployment: true,
-      }],
-      ['production', {
-        environment: 'production',
-        region: 'us-east-1',
-        instanceType: 'c5.xlarge',
-        minInstances: 3,
-        maxInstances: 20,
-        autoScaling: true,
-        healthCheckPath: '/health',
-        rollbackOnFailure: true,
-        blueGreenDeployment: true,
-      }],
+      [
+        'development',
+        {
+          environment: 'development',
+          region: 'us-east-1',
+          instanceType: 't3.medium',
+          minInstances: 1,
+          maxInstances: 3,
+          autoScaling: true,
+          healthCheckPath: '/health',
+          rollbackOnFailure: true,
+          blueGreenDeployment: false,
+        },
+      ],
+      [
+        'staging',
+        {
+          environment: 'staging',
+          region: 'us-east-1',
+          instanceType: 't3.large',
+          minInstances: 2,
+          maxInstances: 5,
+          autoScaling: true,
+          healthCheckPath: '/health',
+          rollbackOnFailure: true,
+          blueGreenDeployment: true,
+        },
+      ],
+      [
+        'production',
+        {
+          environment: 'production',
+          region: 'us-east-1',
+          instanceType: 'c5.xlarge',
+          minInstances: 3,
+          maxInstances: 20,
+          autoScaling: true,
+          healthCheckPath: '/health',
+          rollbackOnFailure: true,
+          blueGreenDeployment: true,
+        },
+      ],
     ];
 
     configs.forEach(([env, config]) => {
       this.configs.set(env, config);
     });
 
-    console.log(`Initialized deployment configurations for ${configs.length} environments`);
+    console.log(
+      `Initialized deployment configurations for ${configs.length} environments`
+    );
   }
 
   /**
@@ -122,9 +146,12 @@ export class DeploymentService extends EventEmitter {
     }, 60000);
 
     // Cleanup old scaling history every hour
-    const cleanupInterval = setInterval(() => {
-      this.cleanupScalingHistory();
-    }, 60 * 60 * 1000);
+    const cleanupInterval = setInterval(
+      () => {
+        this.cleanupScalingHistory();
+      },
+      60 * 60 * 1000
+    );
 
     console.log('Infrastructure monitoring started');
   }
@@ -170,8 +197,10 @@ export class DeploymentService extends EventEmitter {
     } catch (error) {
       deployment.status = 'failed';
       deployment.endTime = new Date();
-      deployment.logs.push(`Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      
+      deployment.logs.push(
+        `Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+
       this.emit('deploymentFailed', { deploymentId, error });
       throw error;
     }
@@ -185,7 +214,7 @@ export class DeploymentService extends EventEmitter {
     config: DeploymentConfig
   ): Promise<void> {
     const deployment = this.deployments.get(deploymentId)!;
-    
+
     try {
       // Step 1: Pre-deployment validation
       deployment.status = 'deploying';
@@ -223,12 +252,10 @@ export class DeploymentService extends EventEmitter {
       deployment.logs.push('Deployment completed successfully');
 
       // Record metrics
-      monitoringService.recordMetric(
-        'deployments_successful',
-        1,
-        'count',
-        { environment: config.environment, version: deployment.version }
-      );
+      monitoringService.recordMetric('deployments_successful', 1, 'count', {
+        environment: config.environment,
+        version: deployment.version,
+      });
 
       // Log audit event
       await soc2ComplianceService.logAuditEvent({
@@ -242,11 +269,12 @@ export class DeploymentService extends EventEmitter {
       });
 
       this.emit('deploymentComplete', { deploymentId, deployment });
-
     } catch (error) {
       deployment.status = 'failed';
       deployment.endTime = new Date();
-      deployment.logs.push(`Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      deployment.logs.push(
+        `Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
 
       // Attempt rollback if configured
       if (config.rollbackOnFailure && deployment.rollbackVersion) {
@@ -254,7 +282,9 @@ export class DeploymentService extends EventEmitter {
         try {
           await this.rollbackDeployment(deploymentId);
         } catch (rollbackError) {
-          deployment.logs.push(`Rollback failed: ${rollbackError instanceof Error ? rollbackError.message : 'Unknown error'}`);
+          deployment.logs.push(
+            `Rollback failed: ${rollbackError instanceof Error ? rollbackError.message : 'Unknown error'}`
+          );
         }
       }
 
@@ -276,16 +306,25 @@ export class DeploymentService extends EventEmitter {
 
     // Check infrastructure capacity
     const infraHealth = await this.getInfrastructureHealth();
-    const healthyInstances = infraHealth.instances.filter(i => i.health === 'healthy').length;
-    
+    const healthyInstances = infraHealth.instances.filter(
+      i => i.health === 'healthy'
+    ).length;
+
     if (healthyInstances < config.minInstances) {
-      throw new Error(`Insufficient healthy instances: ${healthyInstances} < ${config.minInstances}`);
+      throw new Error(
+        `Insufficient healthy instances: ${healthyInstances} < ${config.minInstances}`
+      );
     }
 
     // Validate security controls
     const complianceReport = soc2ComplianceService.generateComplianceReport();
-    if (complianceReport.complianceScore < 80 && config.environment === 'production') {
-      throw new Error(`Compliance score too low for production deployment: ${complianceReport.complianceScore}%`);
+    if (
+      complianceReport.complianceScore < 80 &&
+      config.environment === 'production'
+    ) {
+      throw new Error(
+        `Compliance score too low for production deployment: ${complianceReport.complianceScore}%`
+      );
     }
 
     deployment.logs.push('Pre-deployment validation passed');
@@ -300,9 +339,15 @@ export class DeploymentService extends EventEmitter {
   ): Promise<void> {
     // Scale up infrastructure if needed
     if (config.autoScaling) {
-      const currentInstances = await this.getCurrentInstanceCount(config.environment);
+      const currentInstances = await this.getCurrentInstanceCount(
+        config.environment
+      );
       if (currentInstances < config.minInstances) {
-        await this.scaleInstances(config.environment, config.minInstances, 'deployment-preparation');
+        await this.scaleInstances(
+          config.environment,
+          config.minInstances,
+          'deployment-preparation'
+        );
       }
     }
 
@@ -334,10 +379,12 @@ export class DeploymentService extends EventEmitter {
 
     for (let i = 0; i < steps.length; i++) {
       deployment.logs.push(`${steps[i]}...`);
-      
+
       // Simulate deployment time
-      await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
-      
+      await new Promise(resolve =>
+        setTimeout(resolve, 2000 + Math.random() * 1000)
+      );
+
       // Simulate occasional failure for testing
       if (Math.random() < 0.05 && config.environment === 'development') {
         throw new Error(`Deployment step failed: ${steps[i]}`);
@@ -355,33 +402,35 @@ export class DeploymentService extends EventEmitter {
     config: DeploymentConfig
   ): Promise<void> {
     deployment.healthCheck = 'pending';
-    
+
     const maxAttempts = 10;
     const delayMs = 5000;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       deployment.logs.push(`Health check attempt ${attempt}/${maxAttempts}...`);
-      
+
       try {
         const healthResult = await this.performHealthCheck(config);
-        
+
         if (healthResult.healthy) {
           deployment.healthCheck = 'passed';
           deployment.logs.push('Health checks passed');
           return;
         }
-        
+
         if (attempt === maxAttempts) {
           throw new Error(`Health check failed after ${maxAttempts} attempts`);
         }
-        
+
         await new Promise(resolve => setTimeout(resolve, delayMs));
       } catch (error) {
         if (attempt === maxAttempts) {
           deployment.healthCheck = 'failed';
           throw error;
         }
-        deployment.logs.push(`Health check attempt ${attempt} failed, retrying...`);
+        deployment.logs.push(
+          `Health check attempt ${attempt} failed, retrying...`
+        );
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
     }
@@ -390,13 +439,15 @@ export class DeploymentService extends EventEmitter {
   /**
    * Perform health check
    */
-  private async performHealthCheck(config: DeploymentConfig): Promise<{ healthy: boolean; details: any }> {
+  private async performHealthCheck(
+    config: DeploymentConfig
+  ): Promise<{ healthy: boolean; details: any }> {
     // Simulate health check
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     // Simulate success/failure
     const healthy = Math.random() > 0.1; // 90% success rate
-    
+
     return {
       healthy,
       details: {
@@ -425,7 +476,7 @@ export class DeploymentService extends EventEmitter {
     // Step 2: Run health checks on green
     deployment.logs.push('Running health checks on green environment...');
     const healthResult = await this.performHealthCheck(config);
-    
+
     if (!healthResult.healthy) {
       throw new Error('Green environment health check failed');
     }
@@ -448,16 +499,21 @@ export class DeploymentService extends EventEmitter {
   /**
    * Switch traffic between blue and green environments
    */
-  private async switchTraffic(target: 'blue' | 'green', config: DeploymentConfig): Promise<void> {
+  private async switchTraffic(
+    target: 'blue' | 'green',
+    config: DeploymentConfig
+  ): Promise<void> {
     // Simulate traffic switching
-    deployment.logs.push(`Switching traffic to ${target} environment`);
+    this.logs.push(`Switching traffic to ${target} environment`);
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
   /**
    * Decommission blue environment
    */
-  private async decommissionBlueEnvironment(config: DeploymentConfig): Promise<void> {
+  private async decommissionBlueEnvironment(
+    config: DeploymentConfig
+  ): Promise<void> {
     // Simulate blue environment cleanup
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
@@ -511,16 +567,11 @@ export class DeploymentService extends EventEmitter {
     config: DeploymentConfig
   ): Promise<void> {
     // Update monitoring service with new deployment info
-    monitoringService.recordMetric(
-      'deployment_version',
-      1,
-      'gauge',
-      {
-        environment: config.environment,
-        version: deployment.version,
-        deploymentId: deployment.id,
-      }
-    );
+    monitoringService.recordMetric('deployment_version', 1, 'gauge', {
+      environment: config.environment,
+      version: deployment.version,
+      deploymentId: deployment.id,
+    });
   }
 
   /**
@@ -537,7 +588,9 @@ export class DeploymentService extends EventEmitter {
     }
 
     deployment.status = 'deploying';
-    deployment.logs.push(`Starting rollback to version ${deployment.rollbackVersion}...`);
+    deployment.logs.push(
+      `Starting rollback to version ${deployment.rollbackVersion}...`
+    );
 
     try {
       // Perform rollback deployment
@@ -549,17 +602,15 @@ export class DeploymentService extends EventEmitter {
       deployment.logs.push('Rollback completed successfully');
 
       // Record metrics
-      monitoringService.recordMetric(
-        'deployments_rolled_back',
-        1,
-        'count',
-        { environment: deployment.environment }
-      );
+      monitoringService.recordMetric('deployments_rolled_back', 1, 'count', {
+        environment: deployment.environment,
+      });
 
       this.emit('deploymentRolledBack', { deploymentId, deployment });
-
     } catch (error) {
-      deployment.logs.push(`Rollback failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      deployment.logs.push(
+        `Rollback failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
       throw error;
     }
   }
@@ -570,7 +621,7 @@ export class DeploymentService extends EventEmitter {
   private async checkInfrastructureHealth(): Promise<void> {
     try {
       const health = await this.getInfrastructureHealth();
-      
+
       // Record metrics
       monitoringService.recordMetric(
         'infrastructure_instances_healthy',
@@ -585,7 +636,9 @@ export class DeploymentService extends EventEmitter {
       );
 
       // Check for unhealthy components
-      const unhealthyInstances = health.instances.filter(i => i.health !== 'healthy');
+      const unhealthyInstances = health.instances.filter(
+        i => i.health !== 'healthy'
+      );
       if (unhealthyInstances.length > 0) {
         this.emit('infrastructureAlert', {
           type: 'unhealthy_instances',
@@ -593,7 +646,6 @@ export class DeploymentService extends EventEmitter {
           instances: unhealthyInstances,
         });
       }
-
     } catch (error) {
       console.error('Infrastructure health check failed:', error);
     }
@@ -610,11 +662,36 @@ export class DeploymentService extends EventEmitter {
         { id: 'lb-stage-1', status: 'healthy', targets: 2 },
       ],
       instances: [
-        { id: 'i-prod-1', status: 'running', health: 'healthy', zone: 'us-east-1a' },
-        { id: 'i-prod-2', status: 'running', health: 'healthy', zone: 'us-east-1b' },
-        { id: 'i-prod-3', status: 'running', health: 'healthy', zone: 'us-east-1c' },
-        { id: 'i-stage-1', status: 'running', health: 'healthy', zone: 'us-east-1a' },
-        { id: 'i-stage-2', status: 'running', health: 'healthy', zone: 'us-east-1b' },
+        {
+          id: 'i-prod-1',
+          status: 'running',
+          health: 'healthy',
+          zone: 'us-east-1a',
+        },
+        {
+          id: 'i-prod-2',
+          status: 'running',
+          health: 'healthy',
+          zone: 'us-east-1b',
+        },
+        {
+          id: 'i-prod-3',
+          status: 'running',
+          health: 'healthy',
+          zone: 'us-east-1c',
+        },
+        {
+          id: 'i-stage-1',
+          status: 'running',
+          health: 'healthy',
+          zone: 'us-east-1a',
+        },
+        {
+          id: 'i-stage-2',
+          status: 'running',
+          health: 'healthy',
+          zone: 'us-east-1b',
+        },
       ],
       databases: [
         { id: 'db-prod-primary', status: 'available', connections: 45 },
@@ -640,15 +717,25 @@ export class DeploymentService extends EventEmitter {
 
       try {
         const metrics = await this.getScalingMetrics(environment);
-        const currentInstances = await this.getCurrentInstanceCount(environment);
+        const currentInstances =
+          await this.getCurrentInstanceCount(environment);
 
         // Scale up conditions
         if (
-          (metrics.cpuUtilization > 70 || metrics.memoryUtilization > 80 || metrics.responseTime > 1000) &&
+          (metrics.cpuUtilization > 70 ||
+            metrics.memoryUtilization > 80 ||
+            metrics.responseTime > 1000) &&
           currentInstances < config.maxInstances
         ) {
-          const targetInstances = Math.min(currentInstances + 1, config.maxInstances);
-          await this.scaleInstances(environment, targetInstances, 'high-resource-utilization');
+          const targetInstances = Math.min(
+            currentInstances + 1,
+            config.maxInstances
+          );
+          await this.scaleInstances(
+            environment,
+            targetInstances,
+            'high-resource-utilization'
+          );
         }
 
         // Scale down conditions
@@ -658,12 +745,21 @@ export class DeploymentService extends EventEmitter {
           metrics.responseTime < 200 &&
           currentInstances > config.minInstances
         ) {
-          const targetInstances = Math.max(currentInstances - 1, config.minInstances);
-          await this.scaleInstances(environment, targetInstances, 'low-resource-utilization');
+          const targetInstances = Math.max(
+            currentInstances - 1,
+            config.minInstances
+          );
+          await this.scaleInstances(
+            environment,
+            targetInstances,
+            'low-resource-utilization'
+          );
         }
-
       } catch (error) {
-        console.error(`Auto-scaling evaluation failed for ${environment}:`, error);
+        console.error(
+          `Auto-scaling evaluation failed for ${environment}:`,
+          error
+        );
       }
     }
   }
@@ -671,7 +767,9 @@ export class DeploymentService extends EventEmitter {
   /**
    * Get scaling metrics
    */
-  private async getScalingMetrics(environment: string): Promise<ScalingMetrics> {
+  private async getScalingMetrics(
+    environment: string
+  ): Promise<ScalingMetrics> {
     // Simulate getting metrics from monitoring system
     return {
       cpuUtilization: Math.random() * 100,
@@ -688,7 +786,8 @@ export class DeploymentService extends EventEmitter {
    */
   private async getCurrentInstanceCount(environment: string): Promise<number> {
     const health = await this.getInfrastructureHealth();
-    return health.instances.filter(i => i.id.includes(environment.slice(0, 4))).length;
+    return health.instances.filter(i => i.id.includes(environment.slice(0, 4)))
+      .length;
   }
 
   /**
@@ -710,15 +809,22 @@ export class DeploymentService extends EventEmitter {
     });
 
     // Record metrics
-    monitoringService.recordMetric(
-      'auto_scaling_actions',
-      1,
-      'count',
-      { environment, action, reason }
-    );
+    monitoringService.recordMetric('auto_scaling_actions', 1, 'count', {
+      environment,
+      action,
+      reason,
+    });
 
-    console.log(`Auto-scaling ${environment}: ${currentCount} -> ${targetCount} instances (${reason})`);
-    this.emit('autoScalingAction', { environment, action, currentCount, targetCount, reason });
+    console.log(
+      `Auto-scaling ${environment}: ${currentCount} -> ${targetCount} instances (${reason})`
+    );
+    this.emit('autoScalingAction', {
+      environment,
+      action,
+      currentCount,
+      targetCount,
+      reason,
+    });
   }
 
   /**
@@ -728,13 +834,17 @@ export class DeploymentService extends EventEmitter {
     await new Promise(resolve => setTimeout(resolve, 500));
   }
 
-  private async prepareDatabaseConnections(config: DeploymentConfig): Promise<void> {
+  private async prepareDatabaseConnections(
+    config: DeploymentConfig
+  ): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, 300));
   }
 
   private cleanupScalingHistory(): void {
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    this.scalingHistory = this.scalingHistory.filter(entry => entry.timestamp > oneDayAgo);
+    this.scalingHistory = this.scalingHistory.filter(
+      entry => entry.timestamp > oneDayAgo
+    );
   }
 
   /**
@@ -754,7 +864,12 @@ export class DeploymentService extends EventEmitter {
   /**
    * Get scaling history
    */
-  getScalingHistory(): Array<{ timestamp: Date; action: string; reason: string; details: any }> {
+  getScalingHistory(): Array<{
+    timestamp: Date;
+    action: string;
+    reason: string;
+    details: any;
+  }> {
     return this.scalingHistory.slice(-50); // Return last 50 entries
   }
 }

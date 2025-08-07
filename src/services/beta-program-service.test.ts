@@ -45,7 +45,11 @@ describe('BetaProgramService', () => {
       mockDatabase.findRecord.mockResolvedValueOnce(null); // No existing invitation
       mockDatabase.createRecord.mockResolvedValueOnce({});
 
-      const invitation = await betaProgramService.inviteUser(email, invitedBy, metadata);
+      const invitation = await betaProgramService.inviteUser(
+        email,
+        invitedBy,
+        metadata
+      );
 
       expect(invitation).toMatchObject({
         email,
@@ -60,10 +64,10 @@ describe('BetaProgramService', () => {
 
     it('should reject invitation for existing beta user', async () => {
       const email = 'existing@example.com';
-      
-      mockDatabase.findRecord.mockResolvedValueOnce({ 
-        id: 'existing-user', 
-        email 
+
+      mockDatabase.findRecord.mockResolvedValueOnce({
+        id: 'existing-user',
+        email,
       }); // Existing user
 
       await expect(
@@ -73,12 +77,12 @@ describe('BetaProgramService', () => {
 
     it('should reject duplicate pending invitation', async () => {
       const email = 'duplicate@example.com';
-      
+
       mockDatabase.findRecord.mockResolvedValueOnce(null); // No existing user
-      mockDatabase.findRecord.mockResolvedValueOnce({ 
-        id: 'existing-invite', 
+      mockDatabase.findRecord.mockResolvedValueOnce({
+        id: 'existing-invite',
         email,
-        status: 'pending' 
+        status: 'pending',
       }); // Existing invitation
 
       await expect(
@@ -96,7 +100,7 @@ describe('BetaProgramService', () => {
       };
 
       (betaProgramService as any).invitationTokens.set(token, mockInvitation);
-      
+
       const mockBetaUser = {
         id: 'beta-user-123',
         email: 'newuser@example.com',
@@ -104,7 +108,9 @@ describe('BetaProgramService', () => {
         onboardingStatus: 'active',
       };
 
-      (featureFlagService.addBetaUser as jest.Mock).mockResolvedValueOnce(mockBetaUser);
+      (featureFlagService.addBetaUser as jest.Mock).mockResolvedValueOnce(
+        mockBetaUser
+      );
       mockDatabase.updateRecord.mockResolvedValueOnce({});
       mockDatabase.createRecord.mockResolvedValueOnce({}); // For onboarding
 
@@ -117,7 +123,9 @@ describe('BetaProgramService', () => {
         accountType: 'beta',
         onboardingStatus: 'active',
       });
-      expect(featureFlagService.addBetaUser).toHaveBeenCalledWith(expect.any(Object));
+      expect(featureFlagService.addBetaUser).toHaveBeenCalledWith(
+        expect.any(Object)
+      );
     });
 
     it('should reject expired invitation', async () => {
@@ -156,7 +164,7 @@ describe('BetaProgramService', () => {
     it('should complete onboarding step', async () => {
       const userId = 'beta-user-123';
       const stepName = 'welcome_tour';
-      
+
       const mockOnboarding = {
         id: 'onboarding-123',
         userId,
@@ -173,7 +181,10 @@ describe('BetaProgramService', () => {
         currentStep: 1,
       });
 
-      const result = await betaProgramService.completeOnboardingStep(userId, stepName);
+      const result = await betaProgramService.completeOnboardingStep(
+        userId,
+        stepName
+      );
 
       expect(result.completedSteps).toContain(stepName);
       expect(result.currentStep).toBe(1);
@@ -182,7 +193,7 @@ describe('BetaProgramService', () => {
     it('should mark onboarding as completed when all steps done', async () => {
       const userId = 'beta-user-123';
       const stepName = 'support_resources'; // Last step
-      
+
       const mockOnboarding = {
         id: 'onboarding-123',
         userId,
@@ -200,7 +211,10 @@ describe('BetaProgramService', () => {
         completedAt: expect.any(Date),
       });
 
-      const result = await betaProgramService.completeOnboardingStep(userId, stepName);
+      const result = await betaProgramService.completeOnboardingStep(
+        userId,
+        stepName
+      );
 
       expect(result.completedAt).toBeDefined();
       expect(result.currentStep).toBe(6);
@@ -305,7 +319,7 @@ describe('BetaProgramService', () => {
           lastActiveAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
         },
         {
-          id: 'user-2', 
+          id: 'user-2',
           onboardingStatus: 'active',
           lastActiveAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
         },
@@ -329,7 +343,9 @@ describe('BetaProgramService', () => {
         },
       ];
 
-      (featureFlagService.getBetaUsers as jest.Mock).mockResolvedValueOnce(mockBetaUsers);
+      (featureFlagService.getBetaUsers as jest.Mock).mockResolvedValueOnce(
+        mockBetaUsers
+      );
       mockDatabase.findRecords.mockResolvedValueOnce(mockFeedback);
 
       const metrics = await betaProgramService.getMetrics('7d');
@@ -349,7 +365,7 @@ describe('BetaProgramService', () => {
   describe('Service Initialization', () => {
     it('should initialize successfully', async () => {
       mockDatabase.findRecords.mockResolvedValueOnce([]); // No pending invitations
-      
+
       await expect(betaProgramService.initialize()).resolves.not.toThrow();
     });
 
@@ -375,8 +391,12 @@ describe('BetaProgramService', () => {
 
       // Verify tokens are loaded into memory
       expect((betaProgramService as any).invitationTokens.size).toBe(2);
-      expect((betaProgramService as any).invitationTokens.has('token-1')).toBe(true);
-      expect((betaProgramService as any).invitationTokens.has('token-2')).toBe(true);
+      expect((betaProgramService as any).invitationTokens.has('token-1')).toBe(
+        true
+      );
+      expect((betaProgramService as any).invitationTokens.has('token-2')).toBe(
+        true
+      );
     });
   });
 });
@@ -417,7 +437,7 @@ describe('FeatureFlagService', () => {
     it('should evaluate flag for beta user correctly', async () => {
       const flagId = 'test-flag-123';
       const userId = 'beta-user-456';
-      
+
       const mockFlag = {
         id: flagId,
         name: 'test_feature',
@@ -449,7 +469,7 @@ describe('FeatureFlagService', () => {
     it('should reject flag for non-beta user when target is beta', async () => {
       const flagId = 'beta-only-flag';
       const userId = 'regular-user-789';
-      
+
       const mockFlag = {
         id: flagId,
         enabled: true,
@@ -478,7 +498,7 @@ describe('FeatureFlagService', () => {
     it('should respect rollout percentage', async () => {
       const flagId = 'partial-rollout-flag';
       const userId = 'test-user-consistent-hash';
-      
+
       const mockFlag = {
         id: flagId,
         enabled: true,
@@ -506,10 +526,7 @@ describe('FeatureFlagService', () => {
         { id: 'flag-3', enabled: true, name: 'Feature 3' },
       ];
 
-      const mockBetaUsers = [
-        { id: 'user-1' },
-        { id: 'user-2' },
-      ];
+      const mockBetaUsers = [{ id: 'user-1' }, { id: 'user-2' }];
 
       // Mock flag cache
       mockFlags.forEach(flag => {

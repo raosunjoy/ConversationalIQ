@@ -15,6 +15,7 @@ import { zendeskRoutes } from './routes/zendesk';
 import { webhookRoutes } from './routes/webhooks';
 import { privacyRoutes } from './routes/privacy';
 import { monitoringRoutes } from './routes/monitoring';
+import { betaProgramRouter } from './routes/beta-program';
 import { initializeKafka, shutdownKafka } from '../messaging/kafka';
 import {
   startEventProcessor,
@@ -62,17 +63,17 @@ export async function createServer(): Promise<{
 
   // Comprehensive security middleware
   app.use(securityHeaders);
-  
+
   // Request size limiting
   app.use(requestSizeLimit(10 * 1024 * 1024)); // 10MB limit
-  
+
   // General rate limiting
   app.use(rateLimitConfigs.general);
-  
+
   // Input sanitization and SQL injection protection
   app.use(sanitizeInput);
   app.use(sqlInjectionProtection);
-  
+
   // Security audit logging
   app.use(auditSecurity);
 
@@ -114,6 +115,9 @@ export async function createServer(): Promise<{
 
   // Monitoring and observability routes
   app.use('/monitoring', monitoringRoutes);
+
+  // Beta program management routes
+  app.use('/beta-program', rateLimitConfigs.auth, betaProgramRouter);
 
   // Zendesk app routes (with auth rate limiting)
   app.use('/zendesk', rateLimitConfigs.auth, zendeskRoutes);

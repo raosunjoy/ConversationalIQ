@@ -34,15 +34,14 @@ async function main() {
     const reportPath = `test-reports/comprehensive-test-report-${Date.now()}.json`;
     await fs.promises.mkdir('test-reports', { recursive: true });
     await fs.promises.writeFile(reportPath, JSON.stringify(report, null, 2));
-    
+
     console.log(`\n📄 Detailed report saved to: ${reportPath}`);
 
     // Exit with appropriate code
     process.exit(report.readinessAssessment.productionReady ? 0 : 1);
-
   } catch (error) {
     console.error('\n❌ Test suite execution failed:', error);
-    
+
     // Record failure
     monitoringService.recordMetric('test_suite_failed', 1, 'count', {
       error: error instanceof Error ? error.message : 'Unknown error',

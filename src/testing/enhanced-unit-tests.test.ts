@@ -33,9 +33,12 @@ describe('Enhanced Unit Tests - Database Service', () => {
       });
 
       // Benchmark the operation
-      const benchmark = await testFramework.benchmarkOperation('database_query', async () => {
-        return await database.createConversation(conversationData);
-      });
+      const benchmark = await testFramework.benchmarkOperation(
+        'database_query',
+        async () => {
+          return await database.createConversation(conversationData);
+        }
+      );
 
       expect(benchmark.passed).toBe(true);
       expect(benchmark.metrics.responseTime).toBeLessThan(100);
@@ -43,21 +46,26 @@ describe('Enhanced Unit Tests - Database Service', () => {
 
     test('should handle large conversation datasets', async () => {
       const conversations = [];
-      
+
       // Create 100 conversations for stress testing
       for (let i = 0; i < 100; i++) {
         const testData = TestFramework.createTestData();
-        conversations.push(testData.conversation({
-          ticketId: `stress-test-${i}`,
-          subject: `Stress test conversation ${i}`,
-        }));
+        conversations.push(
+          testData.conversation({
+            ticketId: `stress-test-${i}`,
+            subject: `Stress test conversation ${i}`,
+          })
+        );
       }
 
-      const benchmark = await testFramework.benchmarkOperation('database_query', async () => {
-        for (const conv of conversations) {
-          await database.createConversation(conv);
+      const benchmark = await testFramework.benchmarkOperation(
+        'database_query',
+        async () => {
+          for (const conv of conversations) {
+            await database.createConversation(conv);
+          }
         }
-      });
+      );
 
       expect(benchmark.passed).toBe(true);
       expect(benchmark.metrics.memoryUsage).toBeLessThan(64); // Should not exceed 64MB
@@ -85,7 +93,9 @@ describe('Enhanced Unit Tests - Database Service', () => {
 
     beforeEach(async () => {
       const testData = TestFramework.createTestData();
-      const conversation = await database.createConversation(testData.conversation());
+      const conversation = await database.createConversation(
+        testData.conversation()
+      );
       conversationId = conversation.id;
     });
 
@@ -95,12 +105,15 @@ describe('Enhanced Unit Tests - Database Service', () => {
         content: 'My email is john.doe@example.com and phone is 555-123-4567',
       });
 
-      const benchmark = await testFramework.benchmarkOperation('database_query', async () => {
-        return await database.createMessage(messageData);
-      });
+      const benchmark = await testFramework.benchmarkOperation(
+        'database_query',
+        async () => {
+          return await database.createMessage(messageData);
+        }
+      );
 
       expect(benchmark.passed).toBe(true);
-      
+
       const message = await database.createMessage(messageData);
       expect(message.content).toBeDefined();
       // In production, this would be encrypted if PII detected
@@ -109,7 +122,7 @@ describe('Enhanced Unit Tests - Database Service', () => {
     test('should handle very long messages', async () => {
       const testData = TestFramework.createTestData();
       const longContent = 'A'.repeat(9999); // Just under 10KB limit
-      
+
       const messageData = testData.message(conversationId, {
         content: longContent,
       });
@@ -121,7 +134,7 @@ describe('Enhanced Unit Tests - Database Service', () => {
     test('should reject messages exceeding length limit', async () => {
       const testData = TestFramework.createTestData();
       const tooLongContent = 'A'.repeat(10001); // Over 10KB limit
-      
+
       const messageData = testData.message(conversationId, {
         content: tooLongContent,
       });
@@ -138,8 +151,12 @@ describe('Enhanced Unit Tests - Database Service', () => {
 
     beforeEach(async () => {
       const testData = TestFramework.createTestData();
-      const conversation = await database.createConversation(testData.conversation());
-      const message = await database.createMessage(testData.message(conversation.id));
+      const conversation = await database.createConversation(
+        testData.conversation()
+      );
+      const message = await database.createMessage(
+        testData.message(conversation.id)
+      );
       messageId = message.id;
     });
 
@@ -157,9 +174,12 @@ describe('Enhanced Unit Tests - Database Service', () => {
         },
       });
 
-      const benchmark = await testFramework.benchmarkOperation('database_query', async () => {
-        return await database.addAIAnalysis(messageId, analysisData);
-      });
+      const benchmark = await testFramework.benchmarkOperation(
+        'database_query',
+        async () => {
+          return await database.addAIAnalysis(messageId, analysisData);
+        }
+      );
 
       expect(benchmark.passed).toBe(true);
     });
@@ -190,16 +210,21 @@ describe('Enhanced Unit Tests - Database Service', () => {
         },
       };
 
-      const updatedMessage = await database.addAIAnalysis(messageId, complexAnalysis);
+      const updatedMessage = await database.addAIAnalysis(
+        messageId,
+        complexAnalysis
+      );
       expect(updatedMessage.aiAnalysis).toBeDefined();
-      expect((updatedMessage.aiAnalysis as any).sentiment.polarity).toBe('mixed');
+      expect((updatedMessage.aiAnalysis as any).sentiment.polarity).toBe(
+        'mixed'
+      );
     });
   });
 
   describe('GDPR Compliance Operations', () => {
     test('should handle data subject access request', async () => {
       const email = 'gdpr.test@example.com';
-      
+
       // Create test data for the email
       const testData = TestFramework.createTestData();
       const conversation = await database.createConversation(
@@ -209,16 +234,19 @@ describe('Enhanced Unit Tests - Database Service', () => {
         })
       );
 
-      const benchmark = await testFramework.benchmarkOperation('database_query', async () => {
-        return await database.handleDataSubjectAccessRequest(email);
-      });
+      const benchmark = await testFramework.benchmarkOperation(
+        'database_query',
+        async () => {
+          return await database.handleDataSubjectAccessRequest(email);
+        }
+      );
 
       expect(benchmark.passed).toBe(true);
     });
 
     test('should handle data subject deletion request', async () => {
       const email = 'gdpr.deletion@example.com';
-      
+
       // Create test data for the email
       const testData = TestFramework.createTestData();
       const conversation = await database.createConversation(
@@ -238,13 +266,13 @@ describe('Enhanced Unit Tests - Database Service', () => {
     test('should handle database connection failures gracefully', async () => {
       // Simulate database disconnection
       await database.disconnect();
-      
+
       const testData = TestFramework.createTestData();
-      
+
       await expect(
         database.createConversation(testData.conversation())
       ).rejects.toThrow();
-      
+
       // Reconnect for cleanup
       await database.connect();
     });
@@ -264,17 +292,21 @@ describe('Enhanced Unit Tests - Database Service', () => {
 
     test('should handle concurrent operations', async () => {
       const testData = TestFramework.createTestData();
-      
+
       // Create multiple conversations concurrently
-      const operations = Array.from({ length: 10 }, (_, i) => 
-        database.createConversation(testData.conversation({
-          ticketId: `concurrent-${i}`,
-        }))
+      const operations = Array.from({ length: 10 }, (_, i) =>
+        database.createConversation(
+          testData.conversation({
+            ticketId: `concurrent-${i}`,
+          })
+        )
       );
 
       const results = await Promise.allSettled(operations);
-      const successfulOperations = results.filter(r => r.status === 'fulfilled').length;
-      
+      const successfulOperations = results.filter(
+        r => r.status === 'fulfilled'
+      ).length;
+
       expect(successfulOperations).toBe(10);
     });
   });
@@ -290,23 +322,35 @@ describe('Enhanced Unit Tests - Monitoring Service', () => {
   });
 
   test('should record metrics with performance benchmarking', async () => {
-    const benchmark = await testFramework.benchmarkOperation('api_response', async () => {
-      monitoringService.recordMetric('test_metric', 42, 'count', { test: 'true' });
-      monitoringService.recordMetric('test_metric', 43, 'count', { test: 'true' });
-      monitoringService.recordMetric('test_metric', 44, 'count', { test: 'true' });
-    });
+    const benchmark = await testFramework.benchmarkOperation(
+      'api_response',
+      async () => {
+        monitoringService.recordMetric('test_metric', 42, 'count', {
+          test: 'true',
+        });
+        monitoringService.recordMetric('test_metric', 43, 'count', {
+          test: 'true',
+        });
+        monitoringService.recordMetric('test_metric', 44, 'count', {
+          test: 'true',
+        });
+      }
+    );
 
     expect(benchmark.passed).toBe(true);
     expect(benchmark.metrics.responseTime).toBeLessThan(100);
   });
 
   test('should handle high-frequency metric recording', async () => {
-    const benchmark = await testFramework.benchmarkOperation('api_response', async () => {
-      // Record 1000 metrics rapidly
-      for (let i = 0; i < 1000; i++) {
-        monitoringService.recordMetric('high_frequency_test', i, 'count');
+    const benchmark = await testFramework.benchmarkOperation(
+      'api_response',
+      async () => {
+        // Record 1000 metrics rapidly
+        for (let i = 0; i < 1000; i++) {
+          monitoringService.recordMetric('high_frequency_test', i, 'count');
+        }
       }
-    });
+    );
 
     expect(benchmark.passed).toBe(true);
     expect(benchmark.metrics.memoryUsage).toBeLessThan(128);
@@ -317,9 +361,9 @@ describe('Enhanced Unit Tests - Monitoring Service', () => {
     monitoringService.recordMetric('api_requests', 100, 'count');
     monitoringService.recordMetric('response_time', 250, 'ms');
     monitoringService.recordMetric('error_rate', 0.5, 'percentage');
-    
+
     const dashboardData = monitoringService.getDashboardData();
-    
+
     expect(dashboardData.metrics).toBeDefined();
     expect(dashboardData.healthChecks).toBeDefined();
     expect(dashboardData.slas).toBeDefined();
@@ -329,7 +373,11 @@ describe('Enhanced Unit Tests - Monitoring Service', () => {
   test('should maintain metric history within memory limits', async () => {
     // Record many metrics to test memory management
     for (let i = 0; i < 2000; i++) {
-      monitoringService.recordMetric('memory_test', Math.random() * 100, 'gauge');
+      monitoringService.recordMetric(
+        'memory_test',
+        Math.random() * 100,
+        'gauge'
+      );
     }
 
     const memoryUsage = process.memoryUsage();
@@ -347,13 +395,17 @@ describe('Enhanced Unit Tests - Encryption Service', () => {
   });
 
   test('should encrypt and decrypt data with performance benchmarking', async () => {
-    const testData = 'This is sensitive data that needs encryption: john@example.com';
-    
-    const benchmark = await testFramework.benchmarkOperation('api_response', async () => {
-      const encrypted = await encryptionService.encryptData(testData);
-      const decrypted = await encryptionService.decryptData(encrypted);
-      expect(decrypted).toBe(testData);
-    });
+    const testData =
+      'This is sensitive data that needs encryption: john@example.com';
+
+    const benchmark = await testFramework.benchmarkOperation(
+      'api_response',
+      async () => {
+        const encrypted = await encryptionService.encryptData(testData);
+        const decrypted = await encryptionService.decryptData(encrypted);
+        expect(decrypted).toBe(testData);
+      }
+    );
 
     expect(benchmark.passed).toBe(true);
   });
@@ -363,30 +415,38 @@ describe('Enhanced Unit Tests - Encryption Service', () => {
       { input: 'Contact me at john.doe@example.com', expectedTypes: ['email'] },
       { input: 'Call me at 555-123-4567', expectedTypes: ['phone'] },
       { input: 'My SSN is 123-45-6789', expectedTypes: ['ssn'] },
-      { input: 'Email: test@domain.com Phone: (555) 123-4567', expectedTypes: ['email', 'phone'] },
+      {
+        input: 'Email: test@domain.com Phone: (555) 123-4567',
+        expectedTypes: ['email', 'phone'],
+      },
       { input: 'No PII in this message', expectedTypes: [] },
     ];
 
     for (const testCase of testCases) {
       const result = encryptionService.detectPII(testCase.input);
-      
+
       if (testCase.expectedTypes.length === 0) {
         expect(result.hasPII).toBe(false);
       } else {
         expect(result.hasPII).toBe(true);
-        expect(result.detectedTypes).toEqual(expect.arrayContaining(testCase.expectedTypes));
+        expect(result.detectedTypes).toEqual(
+          expect.arrayContaining(testCase.expectedTypes)
+        );
       }
     }
   });
 
   test('should handle large data encryption', async () => {
     const largeData = 'A'.repeat(100000); // 100KB of data
-    
-    const benchmark = await testFramework.benchmarkOperation('api_response', async () => {
-      const encrypted = await encryptionService.encryptData(largeData);
-      const decrypted = await encryptionService.decryptData(encrypted);
-      expect(decrypted).toBe(largeData);
-    });
+
+    const benchmark = await testFramework.benchmarkOperation(
+      'api_response',
+      async () => {
+        const encrypted = await encryptionService.encryptData(largeData);
+        const decrypted = await encryptionService.decryptData(encrypted);
+        expect(decrypted).toBe(largeData);
+      }
+    );
 
     // Should still be performant with large data
     expect(benchmark.metrics.responseTime).toBeLessThan(1000);
@@ -415,13 +475,13 @@ describe('Enhanced Unit Tests - Encryption Service', () => {
     };
 
     const anonymized = await encryptionService.anonymizeData(complexData);
-    
+
     // Check that PII was masked
     expect(anonymized.user.email).toContain('[EMAIL_');
     expect(anonymized.user.phone).toContain('[PHONE_');
     expect(anonymized.conversations[0].message).toContain('[EMAIL_');
     expect(anonymized.conversations[1].message).toContain('[PHONE_');
-    
+
     // Check that non-PII data is preserved
     expect(anonymized.user.name).toBe('John Doe');
     expect(anonymized.metadata.id).toBe('user-123');
@@ -449,7 +509,7 @@ describe('Enhanced Unit Tests - SOC 2 Compliance Service', () => {
     };
 
     await soc2ComplianceService.logAuditEvent(auditEvent);
-    
+
     // Verify the event was logged
     const auditTrail = soc2ComplianceService.getAuditTrail(
       new Date(Date.now() - 60000), // Last minute
@@ -487,27 +547,30 @@ describe('Enhanced Unit Tests - SOC 2 Compliance Service', () => {
     });
 
     const report = soc2ComplianceService.generateComplianceReport();
-    
+
     expect(report.summary.totalControls).toBeGreaterThan(0);
     expect(report.complianceScore).toBeGreaterThanOrEqual(0);
     expect(report.complianceScore).toBeLessThanOrEqual(100);
   });
 
   test('should handle high-volume audit logging', async () => {
-    const benchmark = await testFramework.benchmarkOperation('api_response', async () => {
-      // Log 100 audit events
-      for (let i = 0; i < 100; i++) {
-        await soc2ComplianceService.logAuditEvent({
-          action: `test_action_${i}`,
-          resource: 'test_resource',
-          outcome: Math.random() > 0.1 ? 'success' : 'failure',
-          ipAddress: `192.168.1.${i}`,
-          userAgent: 'test-agent',
-          details: { testId: i },
-          riskLevel: 'low',
-        });
+    const benchmark = await testFramework.benchmarkOperation(
+      'api_response',
+      async () => {
+        // Log 100 audit events
+        for (let i = 0; i < 100; i++) {
+          await soc2ComplianceService.logAuditEvent({
+            action: `test_action_${i}`,
+            resource: 'test_resource',
+            outcome: Math.random() > 0.1 ? 'success' : 'failure',
+            ipAddress: `192.168.1.${i}`,
+            userAgent: 'test-agent',
+            details: { testId: i },
+            riskLevel: 'low',
+          });
+        }
       }
-    });
+    );
 
     expect(benchmark.passed).toBe(true);
   });
@@ -524,38 +587,44 @@ describe('Integration Test - End-to-End Workflows', () => {
 
   test('should handle complete conversation lifecycle with monitoring', async () => {
     const testData = TestFramework.createTestData();
-    
-    const benchmark = await testFramework.benchmarkOperation('api_response', async () => {
-      // 1. Create conversation
-      const conversation = await new DatabaseService().createConversation(
-        testData.conversation({ subject: 'E2E test conversation' })
-      );
 
-      // 2. Add messages with PII
-      const message = await new DatabaseService().createMessage(
-        testData.message(conversation.id, {
-          content: 'Hi, my email is customer@example.com and I need help',
-        })
-      );
+    const benchmark = await testFramework.benchmarkOperation(
+      'api_response',
+      async () => {
+        // 1. Create conversation
+        const conversation = await new DatabaseService().createConversation(
+          testData.conversation({ subject: 'E2E test conversation' })
+        );
 
-      // 3. Add AI analysis
-      await new DatabaseService().addAIAnalysis(message.id, testData.aiAnalysis());
+        // 2. Add messages with PII
+        const message = await new DatabaseService().createMessage(
+          testData.message(conversation.id, {
+            content: 'Hi, my email is customer@example.com and I need help',
+          })
+        );
 
-      // 4. Record monitoring metrics
-      monitoringService.recordMetric('conversation_created', 1, 'count');
-      monitoringService.recordMetric('message_processed', 1, 'count');
+        // 3. Add AI analysis
+        await new DatabaseService().addAIAnalysis(
+          message.id,
+          testData.aiAnalysis()
+        );
 
-      // 5. Log compliance event
-      await soc2ComplianceService.logAuditEvent({
-        action: 'conversation_processed',
-        resource: conversation.id,
-        outcome: 'success',
-        ipAddress: '127.0.0.1',
-        userAgent: 'test-framework',
-        details: { messageCount: 1 },
-        riskLevel: 'low',
-      });
-    });
+        // 4. Record monitoring metrics
+        monitoringService.recordMetric('conversation_created', 1, 'count');
+        monitoringService.recordMetric('message_processed', 1, 'count');
+
+        // 5. Log compliance event
+        await soc2ComplianceService.logAuditEvent({
+          action: 'conversation_processed',
+          resource: conversation.id,
+          outcome: 'success',
+          ipAddress: '127.0.0.1',
+          userAgent: 'test-framework',
+          details: { messageCount: 1 },
+          riskLevel: 'low',
+        });
+      }
+    );
 
     expect(benchmark.passed).toBe(true);
     expect(benchmark.metrics.responseTime).toBeLessThan(500);

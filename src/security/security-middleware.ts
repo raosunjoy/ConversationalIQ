@@ -5,6 +5,13 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+
+interface RequestWithSession extends Request {
+  session?: {
+    csrfToken?: string;
+    [key: string]: any;
+  };
+}
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import { body, validationResult, param, query } from 'express-validator';
@@ -61,7 +68,9 @@ export const rateLimitConfigs = {
     max: 1000, // 1000 webhook calls per 5 minutes
     keyGenerator: (req: Request) => {
       // Use webhook signature or IP for rate limiting
-      return req.headers['x-webhook-signature'] as string || req.ip;
+      return (
+        (req.headers['x-webhook-signature'] as string) || req.ip || 'unknown'
+      );
     },
     message: {
       error: 'Webhook rate limit exceeded',
@@ -116,13 +125,8 @@ export const validationSchemas = {
       .isLength({ min: 1, max: 100 })
       .withMessage('Ticket ID must be between 1 and 100 characters')
       .trim(),
-    body('agentId')
-      .optional()
-      .isUUID()
-      .withMessage('Invalid agent ID format'),
-    body('customerId')
-      .isUUID()
-      .withMessage('Invalid customer ID format'),
+    body('agentId').optional().isUUID().withMessage('Invalid agent ID format'),
+    body('customerId').isUUID().withMessage('Invalid customer ID format'),
     body('status')
       .isIn(['OPEN', 'PENDING', 'SOLVED', 'CLOSED'])
       .withMessage('Invalid conversation status'),
@@ -167,11 +171,7 @@ export const validationSchemas = {
   ],
 
   // ID parameter validation
-  id: [
-    param('id')
-      .isUUID()
-      .withMessage('Invalid ID format'),
-  ],
+  id: [param('id').isUUID().withMessage('Invalid ID format')],
 
   // Pagination validation
   pagination: [
@@ -208,7 +208,11 @@ export const validationSchemas = {
 };
 
 // CSRF Protection
-export const csrfProtection = (req: Request, res: Response, next: NextFunction): void => {
+export const csrfProtection = (
+  req: RequestWithSession,
+  res: Response,
+  next: NextFunction
+): Response | void => {
   // Skip CSRF for API endpoints with proper authentication
   if (req.path.startsWith('/api') && req.headers.authorization) {
     return next();
@@ -234,7 +238,11 @@ export const csrfProtection = (req: Request, res: Response, next: NextFunction):
 };
 
 // Request sanitization middleware
-export const sanitizeInput = (req: Request, res: Response, next: NextFunction): void => {
+export const sanitizeInput = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
   // Recursively sanitize object properties
   const sanitizeObject = (obj: any): any => {
     if (typeof obj === 'string') {
@@ -244,11 +252,11 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction): 
         .replace(/<[^>]*>/g, '')
         .trim();
     }
-    
+
     if (Array.isArray(obj)) {
       return obj.map(sanitizeObject);
     }
-    
+
     if (obj !== null && typeof obj === 'object') {
       const sanitized: any = {};
       for (const [key, value] of Object.entries(obj)) {
@@ -258,7 +266,7 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction): 
       }
       return sanitized;
     }
-    
+
     return obj;
   };
 
@@ -276,7 +284,11 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction): 
 };
 
 // SQL injection prevention middleware
-export const sqlInjectionProtection = (req: Request, res: Response, next: NextFunction): void => {
+export const sqlInjectionProtection = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Response | void => {
   const dangerousPatterns = [
     /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)/gi,
     /(['";]|--|\|\/\*|\*\/)/g,
@@ -296,10 +308,8 @@ export const sqlInjectionProtection = (req: Request, res: Response, next: NextFu
     return false;
   };
 
-  const hasInjection = 
-    checkValue(req.body) || 
-    checkValue(req.query) || 
-    checkValue(req.params);
+  const hasInjection =
+    checkValue(req.body) || checkValue(req.query) || checkValue(req.params);
 
   if (hasInjection) {
     return res.status(400).json({
@@ -312,14 +322,18 @@ export const sqlInjectionProtection = (req: Request, res: Response, next: NextFu
 };
 
 // Validation error handler
-export const handleValidationErrors = (req: Request, res: Response, next: NextFunction): void => {
+export const handleValidationErrors = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Response | void => {
   const errors = validationResult(req);
-  
+
   if (!errors.isEmpty()) {
     return res.status(400).json({
       error: 'Input validation failed',
       code: 'VALIDATION_ERROR',
-      details: errors.array().map(error => ({
+      details: errors.array().map((error: any) => ({
         field: error.type === 'field' ? error.path : 'unknown',
         message: error.msg,
         value: error.type === 'field' ? error.value : undefined,
@@ -355,7 +369,7 @@ class SecurityAuditor {
     try {
       // In production, this would write to a dedicated audit log database
       console.log('SECURITY_AUDIT:', JSON.stringify(entry, null, 2));
-      
+
       // Store critical events in database for compliance
       if (entry.risk === 'high' || entry.risk === 'critical') {
         // Implementation would save to audit_logs table
@@ -369,26 +383,31 @@ class SecurityAuditor {
 const securityAuditor = new SecurityAuditor();
 
 // Security audit middleware
-export const auditSecurity = (req: Request, res: Response, next: NextFunction): void => {
+export const auditSecurity = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
   const startTime = Date.now();
 
   // Capture response to log status code
   const originalSend = res.send;
-  res.send = function(this: Response, body: any) {
+  res.send = function (this: Response, body: any) {
     const processingTime = Date.now() - startTime;
-    
+
     // Determine risk level based on various factors
     let risk: 'low' | 'medium' | 'high' | 'critical' = 'low';
-    
+
     if (res.statusCode >= 400) {
       risk = res.statusCode >= 500 ? 'high' : 'medium';
     }
-    
+
     if (req.path.includes('auth') || req.path.includes('login')) {
       risk = risk === 'low' ? 'medium' : 'high';
     }
-    
-    if (processingTime > 5000) { // Slow requests might indicate attacks
+
+    if (processingTime > 5000) {
+      // Slow requests might indicate attacks
       risk = risk === 'low' ? 'medium' : risk;
     }
 
@@ -418,9 +437,9 @@ export const auditSecurity = (req: Request, res: Response, next: NextFunction): 
 
 // IP whitelist middleware (for admin endpoints)
 export const ipWhitelist = (allowedIPs: string[]) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (req: Request, res: Response, next: NextFunction): Response | void => {
     const clientIP = req.ip || req.connection.remoteAddress || '';
-    
+
     // Check if IP is in whitelist
     const isAllowed = allowedIPs.some(allowedIP => {
       if (allowedIP.includes('/')) {
@@ -456,10 +475,11 @@ export const ipWhitelist = (allowedIPs: string[]) => {
 };
 
 // Request size limiter
-export const requestSizeLimit = (maxSize: number = 10 * 1024 * 1024) => { // 10MB default
-  return (req: Request, res: Response, next: NextFunction): void => {
+export const requestSizeLimit = (maxSize: number = 10 * 1024 * 1024) => {
+  // 10MB default
+  return (req: Request, res: Response, next: NextFunction): Response | void => {
     const contentLength = parseInt(req.headers['content-length'] || '0', 10);
-    
+
     if (contentLength > maxSize) {
       return res.status(413).json({
         error: `Request size exceeds limit of ${maxSize} bytes`,

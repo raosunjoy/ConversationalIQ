@@ -12,12 +12,32 @@ import {
   CardTitle,
 } from '@zendeskgarden/react-cards';
 import { Button } from '@zendeskgarden/react-buttons';
-import { Field, Input, Label, Textarea, Select } from '@zendeskgarden/react-forms';
-import { Modal, Header, Body, Footer, Close } from '@zendeskgarden/react-modals';
+import {
+  Field,
+  Input,
+  Label,
+  Textarea,
+  Select,
+} from '@zendeskgarden/react-forms';
+import {
+  Modal,
+  Header,
+  Body,
+  Footer,
+  Close,
+} from '@zendeskgarden/react-modals';
 import { Badge } from '@zendeskgarden/react-badges';
 import { Tabs, TabList, Tab, TabPanel } from '@zendeskgarden/react-tabs';
-import { Alert, Paragraph } from '@zendeskgarden/react-notifications';
-import { Table, Head, HeaderRow, HeaderCell, Body as TableBody, Row, Cell } from '@zendeskgarden/react-tables';
+import { Alert } from '@zendeskgarden/react-notifications';
+import {
+  Table,
+  Head,
+  HeaderRow,
+  HeaderCell,
+  Body as TableBody,
+  Row,
+  Cell,
+} from '@zendeskgarden/react-tables';
 
 interface BetaMetrics {
   totalUsers: number;
@@ -67,11 +87,11 @@ const BetaProgramDashboard: React.FC = () => {
   const [feedback, setFeedback] = useState<BetaFeedback[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState('overview');
-  
+
   // Modal states
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showFlagModal, setShowFlagModal] = useState(false);
-  
+
   // Form states
   const [inviteEmail, setInviteEmail] = useState('');
   const [newFlag, setNewFlag] = useState({
@@ -89,7 +109,7 @@ const BetaProgramDashboard: React.FC = () => {
   const loadDashboardData = async (): Promise<void> => {
     try {
       setLoading(true);
-      
+
       // Load all dashboard data in parallel
       const [metricsRes, usersRes, flagsRes, feedbackRes] = await Promise.all([
         fetch('/api/beta-program/metrics'),
@@ -98,12 +118,13 @@ const BetaProgramDashboard: React.FC = () => {
         fetch('/api/beta-program/feedback'),
       ]);
 
-      const [metricsData, usersData, flagsData, feedbackData] = await Promise.all([
-        metricsRes.json(),
-        usersRes.json(),
-        flagsRes.json(),
-        feedbackRes.json(),
-      ]);
+      const [metricsData, usersData, flagsData, feedbackData] =
+        await Promise.all([
+          metricsRes.json(),
+          usersRes.json(),
+          flagsRes.json(),
+          feedbackRes.json(),
+        ]);
 
       setMetrics(metricsData.data);
       setBetaUsers(usersData.data);
@@ -169,7 +190,10 @@ const BetaProgramDashboard: React.FC = () => {
   };
 
   const getStatusBadge = (status: string): React.ReactElement => {
-    const statusColors: Record<string, 'positive' | 'warning' | 'danger' | 'neutral'> = {
+    const statusColors: Record<
+      string,
+      'positive' | 'warning' | 'danger' | 'neutral'
+    > = {
       active: 'positive',
       invited: 'warning',
       churned: 'danger',
@@ -178,7 +202,10 @@ const BetaProgramDashboard: React.FC = () => {
   };
 
   const getUrgencyBadge = (urgency: string): React.ReactElement => {
-    const urgencyColors: Record<string, 'positive' | 'warning' | 'danger' | 'neutral'> = {
+    const urgencyColors: Record<
+      string,
+      'positive' | 'warning' | 'danger' | 'neutral'
+    > = {
       low: 'neutral',
       medium: 'warning',
       high: 'warning',
@@ -203,7 +230,9 @@ const BetaProgramDashboard: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Beta Program Dashboard</h1>
-          <p className="text-gray-600 mt-2">Manage beta users, feature flags, and collect feedback</p>
+          <p className="text-gray-600 mt-2">
+            Manage beta users, feature flags, and collect feedback
+          </p>
         </div>
         <div className="space-x-2">
           <Button onClick={() => setShowInviteModal(true)}>
@@ -231,8 +260,12 @@ const BetaProgramDashboard: React.FC = () => {
                   <CardTitle>Total Beta Users</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-blue-600">{metrics.totalUsers}</div>
-                  <p className="text-sm text-gray-500">Active: {metrics.activeUsers}</p>
+                  <div className="text-3xl font-bold text-blue-600">
+                    {metrics.totalUsers}
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    Active: {metrics.activeUsers}
+                  </p>
                 </CardContent>
               </Card>
 
@@ -241,7 +274,9 @@ const BetaProgramDashboard: React.FC = () => {
                   <CardTitle>Avg. Session Time</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-green-600">{metrics.averageSessionTime}min</div>
+                  <div className="text-3xl font-bold text-green-600">
+                    {metrics.averageSessionTime}min
+                  </div>
                   <p className="text-sm text-gray-500">Per user session</p>
                 </CardContent>
               </Card>
@@ -251,8 +286,12 @@ const BetaProgramDashboard: React.FC = () => {
                   <CardTitle>Feedback Score</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-purple-600">{metrics.averageSatisfactionScore.toFixed(1)}/5</div>
-                  <p className="text-sm text-gray-500">{metrics.feedbackCount} responses</p>
+                  <div className="text-3xl font-bold text-purple-600">
+                    {metrics.averageSatisfactionScore.toFixed(1)}/5
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    {metrics.feedbackCount} responses
+                  </p>
                 </CardContent>
               </Card>
 
@@ -261,7 +300,9 @@ const BetaProgramDashboard: React.FC = () => {
                   <CardTitle>Conversion Rate</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-orange-600">{metrics.conversionRate}%</div>
+                  <div className="text-3xl font-bold text-orange-600">
+                    {metrics.conversionRate}%
+                  </div>
                   <p className="text-sm text-gray-500">Beta to paid</p>
                 </CardContent>
               </Card>
@@ -273,24 +314,33 @@ const BetaProgramDashboard: React.FC = () => {
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle>Feature Adoption Rates</CardTitle>
-                <CardDescription>How beta users are engaging with different features</CardDescription>
+                <CardDescription>
+                  How beta users are engaging with different features
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {Object.entries(metrics.featureAdoptionRates).map(([feature, rate]) => (
-                    <div key={feature} className="flex items-center justify-between">
-                      <span className="font-medium capitalize">{feature.replace('_', ' ')}</span>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-32 bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-blue-600 h-2 rounded-full"
-                            style={{ width: `${rate}%` }}
-                          />
+                  {Object.entries(metrics.featureAdoptionRates).map(
+                    ([feature, rate]) => (
+                      <div
+                        key={feature}
+                        className="flex items-center justify-between"
+                      >
+                        <span className="font-medium capitalize">
+                          {feature.replace('_', ' ')}
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-32 bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-blue-600 h-2 rounded-full"
+                              style={{ width: `${rate}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-medium">{rate}%</span>
                         </div>
-                        <span className="text-sm font-medium">{rate}%</span>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -301,7 +351,9 @@ const BetaProgramDashboard: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle>Beta Users ({betaUsers.length})</CardTitle>
-              <CardDescription>Manage beta program participants</CardDescription>
+              <CardDescription>
+                Manage beta program participants
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -315,12 +367,14 @@ const BetaProgramDashboard: React.FC = () => {
                   </HeaderRow>
                 </Head>
                 <TableBody>
-                  {betaUsers.map((user) => (
+                  {betaUsers.map(user => (
                     <Row key={user.id}>
                       <Cell>{user.email}</Cell>
                       <Cell>{getStatusBadge(user.onboardingStatus)}</Cell>
                       <Cell>{user.accountType}</Cell>
-                      <Cell>{new Date(user.joinedAt).toLocaleDateString()}</Cell>
+                      <Cell>
+                        {new Date(user.joinedAt).toLocaleDateString()}
+                      </Cell>
                       <Cell>
                         {user.lastActiveAt
                           ? new Date(user.lastActiveAt).toLocaleDateString()
@@ -338,35 +392,48 @@ const BetaProgramDashboard: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle>Feature Flags</CardTitle>
-              <CardDescription>Control feature rollouts and A/B testing</CardDescription>
+              <CardDescription>
+                Control feature rollouts and A/B testing
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {featureFlags.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-500">No feature flags created yet.</p>
-                    <Button onClick={() => setShowFlagModal(true)} className="mt-2">
+                    <p className="text-gray-500">
+                      No feature flags created yet.
+                    </p>
+                    <Button
+                      onClick={() => setShowFlagModal(true)}
+                      className="mt-2"
+                    >
                       Create Your First Flag
                     </Button>
                   </div>
                 ) : (
-                  featureFlags.map((flag) => (
+                  featureFlags.map(flag => (
                     <div key={flag.id} className="border rounded p-4">
                       <div className="flex justify-between items-start">
                         <div>
                           <h3 className="font-semibold">{flag.name}</h3>
-                          <p className="text-sm text-gray-600 mt-1">{flag.description}</p>
+                          <p className="text-sm text-gray-600 mt-1">
+                            {flag.description}
+                          </p>
                           <div className="mt-2 space-x-2">
                             <Badge type={flag.enabled ? 'positive' : 'neutral'}>
                               {flag.enabled ? 'Enabled' : 'Disabled'}
                             </Badge>
-                            <Badge type="neutral">{flag.rolloutPercentage}% Rollout</Badge>
+                            <Badge type="neutral">
+                              {flag.rolloutPercentage}% Rollout
+                            </Badge>
                             <Badge type="neutral">{flag.targetAudience}</Badge>
                           </div>
                         </div>
                         <div className="space-x-2">
                           <Button size="small">Edit</Button>
-                          <Button size="small" isDanger>Toggle</Button>
+                          <Button size="small" isDanger>
+                            Toggle
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -381,15 +448,19 @@ const BetaProgramDashboard: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle>Beta Feedback ({feedback.length})</CardTitle>
-              <CardDescription>Feedback and suggestions from beta users</CardDescription>
+              <CardDescription>
+                Feedback and suggestions from beta users
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {feedback.map((item) => (
+                {feedback.map(item => (
                   <div key={item.id} className="border rounded p-4">
                     <div className="flex justify-between items-start mb-2">
                       <div className="space-x-2">
-                        <Badge type="neutral">{item.type.replace('_', ' ')}</Badge>
+                        <Badge type="neutral">
+                          {item.type.replace('_', ' ')}
+                        </Badge>
                         {getUrgencyBadge(item.urgency)}
                         <Badge type="neutral">{item.status}</Badge>
                       </div>
@@ -400,7 +471,9 @@ const BetaProgramDashboard: React.FC = () => {
                     <p className="text-sm">{item.content}</p>
                     {item.rating && (
                       <div className="mt-2">
-                        <span className="text-sm font-medium">Rating: {item.rating}/5</span>
+                        <span className="text-sm font-medium">
+                          Rating: {item.rating}/5
+                        </span>
                       </div>
                     )}
                   </div>
@@ -422,7 +495,7 @@ const BetaProgramDashboard: React.FC = () => {
             <Label>Email Address</Label>
             <Input
               value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
+              onChange={e => setInviteEmail(e.target.value)}
               placeholder="Enter email address"
             />
           </Field>
@@ -447,7 +520,7 @@ const BetaProgramDashboard: React.FC = () => {
               <Label>Flag Name</Label>
               <Input
                 value={newFlag.name}
-                onChange={(e) => setNewFlag({ ...newFlag, name: e.target.value })}
+                onChange={e => setNewFlag({ ...newFlag, name: e.target.value })}
                 placeholder="e.g., new_analytics_panel"
               />
             </Field>
@@ -455,7 +528,9 @@ const BetaProgramDashboard: React.FC = () => {
               <Label>Description</Label>
               <Textarea
                 value={newFlag.description}
-                onChange={(e) => setNewFlag({ ...newFlag, description: e.target.value })}
+                onChange={e =>
+                  setNewFlag({ ...newFlag, description: e.target.value })
+                }
                 placeholder="Describe what this flag controls"
               />
             </Field>
@@ -466,8 +541,11 @@ const BetaProgramDashboard: React.FC = () => {
                 min="0"
                 max="100"
                 value={newFlag.rolloutPercentage}
-                onChange={(e) =>
-                  setNewFlag({ ...newFlag, rolloutPercentage: parseInt(e.target.value) || 0 })
+                onChange={e =>
+                  setNewFlag({
+                    ...newFlag,
+                    rolloutPercentage: parseInt(e.target.value) || 0,
+                  })
                 }
               />
             </Field>
@@ -475,7 +553,9 @@ const BetaProgramDashboard: React.FC = () => {
               <Label>Target Audience</Label>
               <Select
                 value={newFlag.targetAudience}
-                onChange={(e) => setNewFlag({ ...newFlag, targetAudience: e.target.value })}
+                onChange={e =>
+                  setNewFlag({ ...newFlag, targetAudience: e.target.value })
+                }
               >
                 <option value="beta">Beta Users</option>
                 <option value="internal">Internal Team</option>

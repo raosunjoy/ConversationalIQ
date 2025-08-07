@@ -17,7 +17,11 @@ router.use(authenticateJWT);
 router.use(rateLimitConfigs.general);
 
 // Validation middleware
-const handleValidationErrors = (req: Request, res: Response, next: NextFunction): Response | void => {
+const handleValidationErrors = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Response | void => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
@@ -34,17 +38,20 @@ const handleValidationErrors = (req: Request, res: Response, next: NextFunction)
  * Get all feature flags
  * GET /beta-program/feature-flags
  */
-router.get('/feature-flags', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const analytics = await featureFlagService.getAnalytics('7d');
-    res.json({
-      success: true,
-      data: analytics,
-    });
-  } catch (error) {
-    next(error);
+router.get(
+  '/feature-flags',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const analytics = await featureFlagService.getAnalytics('7d');
+      res.json({
+        success: true,
+        data: analytics,
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 /**
  * Create a new feature flag
@@ -53,11 +60,21 @@ router.get('/feature-flags', async (req: Request, res: Response, next: NextFunct
 router.post(
   '/feature-flags',
   [
-    body('name').isString().isLength({ min: 1, max: 100 }).withMessage('Name is required (1-100 characters)'),
-    body('description').isString().isLength({ min: 1, max: 500 }).withMessage('Description is required (1-500 characters)'),
+    body('name')
+      .isString()
+      .isLength({ min: 1, max: 100 })
+      .withMessage('Name is required (1-100 characters)'),
+    body('description')
+      .isString()
+      .isLength({ min: 1, max: 500 })
+      .withMessage('Description is required (1-500 characters)'),
     body('enabled').isBoolean().withMessage('Enabled must be a boolean'),
-    body('rolloutPercentage').isInt({ min: 0, max: 100 }).withMessage('Rollout percentage must be 0-100'),
-    body('targetAudience').isIn(['all', 'beta', 'internal', 'specific']).withMessage('Invalid target audience'),
+    body('rolloutPercentage')
+      .isInt({ min: 0, max: 100 })
+      .withMessage('Rollout percentage must be 0-100'),
+    body('targetAudience')
+      .isIn(['all', 'beta', 'internal', 'specific'])
+      .withMessage('Invalid target audience'),
     body('createdBy').isString().withMessage('Created by is required'),
   ],
   handleValidationErrors,
@@ -116,12 +133,16 @@ router.get(
     try {
       const { flagId } = req.params;
       const { userId } = req.query as { userId: string };
-      
+
       if (!userId) {
         return res.status(400).json({ error: 'User ID is required' });
       }
-      
-      const evaluation = await featureFlagService.evaluateFlag(flagId, userId, req.body);
+
+      const evaluation = await featureFlagService.evaluateFlag(
+        flagId,
+        userId,
+        req.body
+      );
       res.json({
         success: true,
         data: evaluation,
@@ -138,17 +159,20 @@ router.get(
  * Get all beta users
  * GET /beta-program/users
  */
-router.get('/users', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const betaUsers = await featureFlagService.getBetaUsers();
-    res.json({
-      success: true,
-      data: betaUsers,
-    });
-  } catch (error) {
-    next(error);
+router.get(
+  '/users',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const betaUsers = await featureFlagService.getBetaUsers();
+      res.json({
+        success: true,
+        data: betaUsers,
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 /**
  * Invite a user to the beta program
@@ -157,7 +181,10 @@ router.get('/users', async (req: Request, res: Response, next: NextFunction) => 
 router.post(
   '/invitations',
   [
-    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('email')
+      .isEmail()
+      .normalizeEmail()
+      .withMessage('Valid email is required'),
     body('invitedBy').isString().withMessage('Invited by is required'),
     body('metadata').optional().isObject(),
   ],
@@ -165,8 +192,12 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { email, invitedBy, metadata = {} } = req.body;
-      const invitation = await betaProgramService.inviteUser(email, invitedBy, metadata);
-      
+      const invitation = await betaProgramService.inviteUser(
+        email,
+        invitedBy,
+        metadata
+      );
+
       res.status(201).json({
         success: true,
         data: invitation,
@@ -192,8 +223,10 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { token, zendeskAccountId } = req.body;
-      const betaUser = await betaProgramService.acceptInvitation(token, { zendeskAccountId });
-      
+      const betaUser = await betaProgramService.acceptInvitation(token, {
+        zendeskAccountId,
+      });
+
       res.json({
         success: true,
         data: betaUser,
@@ -219,8 +252,11 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { userId, stepName } = req.body;
-      const onboarding = await betaProgramService.completeOnboardingStep(userId, stepName);
-      
+      const onboarding = await betaProgramService.completeOnboardingStep(
+        userId,
+        stepName
+      );
+
       res.json({
         success: true,
         data: onboarding,
@@ -241,11 +277,25 @@ router.post(
   '/feedback',
   [
     body('userId').isString().withMessage('User ID is required'),
-    body('type').isIn(['feature_request', 'bug_report', 'general_feedback', 'satisfaction_score'])
+    body('type')
+      .isIn([
+        'feature_request',
+        'bug_report',
+        'general_feedback',
+        'satisfaction_score',
+      ])
       .withMessage('Invalid feedback type'),
-    body('content').isString().isLength({ min: 1, max: 2000 }).withMessage('Content is required (1-2000 characters)'),
-    body('rating').optional().isInt({ min: 1, max: 5 }).withMessage('Rating must be 1-5'),
-    body('urgency').isIn(['low', 'medium', 'high', 'critical']).withMessage('Invalid urgency level'),
+    body('content')
+      .isString()
+      .isLength({ min: 1, max: 2000 })
+      .withMessage('Content is required (1-2000 characters)'),
+    body('rating')
+      .optional()
+      .isInt({ min: 1, max: 5 })
+      .withMessage('Rating must be 1-5'),
+    body('urgency')
+      .isIn(['low', 'medium', 'high', 'critical'])
+      .withMessage('Invalid urgency level'),
   ],
   handleValidationErrors,
   async (req: Request, res: Response, next: NextFunction) => {
@@ -255,7 +305,7 @@ router.post(
         status: 'open',
         metadata: {},
       });
-      
+
       res.status(201).json({
         success: true,
         data: feedback,
@@ -274,9 +324,18 @@ router.post(
 router.get(
   '/feedback',
   [
-    query('type').optional().isIn(['feature_request', 'bug_report', 'general_feedback', 'satisfaction_score']),
+    query('type')
+      .optional()
+      .isIn([
+        'feature_request',
+        'bug_report',
+        'general_feedback',
+        'satisfaction_score',
+      ]),
     query('urgency').optional().isIn(['low', 'medium', 'high', 'critical']),
-    query('status').optional().isIn(['open', 'in_review', 'planned', 'completed', 'declined']),
+    query('status')
+      .optional()
+      .isIn(['open', 'in_review', 'planned', 'completed', 'declined']),
   ],
   handleValidationErrors,
   async (req: Request, res: Response, next: NextFunction) => {
@@ -286,7 +345,7 @@ router.get(
         urgency: req.query.urgency as any,
         status: req.query.status as any,
       };
-      
+
       const feedback = await betaProgramService.getAllFeedback(filters);
       res.json({
         success: true,
@@ -306,15 +365,13 @@ router.get(
  */
 router.get(
   '/metrics',
-  [
-    query('timeRange').optional().isIn(['24h', '7d', '30d']),
-  ],
+  [query('timeRange').optional().isIn(['24h', '7d', '30d'])],
   handleValidationErrors,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const timeRange = (req.query.timeRange as '24h' | '7d' | '30d') || '7d';
       const metrics = await betaProgramService.getMetrics(timeRange);
-      
+
       res.json({
         success: true,
         data: metrics,
@@ -331,15 +388,13 @@ router.get(
  */
 router.get(
   '/analytics/feature-flags',
-  [
-    query('timeRange').optional().isIn(['24h', '7d', '30d']),
-  ],
+  [query('timeRange').optional().isIn(['24h', '7d', '30d'])],
   handleValidationErrors,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const timeRange = (req.query.timeRange as '24h' | '7d' | '30d') || '7d';
       const analytics = await featureFlagService.getAnalytics(timeRange);
-      
+
       res.json({
         success: true,
         data: analytics,
@@ -359,7 +414,7 @@ router.get('/health', async (req: Request, res: Response) => {
     // Basic health checks
     const betaUsers = await featureFlagService.getBetaUsers();
     const analytics = await featureFlagService.getAnalytics('24h');
-    
+
     res.json({
       success: true,
       status: 'healthy',

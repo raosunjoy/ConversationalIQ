@@ -24,7 +24,11 @@ export interface BetaInvitation {
 export interface BetaFeedback {
   id: string;
   userId: string;
-  type: 'feature_request' | 'bug_report' | 'general_feedback' | 'satisfaction_score';
+  type:
+    | 'feature_request'
+    | 'bug_report'
+    | 'general_feedback'
+    | 'satisfaction_score';
   content: string;
   rating?: number; // 1-5 scale
   featureContext?: string;
@@ -83,15 +87,24 @@ export class BetaProgramService extends EventEmitter {
   /**
    * Invite a user to the beta program
    */
-  async inviteUser(email: string, invitedBy: string, metadata: Record<string, any> = {}): Promise<BetaInvitation> {
+  async inviteUser(
+    email: string,
+    invitedBy: string,
+    metadata: Record<string, any> = {}
+  ): Promise<BetaInvitation> {
     try {
       // Check if user is already invited or active
-      const existingUser = await this.database.findRecord('beta_users', { email });
+      const existingUser = await this.database.findRecord('beta_users', {
+        email,
+      });
       if (existingUser) {
         throw new Error('User is already in the beta program');
       }
 
-      const existingInvitation = await this.database.findRecord('beta_invitations', { email, status: 'pending' });
+      const existingInvitation = await this.database.findRecord(
+        'beta_invitations',
+        { email, status: 'pending' }
+      );
       if (existingInvitation) {
         throw new Error('User already has a pending invitation');
       }
@@ -134,10 +147,16 @@ export class BetaProgramService extends EventEmitter {
   /**
    * Accept a beta invitation
    */
-  async acceptInvitation(token: string, userInfo: Partial<BetaUser>): Promise<BetaUser> {
+  async acceptInvitation(
+    token: string,
+    userInfo: Partial<BetaUser>
+  ): Promise<BetaUser> {
     try {
-      const invitation = this.invitationTokens.get(token) || 
-                        await this.database.findRecord('beta_invitations', { invitationToken: token });
+      const invitation =
+        this.invitationTokens.get(token) ||
+        (await this.database.findRecord('beta_invitations', {
+          invitationToken: token,
+        }));
 
       if (!invitation || invitation.status !== 'pending') {
         throw new Error('Invalid or expired invitation token');
@@ -234,9 +253,14 @@ export class BetaProgramService extends EventEmitter {
   /**
    * Complete an onboarding step
    */
-  async completeOnboardingStep(userId: string, stepName: string): Promise<BetaOnboarding> {
+  async completeOnboardingStep(
+    userId: string,
+    stepName: string
+  ): Promise<BetaOnboarding> {
     try {
-      const onboarding = await this.database.findRecord('beta_onboarding', { userId });
+      const onboarding = await this.database.findRecord('beta_onboarding', {
+        userId,
+      });
       if (!onboarding) {
         throw new Error('Onboarding not found for user');
       }
@@ -248,7 +272,7 @@ export class BetaProgramService extends EventEmitter {
         // Check if onboarding is complete
         if (onboarding.currentStep >= onboarding.totalSteps) {
           onboarding.completedAt = new Date();
-          
+
           // Record completion metrics
           monitoringService.recordBusinessMetric(
             'beta_onboarding_completed',
@@ -258,7 +282,11 @@ export class BetaProgramService extends EventEmitter {
           );
         }
 
-        await this.database.updateRecord('beta_onboarding', onboarding.id, onboarding);
+        await this.database.updateRecord(
+          'beta_onboarding',
+          onboarding.id,
+          onboarding
+        );
         this.emit('onboardingStepCompleted', { userId, stepName, onboarding });
       }
 
@@ -272,7 +300,9 @@ export class BetaProgramService extends EventEmitter {
   /**
    * Submit beta feedback
    */
-  async submitFeedback(feedback: Omit<BetaFeedback, 'id' | 'createdAt' | 'updatedAt'>): Promise<BetaFeedback> {
+  async submitFeedback(
+    feedback: Omit<BetaFeedback, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<BetaFeedback> {
     try {
       const betaFeedback: BetaFeedback = {
         ...feedback,
@@ -307,29 +337,39 @@ export class BetaProgramService extends EventEmitter {
   /**
    * Get beta program metrics
    */
-  async getMetrics(timeRange: '24h' | '7d' | '30d' = '7d'): Promise<BetaMetrics> {
+  async getMetrics(
+    timeRange: '24h' | '7d' | '30d' = '7d'
+  ): Promise<BetaMetrics> {
     try {
       const betaUsers = await featureFlagService.getBetaUsers();
       const totalUsers = betaUsers.length;
-      const activeUsers = betaUsers.filter(user => 
-        user.lastActiveAt && 
-        user.lastActiveAt > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      const activeUsers = betaUsers.filter(
+        user =>
+          user.lastActiveAt &&
+          user.lastActiveAt > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
       ).length;
-      const churnedUsers = betaUsers.filter(user => user.onboardingStatus === 'churned').length;
+      const churnedUsers = betaUsers.filter(
+        user => user.onboardingStatus === 'churned'
+      ).length;
 
       // Get feedback metrics
-      const timeRangeHours = timeRange === '24h' ? 24 : timeRange === '7d' ? 168 : 720;
-      const recentFeedback = await this.database.findRecords('beta_feedback', {
-        createdAt: { gte: new Date(Date.now() - timeRangeHours * 60 * 60 * 1000) }
-      }) as BetaFeedback[];
+      const timeRangeHours =
+        timeRange === '24h' ? 24 : timeRange === '7d' ? 168 : 720;
+      const recentFeedback = (await this.database.findRecords('beta_feedback', {
+        createdAt: {
+          gte: new Date(Date.now() - timeRangeHours * 60 * 60 * 1000),
+        },
+      })) as BetaFeedback[];
 
       const satisfactionScores = recentFeedback
         .filter(f => f.type === 'satisfaction_score' && f.rating)
         .map(f => f.rating!);
-      
-      const averageSatisfactionScore = satisfactionScores.length > 0 
-        ? satisfactionScores.reduce((sum, score) => sum + score, 0) / satisfactionScores.length
-        : 0;
+
+      const averageSatisfactionScore =
+        satisfactionScores.length > 0
+          ? satisfactionScores.reduce((sum, score) => sum + score, 0) /
+            satisfactionScores.length
+          : 0;
 
       // Feature adoption rates (would be calculated from usage analytics)
       const featureAdoptionRates: Record<string, number> = {
@@ -358,16 +398,18 @@ export class BetaProgramService extends EventEmitter {
   /**
    * Get all feedback for analysis
    */
-  async getAllFeedback(filters: {
-    type?: BetaFeedback['type'];
-    urgency?: BetaFeedback['urgency'];
-    status?: BetaFeedback['status'];
-    dateFrom?: Date;
-    dateTo?: Date;
-  } = {}): Promise<BetaFeedback[]> {
+  async getAllFeedback(
+    filters: {
+      type?: BetaFeedback['type'];
+      urgency?: BetaFeedback['urgency'];
+      status?: BetaFeedback['status'];
+      dateFrom?: Date;
+      dateTo?: Date;
+    } = {}
+  ): Promise<BetaFeedback[]> {
     try {
       const query: Record<string, any> = {};
-      
+
       if (filters.type) query.type = filters.type;
       if (filters.urgency) query.urgency = filters.urgency;
       if (filters.status) query.status = filters.status;
@@ -377,7 +419,10 @@ export class BetaProgramService extends EventEmitter {
         if (filters.dateTo) query.createdAt.lte = filters.dateTo;
       }
 
-      return await this.database.findRecords('beta_feedback', query) as BetaFeedback[];
+      return (await this.database.findRecords(
+        'beta_feedback',
+        query
+      )) as BetaFeedback[];
     } catch (error) {
       console.error('Failed to get feedback:', error);
       return [];
@@ -390,8 +435,10 @@ export class BetaProgramService extends EventEmitter {
 
   private async sendInvitationEmail(invitation: BetaInvitation): Promise<void> {
     // Integration point for email service
-    console.log(`📧 Sending beta invitation to ${invitation.email} with token: ${invitation.invitationToken}`);
-    
+    console.log(
+      `📧 Sending beta invitation to ${invitation.email} with token: ${invitation.invitationToken}`
+    );
+
     // Record email sent metric
     monitoringService.recordMetric('beta_invitation_email_sent', 1, 'count', {
       email_domain: invitation.email.split('@')[1],
@@ -403,7 +450,7 @@ export class BetaProgramService extends EventEmitter {
       await this.database.updateRecord('beta_invitations', invitationId, {
         status: 'expired',
       });
-      
+
       monitoringService.recordBusinessMetric(
         'beta_invitations_expired',
         1,
@@ -418,7 +465,7 @@ export class BetaProgramService extends EventEmitter {
   private async escalateFeedback(feedback: BetaFeedback): Promise<void> {
     // Integration point for escalation system
     console.log(`🚨 Escalating critical feedback: ${feedback.id}`);
-    
+
     monitoringService.recordMetric('beta_feedback_escalated', 1, 'count', {
       feedback_type: feedback.type,
       urgency: feedback.urgency,
@@ -427,16 +474,21 @@ export class BetaProgramService extends EventEmitter {
 
   private async loadPendingInvitations(): Promise<void> {
     try {
-      const pendingInvitations = await this.database.findRecords('beta_invitations', {
-        status: 'pending',
-        expiresAt: { gt: new Date() },
-      }) as BetaInvitation[];
+      const pendingInvitations = (await this.database.findRecords(
+        'beta_invitations',
+        {
+          status: 'pending',
+          expiresAt: { gt: new Date() },
+        }
+      )) as BetaInvitation[];
 
       pendingInvitations.forEach(invitation => {
         this.invitationTokens.set(invitation.invitationToken, invitation);
       });
 
-      console.log(`📥 Loaded ${pendingInvitations.length} pending beta invitations`);
+      console.log(
+        `📥 Loaded ${pendingInvitations.length} pending beta invitations`
+      );
     } catch (error) {
       console.error('Failed to load pending invitations:', error);
     }

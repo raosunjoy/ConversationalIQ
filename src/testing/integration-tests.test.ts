@@ -3,7 +3,14 @@
  * Tests complete workflows across multiple services
  */
 
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
+import {
+  describe,
+  test,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+} from '@jest/globals';
 import request from 'supertest';
 import { TestFramework, testConfigs } from './test-framework';
 import { createServer } from '../api/server';
@@ -19,20 +26,20 @@ let stopServer: () => Promise<void>;
 
 beforeAll(async () => {
   console.log('🚀 Setting up integration test environment...');
-  
+
   // Create test server
   const serverSetup = await createServer();
   app = serverSetup.app;
   server = await serverSetup.startServer(0); // Use random available port
   stopServer = serverSetup.stopServer;
-  
+
   // Setup test framework
   await testFramework.setupTest('integration-tests-global');
 }, 30000);
 
 afterAll(async () => {
   console.log('🧹 Cleaning up integration test environment...');
-  
+
   await stopServer();
   await testFramework.cleanupTest('integration-tests-global');
 }, 10000);
@@ -44,15 +51,16 @@ describe('Integration Tests - API Server', () => {
 
   describe('Health Check Endpoints', () => {
     test('should return comprehensive health status', async () => {
-      const benchmark = await testFramework.benchmarkOperation('api_response', async () => {
-        const response = await request(app)
-          .get('/health')
-          .expect(200);
+      const benchmark = await testFramework.benchmarkOperation(
+        'api_response',
+        async () => {
+          const response = await request(app).get('/health').expect(200);
 
-        expect(response.body).toHaveProperty('status');
-        expect(response.body).toHaveProperty('timestamp');
-        expect(response.body).toHaveProperty('services');
-      });
+          expect(response.body).toHaveProperty('status');
+          expect(response.body).toHaveProperty('timestamp');
+          expect(response.body).toHaveProperty('services');
+        }
+      );
 
       expect(benchmark.passed).toBe(true);
     });
@@ -61,9 +69,7 @@ describe('Integration Tests - API Server', () => {
       const loadTest = await testFramework.runLoadTest(
         'health_check_load',
         async () => {
-          const response = await request(app)
-            .get('/health')
-            .expect(200);
+          const response = await request(app).get('/health').expect(200);
           return response.body;
         },
         {
@@ -125,7 +131,7 @@ describe('Integration Tests - API Server', () => {
       // First create some test data
       const database = new DatabaseService();
       await database.connect();
-      
+
       const testData = TestFramework.createTestData();
       const conversation = await database.createConversation(
         testData.conversation({
@@ -148,7 +154,7 @@ describe('Integration Tests - API Server', () => {
       // Create test data first
       const database = new DatabaseService();
       await database.connect();
-      
+
       const testData = TestFramework.createTestData();
       await database.createConversation(
         testData.conversation({
@@ -185,9 +191,7 @@ describe('Integration Tests - API Server', () => {
 
     test('should validate GDPR request inputs', async () => {
       // Test invalid email format
-      await request(app)
-        .get('/privacy/data-access/invalid-email')
-        .expect(400);
+      await request(app).get('/privacy/data-access/invalid-email').expect(400);
 
       // Test missing required fields in consent
       await request(app)
@@ -222,13 +226,14 @@ describe('Integration Tests - API Server', () => {
       const requests = [];
 
       // Make many requests quickly to trigger rate limiting
-      for (let i = 0; i < 1100; i++) { // Exceed the 1000 request limit
+      for (let i = 0; i < 1100; i++) {
+        // Exceed the 1000 request limit
         requests.push(request(app).get(endpoint));
       }
 
       const responses = await Promise.all(requests);
       const rateLimitedResponses = responses.filter(r => r.status === 429);
-      
+
       expect(rateLimitedResponses.length).toBeGreaterThan(0);
     });
 
@@ -250,9 +255,7 @@ describe('Integration Tests - API Server', () => {
     });
 
     test('should include security headers', async () => {
-      const response = await request(app)
-        .get('/health')
-        .expect(200);
+      const response = await request(app).get('/health').expect(200);
 
       // Check for important security headers
       expect(response.headers).toHaveProperty('x-content-type-options');
@@ -276,7 +279,9 @@ describe('Integration Tests - API Server', () => {
       // For now, we'll simulate by testing with invalid data
       const response = await request(app)
         .delete('/privacy/data-deletion')
-        .send({ /* missing required email field */ })
+        .send({
+          /* missing required email field */
+        })
         .expect(400);
 
       expect(response.body).toHaveProperty('error');
@@ -306,50 +311,63 @@ describe('Integration Tests - Database Layer', () => {
   describe('Transaction Handling', () => {
     test('should handle complex multi-table operations', async () => {
       const testData = TestFramework.createTestData();
-      
-      const benchmark = await testFramework.benchmarkOperation('database_query', async () => {
-        // Create conversation
-        const conversation = await database.createConversation(
-          testData.conversation()
-        );
 
-        // Create multiple messages
-        const messages = await Promise.all([
-          database.createMessage(testData.message(conversation.id, { content: 'Message 1' })),
-          database.createMessage(testData.message(conversation.id, { content: 'Message 2' })),
-          database.createMessage(testData.message(conversation.id, { content: 'Message 3' })),
-        ]);
+      const benchmark = await testFramework.benchmarkOperation(
+        'database_query',
+        async () => {
+          // Create conversation
+          const conversation = await database.createConversation(
+            testData.conversation()
+          );
 
-        // Add AI analysis to each message
-        await Promise.all(messages.map(message => 
-          database.addAIAnalysis(message.id, testData.aiAnalysis())
-        ));
+          // Create multiple messages
+          const messages = await Promise.all([
+            database.createMessage(
+              testData.message(conversation.id, { content: 'Message 1' })
+            ),
+            database.createMessage(
+              testData.message(conversation.id, { content: 'Message 2' })
+            ),
+            database.createMessage(
+              testData.message(conversation.id, { content: 'Message 3' })
+            ),
+          ]);
 
-        return { conversation, messages };
-      });
+          // Add AI analysis to each message
+          await Promise.all(
+            messages.map(message =>
+              database.addAIAnalysis(message.id, testData.aiAnalysis())
+            )
+          );
+
+          return { conversation, messages };
+        }
+      );
 
       expect(benchmark.passed).toBe(true);
     });
 
     test('should handle concurrent database operations', async () => {
       const testData = TestFramework.createTestData();
-      
+
       // Create multiple conversations concurrently
       const operations = Array.from({ length: 20 }, (_, i) =>
-        database.createConversation(testData.conversation({
-          ticketId: `concurrent-integration-${i}`,
-        }))
+        database.createConversation(
+          testData.conversation({
+            ticketId: `concurrent-integration-${i}`,
+          })
+        )
       );
 
       const results = await Promise.allSettled(operations);
       const successfulOps = results.filter(r => r.status === 'fulfilled');
-      
+
       expect(successfulOps.length).toBe(20);
     });
 
     test('should maintain data integrity under load', async () => {
       const testData = TestFramework.createTestData();
-      
+
       const loadTest = await testFramework.runLoadTest(
         'database_integrity_load',
         async () => {
@@ -358,11 +376,9 @@ describe('Integration Tests - Database Layer', () => {
               ticketId: `load-test-${Date.now()}-${Math.random()}`,
             })
           );
-          
-          await database.createMessage(
-            testData.message(conversation.id)
-          );
-          
+
+          await database.createMessage(testData.message(conversation.id));
+
           return conversation;
         },
         {
@@ -380,14 +396,16 @@ describe('Integration Tests - Database Layer', () => {
   describe('Data Encryption Integration', () => {
     test('should encrypt PII data automatically', async () => {
       const testData = TestFramework.createTestData();
-      
-      const message = await database.createMessage(testData.message('test-conv-id', {
-        content: 'Contact me at sensitive@example.com or 555-123-4567',
-      }));
+
+      const message = await database.createMessage(
+        testData.message('test-conv-id', {
+          content: 'Contact me at sensitive@example.com or 555-123-4567',
+        })
+      );
 
       // In production environment, content should be encrypted
       expect(message.content).toBeDefined();
-      
+
       // We can't easily test the actual encryption without production config,
       // but we can verify the operation completed successfully
     });
@@ -395,7 +413,7 @@ describe('Integration Tests - Database Layer', () => {
     test('should handle GDPR operations end-to-end', async () => {
       const email = `integration-test-${Date.now()}@example.com`;
       const testData = TestFramework.createTestData();
-      
+
       // Create data for the email
       const conversation = await database.createConversation(
         testData.conversation({
@@ -415,7 +433,8 @@ describe('Integration Tests - Database Layer', () => {
       expect(accessData).toBeDefined();
 
       // Test deletion request
-      const deletionResult = await database.handleDataSubjectDeletionRequest(email);
+      const deletionResult =
+        await database.handleDataSubjectDeletionRequest(email);
       expect(deletionResult.success).toBe(true);
       expect(deletionResult.deletedRecords).toBeGreaterThan(0);
     });
@@ -430,12 +449,16 @@ describe('Integration Tests - Monitoring and Compliance', () => {
   test('should integrate monitoring across all services', async () => {
     const database = new DatabaseService();
     await database.connect();
-    
+
     const testData = TestFramework.createTestData();
-    
+
     // Perform operations that should generate metrics
-    const conversation = await database.createConversation(testData.conversation());
-    const message = await database.createMessage(testData.message(conversation.id));
+    const conversation = await database.createConversation(
+      testData.conversation()
+    );
+    const message = await database.createMessage(
+      testData.message(conversation.id)
+    );
     await database.addAIAnalysis(message.id, testData.aiAnalysis());
 
     // Check that monitoring captured the operations
@@ -444,8 +467,10 @@ describe('Integration Tests - Monitoring and Compliance', () => {
   });
 
   test('should handle security scanning integration', async () => {
-    const securityTest = await testFramework.runSecurityTest('integration_security_scan');
-    
+    const securityTest = await testFramework.runSecurityTest(
+      'integration_security_scan'
+    );
+
     expect(securityTest.testName).toBe('integration_security_scan');
     expect(securityTest).toHaveProperty('passed');
     expect(securityTest).toHaveProperty('vulnerabilities');
@@ -453,14 +478,16 @@ describe('Integration Tests - Monitoring and Compliance', () => {
   });
 
   test('should track performance across integration workflows', async () => {
-    const performanceTest = await testFramework.benchmarkOperation('api_response', async () => {
-      // Simulate a complete API workflow
-      const response = await request(app)
-        .get('/monitoring/dashboard');
+    const performanceTest = await testFramework.benchmarkOperation(
+      'api_response',
+      async () => {
+        // Simulate a complete API workflow
+        const response = await request(app).get('/monitoring/dashboard');
 
-      expect(response.status).toBe(200);
-      return response.body;
-    });
+        expect(response.status).toBe(200);
+        return response.body;
+      }
+    );
 
     expect(performanceTest.passed).toBe(true);
     expect(performanceTest.metrics.responseTime).toBeLessThan(500);
@@ -474,15 +501,15 @@ describe('Integration Tests - Error Recovery', () => {
 
   test('should recover from service failures gracefully', async () => {
     // Test health check endpoint during simulated service degradation
-    let responses = [];
-    
+    const responses = [];
+
     for (let i = 0; i < 5; i++) {
       const response = await request(app)
         .get('/monitoring/health')
         .timeout(5000);
-      
+
       responses.push(response);
-      
+
       // Small delay between requests
       await new Promise(resolve => setTimeout(resolve, 100));
     }
@@ -495,23 +522,24 @@ describe('Integration Tests - Error Recovery', () => {
   test('should maintain data consistency during failures', async () => {
     const database = new DatabaseService();
     await database.connect();
-    
+
     const testData = TestFramework.createTestData();
-    
+
     try {
       // Attempt operations that might fail
       const operations = Array.from({ length: 10 }, (_, i) =>
-        database.createConversation(testData.conversation({
-          ticketId: `failure-test-${i}`,
-        }))
+        database.createConversation(
+          testData.conversation({
+            ticketId: `failure-test-${i}`,
+          })
+        )
       );
 
       const results = await Promise.allSettled(operations);
       const successCount = results.filter(r => r.status === 'fulfilled').length;
-      
+
       // At least some operations should succeed
       expect(successCount).toBeGreaterThan(0);
-      
     } catch (error) {
       // If there are errors, they should be handled gracefully
       expect(error).toBeDefined();
@@ -527,14 +555,15 @@ describe('Integration Tests - Performance Under Load', () => {
         // Simulate realistic API usage pattern
         const endpoints = [
           '/health',
-          '/monitoring/performance', 
+          '/monitoring/performance',
           '/privacy/policy',
           '/monitoring/dashboard',
         ];
-        
-        const endpoint = endpoints[Math.floor(Math.random() * endpoints.length)];
+
+        const endpoint =
+          endpoints[Math.floor(Math.random() * endpoints.length)];
         const response = await request(app).get(endpoint);
-        
+
         return response.body;
       },
       {
@@ -550,19 +579,24 @@ describe('Integration Tests - Performance Under Load', () => {
   });
 
   test('should scale monitoring under high metric volume', async () => {
-    const benchmark = await testFramework.benchmarkOperation('api_response', async () => {
-      // Generate high volume of metrics
-      const operations = Array.from({ length: 500 }, (_, i) => {
-        return new Promise<void>(resolve => {
-          setImmediate(() => {
-            // These operations would normally generate metrics
-            request(app).get('/health').end(() => resolve());
+    const benchmark = await testFramework.benchmarkOperation(
+      'api_response',
+      async () => {
+        // Generate high volume of metrics
+        const operations = Array.from({ length: 500 }, (_, i) => {
+          return new Promise<void>(resolve => {
+            setImmediate(() => {
+              // These operations would normally generate metrics
+              request(app)
+                .get('/health')
+                .end(() => resolve());
+            });
           });
         });
-      });
 
-      await Promise.all(operations);
-    });
+        await Promise.all(operations);
+      }
+    );
 
     expect(benchmark.passed).toBe(true);
     expect(benchmark.metrics.memoryUsage).toBeLessThan(256); // Under 256MB

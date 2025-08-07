@@ -24,7 +24,14 @@ export interface FeatureFlag {
 
 export interface FeatureFlagCondition {
   type: 'user_id' | 'email_domain' | 'account_type' | 'zendesk_plan' | 'custom';
-  operator: 'equals' | 'not_equals' | 'contains' | 'in' | 'not_in' | 'greater_than' | 'less_than';
+  operator:
+    | 'equals'
+    | 'not_equals'
+    | 'contains'
+    | 'in'
+    | 'not_in'
+    | 'greater_than'
+    | 'less_than';
   value: string | number | string[];
 }
 
@@ -79,7 +86,9 @@ export class FeatureFlagService extends EventEmitter {
   /**
    * Create a new feature flag
    */
-  async createFeatureFlag(flag: Omit<FeatureFlag, 'id' | 'createdAt' | 'updatedAt'>): Promise<FeatureFlag> {
+  async createFeatureFlag(
+    flag: Omit<FeatureFlag, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<FeatureFlag> {
     try {
       const newFlag: FeatureFlag = {
         ...flag,
@@ -90,7 +99,7 @@ export class FeatureFlagService extends EventEmitter {
 
       // Store in database
       await this.database.createRecord('feature_flags', newFlag);
-      
+
       // Update cache
       this.flagCache.set(newFlag.id, newFlag);
 
@@ -112,7 +121,10 @@ export class FeatureFlagService extends EventEmitter {
   /**
    * Update an existing feature flag
    */
-  async updateFeatureFlag(flagId: string, updates: Partial<FeatureFlag>): Promise<FeatureFlag> {
+  async updateFeatureFlag(
+    flagId: string,
+    updates: Partial<FeatureFlag>
+  ): Promise<FeatureFlag> {
     try {
       const existingFlag = this.flagCache.get(flagId);
       if (!existingFlag) {
@@ -128,7 +140,7 @@ export class FeatureFlagService extends EventEmitter {
 
       // Store in database
       await this.database.updateRecord('feature_flags', flagId, updatedFlag);
-      
+
       // Update cache
       this.flagCache.set(flagId, updatedFlag);
 
@@ -149,7 +161,11 @@ export class FeatureFlagService extends EventEmitter {
   /**
    * Evaluate if a feature flag is enabled for a specific user
    */
-  async evaluateFlag(flagId: string, userId: string, context: Record<string, any> = {}): Promise<FeatureFlagEvaluation> {
+  async evaluateFlag(
+    flagId: string,
+    userId: string,
+    context: Record<string, any> = {}
+  ): Promise<FeatureFlagEvaluation> {
     try {
       const flag = this.flagCache.get(flagId);
       if (!flag) {
@@ -158,7 +174,12 @@ export class FeatureFlagService extends EventEmitter {
 
       // Check if flag is globally disabled
       if (!flag.enabled) {
-        return this.createEvaluation(flagId, userId, false, 'Flag globally disabled');
+        return this.createEvaluation(
+          flagId,
+          userId,
+          false,
+          'Flag globally disabled'
+        );
       }
 
       // Get user information
@@ -166,21 +187,41 @@ export class FeatureFlagService extends EventEmitter {
 
       // Check target audience
       if (!this.matchesTargetAudience(flag, user)) {
-        return this.createEvaluation(flagId, userId, false, 'User not in target audience');
+        return this.createEvaluation(
+          flagId,
+          userId,
+          false,
+          'User not in target audience'
+        );
       }
 
       // Check conditions
       if (!this.evaluateConditions(flag.conditions, user, context)) {
-        return this.createEvaluation(flagId, userId, false, 'Conditions not met');
+        return this.createEvaluation(
+          flagId,
+          userId,
+          false,
+          'Conditions not met'
+        );
       }
 
       // Check rollout percentage
       if (!this.isInRolloutPercentage(flag.rolloutPercentage, userId)) {
-        return this.createEvaluation(flagId, userId, false, 'Not in rollout percentage');
+        return this.createEvaluation(
+          flagId,
+          userId,
+          false,
+          'Not in rollout percentage'
+        );
       }
 
-      const evaluation = this.createEvaluation(flagId, userId, true, 'All conditions met');
-      
+      const evaluation = this.createEvaluation(
+        flagId,
+        userId,
+        true,
+        'All conditions met'
+      );
+
       // Record successful evaluation
       monitoringService.recordMetric('feature_flag_evaluation', 1, 'count', {
         flag_name: flag.name,
@@ -191,7 +232,12 @@ export class FeatureFlagService extends EventEmitter {
       return evaluation;
     } catch (error) {
       console.error('Failed to evaluate feature flag:', error);
-      return this.createEvaluation(flagId, userId, false, `Evaluation error: ${error instanceof Error ? error.message : 'unknown'}`);
+      return this.createEvaluation(
+        flagId,
+        userId,
+        false,
+        `Evaluation error: ${error instanceof Error ? error.message : 'unknown'}`
+      );
     }
   }
 
@@ -201,7 +247,7 @@ export class FeatureFlagService extends EventEmitter {
   async getBetaUsers(): Promise<BetaUser[]> {
     try {
       const betaUsers = await this.database.findRecords('beta_users', {
-        onboardingStatus: { in: ['invited', 'active'] }
+        onboardingStatus: { in: ['invited', 'active'] },
       });
       return betaUsers as BetaUser[];
     } catch (error) {
@@ -213,7 +259,9 @@ export class FeatureFlagService extends EventEmitter {
   /**
    * Add a user to the beta program
    */
-  async addBetaUser(user: Omit<BetaUser, 'id' | 'joinedAt'>): Promise<BetaUser> {
+  async addBetaUser(
+    user: Omit<BetaUser, 'id' | 'joinedAt'>
+  ): Promise<BetaUser> {
     try {
       const betaUser: BetaUser = {
         ...user,
@@ -251,32 +299,47 @@ export class FeatureFlagService extends EventEmitter {
   }> {
     try {
       const totalFlags = this.flagCache.size;
-      const activeFlags = Array.from(this.flagCache.values()).filter(f => f.enabled).length;
-      
+      const activeFlags = Array.from(this.flagCache.values()).filter(
+        f => f.enabled
+      ).length;
+
       const recentEvaluations = this.evaluationHistory.filter(e => {
-        const hoursAgo = timeRange === '24h' ? 24 : timeRange === '7d' ? 168 : 720;
+        const hoursAgo =
+          timeRange === '24h' ? 24 : timeRange === '7d' ? 168 : 720;
         return e.evaluatedAt > new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
       });
 
       const betaUsers = await this.getBetaUsers();
 
       // Calculate top flags by usage
-      const flagStats = new Map<string, { evaluations: number; successes: number }>();
+      const flagStats = new Map<
+        string,
+        { evaluations: number; successes: number }
+      >();
       recentEvaluations.forEach(e => {
-        const stats = flagStats.get(e.flagId) || { evaluations: 0, successes: 0 };
+        const stats = flagStats.get(e.flagId) || {
+          evaluations: 0,
+          successes: 0,
+        };
         stats.evaluations++;
         if (e.enabled) stats.successes++;
         flagStats.set(e.flagId, stats);
       });
 
-      const topFlags = Array.from(flagStats.entries()).map(([flagId, stats]) => {
-        const flag = this.flagCache.get(flagId);
-        return {
-          name: flag?.name || flagId,
-          evaluations: stats.evaluations,
-          successRate: stats.evaluations > 0 ? (stats.successes / stats.evaluations) * 100 : 0,
-        };
-      }).sort((a, b) => b.evaluations - a.evaluations).slice(0, 10);
+      const topFlags = Array.from(flagStats.entries())
+        .map(([flagId, stats]) => {
+          const flag = this.flagCache.get(flagId);
+          return {
+            name: flag?.name || flagId,
+            evaluations: stats.evaluations,
+            successRate:
+              stats.evaluations > 0
+                ? (stats.successes / stats.evaluations) * 100
+                : 0,
+          };
+        })
+        .sort((a, b) => b.evaluations - a.evaluations)
+        .slice(0, 10);
 
       return {
         totalFlags,
@@ -291,7 +354,12 @@ export class FeatureFlagService extends EventEmitter {
     }
   }
 
-  private createEvaluation(flagId: string, userId: string, enabled: boolean, reason: string): FeatureFlagEvaluation {
+  private createEvaluation(
+    flagId: string,
+    userId: string,
+    enabled: boolean,
+    reason: string
+  ): FeatureFlagEvaluation {
     const evaluation: FeatureFlagEvaluation = {
       flagId,
       userId,
@@ -309,12 +377,16 @@ export class FeatureFlagService extends EventEmitter {
     return evaluation;
   }
 
-  private async getUserContext(userId: string, context: Record<string, any>): Promise<Record<string, any>> {
+  private async getUserContext(
+    userId: string,
+    context: Record<string, any>
+  ): Promise<Record<string, any>> {
     try {
       // Get user from database or beta users
-      const user = await this.database.findRecord('users', userId) || 
-                   await this.database.findRecord('beta_users', userId);
-      
+      const user =
+        (await this.database.findRecord('users', userId)) ||
+        (await this.database.findRecord('beta_users', userId));
+
       return {
         ...user,
         ...context,
@@ -324,27 +396,39 @@ export class FeatureFlagService extends EventEmitter {
     }
   }
 
-  private matchesTargetAudience(flag: FeatureFlag, user: Record<string, any>): boolean {
+  private matchesTargetAudience(
+    flag: FeatureFlag,
+    user: Record<string, any>
+  ): boolean {
     switch (flag.targetAudience) {
       case 'all':
         return true;
       case 'beta':
-        return user.accountType === 'beta' || flag.userSegments.includes(user.id);
+        return (
+          user.accountType === 'beta' || flag.userSegments.includes(user.id)
+        );
       case 'internal':
         return user.email?.endsWith('@conversationiq.com') || false;
       case 'specific':
-        return flag.userSegments.includes(user.id) || flag.userSegments.includes(user.email);
+        return (
+          flag.userSegments.includes(user.id) ||
+          flag.userSegments.includes(user.email)
+        );
       default:
         return false;
     }
   }
 
-  private evaluateConditions(conditions: FeatureFlagCondition[], user: Record<string, any>, context: Record<string, any>): boolean {
+  private evaluateConditions(
+    conditions: FeatureFlagCondition[],
+    user: Record<string, any>,
+    context: Record<string, any>
+  ): boolean {
     if (conditions.length === 0) return true;
 
     return conditions.every(condition => {
       const value = user[condition.type] || context[condition.type];
-      
+
       switch (condition.operator) {
         case 'equals':
           return value === condition.value;
@@ -353,9 +437,13 @@ export class FeatureFlagService extends EventEmitter {
         case 'contains':
           return String(value).includes(String(condition.value));
         case 'in':
-          return Array.isArray(condition.value) && condition.value.includes(value);
+          return (
+            Array.isArray(condition.value) && condition.value.includes(value)
+          );
         case 'not_in':
-          return Array.isArray(condition.value) && !condition.value.includes(value);
+          return (
+            Array.isArray(condition.value) && !condition.value.includes(value)
+          );
         case 'greater_than':
           return Number(value) > Number(condition.value);
         case 'less_than':
@@ -372,14 +460,14 @@ export class FeatureFlagService extends EventEmitter {
 
     // Consistent hash-based rollout
     const hash = this.hashString(userId);
-    return (hash % 100) < percentage;
+    return hash % 100 < percentage;
   }
 
   private hashString(str: string): number {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash);
@@ -389,12 +477,14 @@ export class FeatureFlagService extends EventEmitter {
     try {
       const flags = await this.database.findRecords('feature_flags', {});
       this.flagCache.clear();
-      
+
       (flags as FeatureFlag[]).forEach(flag => {
         this.flagCache.set(flag.id, flag);
       });
 
-      console.log(`🔄 Feature flag cache refreshed: ${this.flagCache.size} flags loaded`);
+      console.log(
+        `🔄 Feature flag cache refreshed: ${this.flagCache.size} flags loaded`
+      );
     } catch (error) {
       console.error('Failed to refresh feature flag cache:', error);
     }
@@ -402,9 +492,12 @@ export class FeatureFlagService extends EventEmitter {
 
   private startCacheRefresh(): void {
     // Refresh cache every 5 minutes
-    this.refreshInterval = setInterval(() => {
-      this.refreshCache();
-    }, 5 * 60 * 1000);
+    this.refreshInterval = setInterval(
+      () => {
+        this.refreshCache();
+      },
+      5 * 60 * 1000
+    );
   }
 
   /**

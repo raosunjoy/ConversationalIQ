@@ -8,7 +8,10 @@ import { body, param, validationResult } from 'express-validator';
 import { DatabaseService } from '../../services/database';
 import { privacyService } from '../../security/encryption-service';
 import { monitoringService } from '../../monitoring/monitoring-service';
-import { rateLimitConfigs, handleValidationErrors } from '../../security/security-middleware';
+import {
+  rateLimitConfigs,
+  handleValidationErrors,
+} from '../../security/security-middleware';
 
 export interface PrivacyRequest extends Request {
   context?: {
@@ -30,15 +33,11 @@ const emailValidation = [
 ];
 
 const consentValidation = [
-  body('userId')
-    .isUUID()
-    .withMessage('Valid user ID required'),
+  body('userId').isUUID().withMessage('Valid user ID required'),
   body('consentType')
     .isIn(['analytics', 'marketing', 'profiling', 'data_processing'])
     .withMessage('Invalid consent type'),
-  body('granted')
-    .isBoolean()
-    .withMessage('Consent status must be boolean'),
+  body('granted').isBoolean().withMessage('Consent status must be boolean'),
 ];
 
 /**
@@ -54,9 +53,13 @@ router.get(
       .withMessage('Valid email address required'),
   ],
   handleValidationErrors,
-  async (req: PrivacyRequest, res: Response, next: NextFunction) => {
+  async (
+    req: PrivacyRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
     const startTime = Date.now();
-    
+
     try {
       const { email } = req.params;
       const database = req.context?.database;
@@ -69,7 +72,9 @@ router.get(
       }
 
       // Process data access request
-      const userData = await database.handleDataSubjectAccessRequest(email);
+      const userData = await database.handleDataSubjectAccessRequest(
+        email || ''
+      );
 
       // Record compliance metric
       monitoringService.recordBusinessMetric(
@@ -83,10 +88,10 @@ router.get(
         'privacy_data_access',
         Date.now() - startTime,
         true,
-        { email_domain: email.split('@')[1] }
+        { email_domain: email?.split('@')[1] || 'unknown' }
       );
 
-      res.json({
+      return res.json({
         success: true,
         data: userData,
         exportDate: new Date().toISOString(),
@@ -113,9 +118,13 @@ router.delete(
   '/data-deletion',
   emailValidation,
   handleValidationErrors,
-  async (req: PrivacyRequest, res: Response, next: NextFunction) => {
+  async (
+    req: PrivacyRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
     const startTime = Date.now();
-    
+
     try {
       const { email } = req.body;
       const database = req.context?.database;
@@ -128,7 +137,9 @@ router.delete(
       }
 
       // Process deletion request
-      const result = await database.handleDataSubjectDeletionRequest(email);
+      const result = await database.handleDataSubjectDeletionRequest(
+        email || ''
+      );
 
       // Record compliance metric
       monitoringService.recordBusinessMetric(
@@ -142,13 +153,13 @@ router.delete(
         'privacy_data_deletion',
         Date.now() - startTime,
         true,
-        { 
-          email_domain: email.split('@')[1],
-          records_deleted: result.deletedRecords.toString()
+        {
+          email_domain: email?.split('@')[1] || 'unknown',
+          records_deleted: result.deletedRecords.toString(),
         }
       );
 
-      res.json({
+      return res.json({
         success: result.success,
         deletedRecords: result.deletedRecords,
         processedAt: new Date().toISOString(),
@@ -181,12 +192,14 @@ router.get(
   handleValidationErrors,
   async (req: PrivacyRequest, res: Response, next: NextFunction) => {
     const startTime = Date.now();
-    
+
     try {
       const { email } = req.params;
 
       // Process data portability request
-      const exportData = await privacyService.handleDataPortabilityRequest(email);
+      const exportData = await privacyService.handleDataPortabilityRequest(
+        email || ''
+      );
 
       // Record compliance metric
       monitoringService.recordBusinessMetric(
@@ -200,14 +213,14 @@ router.get(
         'privacy_data_export',
         Date.now() - startTime,
         true,
-        { email_domain: email.split('@')[1] }
+        { email_domain: email?.split('@')[1] || 'unknown' }
       );
 
       // Set appropriate headers for file download
       res.setHeader('Content-Type', 'application/json');
       res.setHeader(
-        'Content-Disposition', 
-        `attachment; filename="data-export-${email}-${new Date().toISOString().split('T')[0]}.json"`
+        'Content-Disposition',
+        `attachment; filename="data-export-${email || 'unknown'}-${new Date().toISOString().split('T')[0]}.json"`
       );
 
       res.json(exportData);
@@ -233,7 +246,7 @@ router.post(
   handleValidationErrors,
   async (req: PrivacyRequest, res: Response, next: NextFunction) => {
     const startTime = Date.now();
-    
+
     try {
       const { userId, consentType, granted } = req.body;
 
@@ -336,17 +349,32 @@ router.get('/policy', async (req: Request, res: Response) => {
  */
 router.get('/metrics', async (req: Request, res: Response) => {
   const dashboardData = monitoringService.getDashboardData();
-  
+
   // Filter for privacy-related metrics
   const privacyMetrics = {
     gdprRequests: {
-      access: dashboardData.businessMetrics.gdpr_access_requests_completed?.value || 0,
-      deletion: dashboardData.businessMetrics.gdpr_deletion_requests_completed?.value || 0,
-      portability: dashboardData.businessMetrics.gdpr_portability_requests_completed?.value || 0,
+      access:
+        dashboardData.businessMetrics.gdpr_access_requests_completed?.value ||
+        0,
+      deletion:
+        dashboardData.businessMetrics.gdpr_deletion_requests_completed?.value ||
+        0,
+      portability:
+        dashboardData.businessMetrics.gdpr_portability_requests_completed
+          ?.value || 0,
     },
-    consentRecords: dashboardData.businessMetrics.consent_records_created?.value || 0,
-    piiDetections: Object.entries(dashboardData.metrics.pii_detected || [])
-      .reduce((total, [, metrics]) => total + metrics.reduce((sum, m) => sum + m.value, 0), 0),
+    consentRecords:
+      dashboardData.businessMetrics.consent_records_created?.value || 0,
+    piiDetections: Object.entries(
+      dashboardData.metrics.pii_detected || []
+    ).reduce(
+      (total, [, metrics]) =>
+        total +
+        (Array.isArray(metrics)
+          ? metrics.reduce((sum: number, m: any) => sum + m.value, 0)
+          : 0),
+      0
+    ),
     encryptionStats: {
       // Would get from encryption service
       encryptedFields: 0,

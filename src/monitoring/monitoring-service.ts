@@ -65,8 +65,12 @@ export class MonitoringService extends EventEmitter {
   private healthChecks: Map<string, HealthCheck>;
   private slas: Map<string, SLA>;
   private businessMetrics: Map<string, BusinessMetric>;
-  private alertHistory: Array<{ rule: AlertRule; triggered: Date; resolved?: Date }>;
-  
+  private alertHistory: Array<{
+    rule: AlertRule;
+    triggered: Date;
+    resolved?: Date;
+  }>;
+
   constructor() {
     super();
     this.database = new DatabaseService();
@@ -76,7 +80,7 @@ export class MonitoringService extends EventEmitter {
     this.slas = new Map();
     this.businessMetrics = new Map();
     this.alertHistory = [];
-    
+
     this.initializeDefaultAlerts();
     this.initializeSLAs();
     this.startMonitoring();
@@ -166,8 +170,9 @@ export class MonitoringService extends EventEmitter {
     period: string = '24h'
   ): void {
     const previousValue = this.businessMetrics.get(name)?.value || 0;
-    const change = previousValue > 0 ? ((value - previousValue) / previousValue) * 100 : 0;
-    
+    const change =
+      previousValue > 0 ? ((value - previousValue) / previousValue) * 100 : 0;
+
     let status: 'good' | 'warning' | 'critical' = 'good';
     if (goal) {
       const percentage = (value / goal) * 100;
@@ -180,7 +185,7 @@ export class MonitoringService extends EventEmitter {
       value,
       change,
       period,
-      goal,
+      goal: goal || 0,
       status,
     };
 
@@ -191,14 +196,17 @@ export class MonitoringService extends EventEmitter {
   /**
    * Register health check
    */
-  registerHealthCheck(name: string, checkFunction: () => Promise<HealthCheck>): void {
+  registerHealthCheck(
+    name: string,
+    checkFunction: () => Promise<HealthCheck>
+  ): void {
     // Store health check function for periodic execution
     setInterval(async () => {
       try {
         const result = await checkFunction();
         this.healthChecks.set(name, result);
         this.emit('healthCheck', result);
-        
+
         // Record as metric
         this.recordMetric(
           'health_check_status',
@@ -206,13 +214,10 @@ export class MonitoringService extends EventEmitter {
           'boolean',
           { check: name }
         );
-        
-        this.recordMetric(
-          'health_check_latency',
-          result.latency,
-          'ms',
-          { check: name }
-        );
+
+        this.recordMetric('health_check_latency', result.latency, 'ms', {
+          check: name,
+        });
       } catch (error) {
         const failedCheck: HealthCheck = {
           name,
@@ -221,7 +226,7 @@ export class MonitoringService extends EventEmitter {
           timestamp: new Date(),
           error: error instanceof Error ? error.message : String(error),
         };
-        
+
         this.healthChecks.set(name, failedCheck);
         this.emit('healthCheck', failedCheck);
       }
@@ -283,7 +288,7 @@ export class MonitoringService extends EventEmitter {
     });
 
     this.emit('alert', alert);
-    
+
     // Send notifications
     this.sendNotifications(alert);
   }
@@ -312,16 +317,18 @@ export class MonitoringService extends EventEmitter {
    * Calculate success rate for an operation
    */
   private calculateSuccessRate(operation: string): number {
-    const recentMetrics = this.getRecentMetrics('operation_count', { operation });
-    
+    const recentMetrics = this.getRecentMetrics('operation_count', {
+      operation,
+    });
+
     if (recentMetrics.length === 0) return 100;
 
     const successCount = recentMetrics
       .filter(m => m.labels.success === 'true')
       .reduce((sum, m) => sum + m.value, 0);
-    
+
     const totalCount = recentMetrics.reduce((sum, m) => sum + m.value, 0);
-    
+
     return totalCount > 0 ? (successCount / totalCount) * 100 : 100;
   }
 
@@ -329,21 +336,21 @@ export class MonitoringService extends EventEmitter {
    * Get recent metrics matching criteria
    */
   private getRecentMetrics(
-    metricName: string, 
+    metricName: string,
     labels: Record<string, string> = {},
     windowMinutes: number = 60
   ): Metric[] {
     const metrics = this.metrics.get(metricName) || [];
     const cutoff = new Date(Date.now() - windowMinutes * 60 * 1000);
-    
+
     return metrics.filter(metric => {
       if (metric.timestamp < cutoff) return false;
-      
+
       // Check if all required labels match
       for (const [key, value] of Object.entries(labels)) {
         if (metric.labels[key] !== value) return false;
       }
-      
+
       return true;
     });
   }
@@ -454,7 +461,7 @@ export class MonitoringService extends EventEmitter {
     for (const [name, sla] of this.slas.entries()) {
       // Calculate current value based on recent metrics
       const currentValue = this.calculateSLAValue(sla);
-      
+
       let status: 'meeting' | 'at_risk' | 'violated';
       if (currentValue >= sla.target) {
         status = 'meeting';
@@ -471,23 +478,26 @@ export class MonitoringService extends EventEmitter {
       };
 
       this.slas.set(name, updatedSLA);
-      
+
       // Emit SLA update
       this.emit('slaUpdate', updatedSLA);
-      
+
       // Trigger alerts for SLA violations
       if (status === 'violated') {
-        this.triggerAlert({
-          id: `sla_${name}`,
-          name: `SLA Violation: ${name}`,
-          metric: sla.metric,
-          condition: 'lt',
-          threshold: sla.target,
-          duration: 0,
-          severity: 'critical',
-          channels: ['slack', 'pagerduty', 'email'],
-          enabled: true,
-        }, currentValue);
+        this.triggerAlert(
+          {
+            id: `sla_${name}`,
+            name: `SLA Violation: ${name}`,
+            metric: sla.metric,
+            condition: 'lt',
+            threshold: sla.target,
+            duration: 0,
+            severity: 'critical',
+            channels: ['slack', 'pagerduty', 'email'],
+            enabled: true,
+          },
+          currentValue
+        );
       }
     }
   }
@@ -555,7 +565,7 @@ export class MonitoringService extends EventEmitter {
    */
   private cleanupOldMetrics(): void {
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
-    
+
     for (const [name, metrics] of this.metrics.entries()) {
       const filteredMetrics = metrics.filter(m => m.timestamp > cutoff);
       this.metrics.set(name, filteredMetrics);
@@ -587,7 +597,7 @@ export class MonitoringService extends EventEmitter {
   getMetricHistory(name: string, windowHours: number = 24): Metric[] {
     const metrics = this.metrics.get(name) || [];
     const cutoff = new Date(Date.now() - windowHours * 60 * 60 * 1000);
-    
+
     return metrics.filter(m => m.timestamp > cutoff);
   }
 
@@ -603,7 +613,7 @@ export class MonitoringService extends EventEmitter {
     const checks = Array.from(this.healthChecks.values());
     const healthyChecks = checks.filter(c => c.status === 'healthy').length;
     const degradedChecks = checks.filter(c => c.status === 'degraded').length;
-    
+
     let status: 'healthy' | 'degraded' | 'unhealthy';
     if (healthyChecks === checks.length) {
       status = 'healthy';

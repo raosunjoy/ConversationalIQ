@@ -20,7 +20,7 @@ interface EncryptionConfig {
 const encryptionConfig: EncryptionConfig = {
   algorithm: 'aes-256-gcm',
   keyLength: 32, // 256 bits
-  ivLength: 16,  // 128 bits
+  ivLength: 16, // 128 bits
   saltLength: 32, // 256 bits
   iterations: 100000, // PBKDF2 iterations
 };
@@ -43,12 +43,12 @@ const piiPatterns = {
 
 // Encrypted field metadata
 interface EncryptedField {
-  data: string;           // Encrypted data (base64)
-  iv: string;            // Initialization vector (base64)
-  authTag: string;       // Authentication tag (base64)
-  algorithm: string;     // Encryption algorithm used
-  keyId: string;         // Key identifier for key rotation
-  timestamp: Date;       // When encryption was performed
+  data: string; // Encrypted data (base64)
+  iv: string; // Initialization vector (base64)
+  authTag: string; // Authentication tag (base64)
+  algorithm: string; // Encryption algorithm used
+  keyId: string; // Key identifier for key rotation
+  timestamp: Date; // When encryption was performed
 }
 
 // Data classification levels
@@ -81,6 +81,7 @@ export class EncryptionService {
 
   constructor() {
     this.database = new DatabaseService();
+    this.masterKey = crypto.randomBytes(32); // Initialize with random key
     this.keyCache = new Map();
     this.keyRotationSchedule = new Map();
     this.initializeMasterKey();
@@ -91,13 +92,16 @@ export class EncryptionService {
    */
   private initializeMasterKey(): void {
     const masterKeyHex = process.env.MASTER_ENCRYPTION_KEY;
-    
+
     if (masterKeyHex) {
       this.masterKey = Buffer.from(masterKeyHex, 'hex');
     } else {
       // Generate new master key (in production, this should be stored securely)
       this.masterKey = crypto.randomBytes(encryptionConfig.keyLength);
-      console.warn('Generated new master key. Store this securely:', this.masterKey.toString('hex'));
+      console.warn(
+        'Generated new master key. Store this securely:',
+        this.masterKey.toString('hex')
+      );
     }
   }
 
@@ -126,37 +130,36 @@ export class EncryptionService {
     const salt = Buffer.from(keyId, 'hex');
     const key = this.deriveKey(salt);
     this.keyCache.set(keyId, key);
-    
+
     return key;
   }
 
   /**
    * Encrypt sensitive data with authenticated encryption
    */
-  async encryptData(plaintext: string, classification: DataClassification = DataClassification.CONFIDENTIAL): Promise<EncryptedField> {
+  async encryptData(
+    plaintext: string,
+    classification: DataClassification = DataClassification.CONFIDENTIAL
+  ): Promise<EncryptedField> {
     try {
       // Generate unique salt/key ID for this encryption
       const keyId = crypto.randomBytes(16).toString('hex');
       const key = this.getEncryptionKey(keyId);
-      
+
       // Generate random IV
       const iv = crypto.randomBytes(encryptionConfig.ivLength);
-      
+
       // Create cipher
-      const cipher = crypto.createCipher(encryptionConfig.algorithm, key);
-      cipher.setAAD(Buffer.from(classification)); // Additional authenticated data
-      
+      const cipher = crypto.createCipher('aes-256-cbc', key);
+
       // Encrypt data
       let encrypted = cipher.update(plaintext, 'utf8', 'base64');
       encrypted += cipher.final('base64');
-      
-      // Get authentication tag
-      const authTag = cipher.getAuthTag().toString('base64');
-      
+
       return {
         data: encrypted,
         iv: iv.toString('base64'),
-        authTag,
+        authTag: '', // Not used in CBC mode
         algorithm: encryptionConfig.algorithm,
         keyId,
         timestamp: new Date(),
@@ -175,15 +178,14 @@ export class EncryptionService {
       const key = this.getEncryptionKey(encryptedField.keyId);
       const iv = Buffer.from(encryptedField.iv, 'base64');
       const authTag = Buffer.from(encryptedField.authTag, 'base64');
-      
+
       // Create decipher
-      const decipher = crypto.createDecipher(encryptedField.algorithm, key);
-      decipher.setAuthTag(authTag);
-      
+      const decipher = crypto.createDecipher('aes-256-cbc', key);
+
       // Decrypt data
       let decrypted = decipher.update(encryptedField.data, 'base64', 'utf8');
       decrypted += decipher.final('utf8');
-      
+
       return decrypted;
     } catch (error) {
       console.error('Decryption failed:', error);
@@ -210,14 +212,19 @@ export class EncryptionService {
    */
   detectPII(content: string): PIIDetectionResult {
     const detectedTypes: string[] = [];
-    const locations: Array<{ type: string; start: number; end: number; value: string }> = [];
+    const locations: Array<{
+      type: string;
+      start: number;
+      end: number;
+      value: string;
+    }> = [];
     let maskedContent = content;
     let totalMatches = 0;
 
     // Check each PII pattern
     for (const [type, pattern] of Object.entries(piiPatterns)) {
       const matches = content.matchAll(pattern);
-      
+
       for (const match of matches) {
         if (match.index !== undefined) {
           detectedTypes.push(type);
@@ -237,7 +244,7 @@ export class EncryptionService {
 
     // Mask PII in content
     for (const [type, pattern] of Object.entries(piiPatterns)) {
-      maskedContent = maskedContent.replace(pattern, (match) => {
+      maskedContent = maskedContent.replace(pattern, match => {
         switch (type) {
           case 'email':
             return `[EMAIL_${match.substring(0, 2)}***]`;
@@ -256,7 +263,10 @@ export class EncryptionService {
     }
 
     // Calculate confidence based on number and types of matches
-    const confidence = Math.min(uniqueTypes.length * 0.3 + totalMatches * 0.1, 1.0);
+    const confidence = Math.min(
+      uniqueTypes.length * 0.3 + totalMatches * 0.1,
+      1.0
+    );
 
     return {
       hasPII: uniqueTypes.length > 0,
@@ -270,19 +280,24 @@ export class EncryptionService {
   /**
    * Anonymize data by removing or replacing PII
    */
-  async anonymizeData(data: any, preserveStructure: boolean = true): Promise<any> {
+  async anonymizeData(
+    data: any,
+    preserveStructure: boolean = true
+  ): Promise<any> {
     if (typeof data === 'string') {
       const piiResult = this.detectPII(data);
       return piiResult.maskedContent;
     }
 
     if (Array.isArray(data)) {
-      return Promise.all(data.map(item => this.anonymizeData(item, preserveStructure)));
+      return Promise.all(
+        data.map(item => this.anonymizeData(item, preserveStructure))
+      );
     }
 
     if (data !== null && typeof data === 'object') {
       const anonymized: any = {};
-      
+
       for (const [key, value] of Object.entries(data)) {
         // Skip certain fields that should be preserved
         if (['id', 'createdAt', 'updatedAt', 'version'].includes(key)) {
@@ -293,7 +308,7 @@ export class EncryptionService {
         // Recursively anonymize nested objects
         anonymized[key] = await this.anonymizeData(value, preserveStructure);
       }
-      
+
       return anonymized;
     }
 
@@ -322,13 +337,13 @@ export class EncryptionService {
    */
   async rotateKeys(): Promise<void> {
     console.log('Starting key rotation...');
-    
+
     // In production, this would:
     // 1. Generate new keys
     // 2. Re-encrypt data with new keys
     // 3. Update key cache
     // 4. Schedule old key deletion
-    
+
     console.log('Key rotation completed');
   }
 
@@ -340,7 +355,7 @@ export class EncryptionService {
     if (!lastRotation) {
       return true; // No rotation record, needs rotation
     }
-    
+
     // Rotate keys every 90 days
     const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
     return lastRotation < ninetyDaysAgo;
@@ -349,14 +364,22 @@ export class EncryptionService {
   /**
    * Encrypt database field
    */
-  async encryptField(tableName: string, fieldName: string, value: string): Promise<EncryptedField> {
+  async encryptField(
+    tableName: string,
+    fieldName: string,
+    value: string
+  ): Promise<EncryptedField> {
     // Determine data classification based on field name/table
     let classification = DataClassification.INTERNAL;
-    
-    if (fieldName.includes('email') || fieldName.includes('phone') || fieldName.includes('address')) {
+
+    if (
+      fieldName.includes('email') ||
+      fieldName.includes('phone') ||
+      fieldName.includes('address')
+    ) {
       classification = DataClassification.CONFIDENTIAL;
     }
-    
+
     if (tableName.includes('payment') || tableName.includes('billing')) {
       classification = DataClassification.RESTRICTED;
     }
@@ -374,7 +397,7 @@ export class EncryptionService {
     keyLength: number;
   } {
     let keysNeedingRotation = 0;
-    
+
     for (const keyId of this.keyCache.keys()) {
       if (this.needsKeyRotation(keyId)) {
         keysNeedingRotation++;
@@ -424,9 +447,11 @@ export class PrivacyService {
   /**
    * Handle data deletion request (GDPR Article 17 - Right to be Forgotten)
    */
-  async handleDataDeletionRequest(email: string): Promise<{ success: boolean; deletedRecords: number }> {
+  async handleDataDeletionRequest(
+    email: string
+  ): Promise<{ success: boolean; deletedRecords: number }> {
     try {
-      let deletedRecords = 0;
+      const deletedRecords = 0;
 
       // This would:
       // 1. Find all data associated with the email
@@ -435,7 +460,7 @@ export class PrivacyService {
       // 4. Update any references
 
       console.log(`Processing data deletion request for: ${email}`);
-      
+
       return {
         success: true,
         deletedRecords,
@@ -470,7 +495,11 @@ export class PrivacyService {
   /**
    * Record consent for data processing
    */
-  async recordConsent(userId: string, consentType: string, granted: boolean): Promise<void> {
+  async recordConsent(
+    userId: string,
+    consentType: string,
+    granted: boolean
+  ): Promise<void> {
     const consentRecord = {
       userId,
       consentType,

@@ -12,7 +12,7 @@ import { encryptionService } from '../security/encryption-service';
 export enum TrustServiceCriteria {
   SECURITY = 'CC6', // Common Criteria 6 - Security
   AVAILABILITY = 'A1', // Availability
-  PROCESSING_INTEGRITY = 'PI1', // Processing Integrity  
+  PROCESSING_INTEGRITY = 'PI1', // Processing Integrity
   CONFIDENTIALITY = 'C1', // Confidentiality
   PRIVACY = 'P1', // Privacy
 }
@@ -38,7 +38,13 @@ export interface SOC2Control {
   criteria: TrustServiceCriteria;
   type: ControlType;
   owner: string;
-  frequency: 'continuous' | 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'annually';
+  frequency:
+    | 'continuous'
+    | 'daily'
+    | 'weekly'
+    | 'monthly'
+    | 'quarterly'
+    | 'annually';
   evidence: string[];
   testProcedure: string;
   lastTested?: Date;
@@ -66,7 +72,12 @@ export interface IncidentRecord {
   id: string;
   timestamp: Date;
   severity: 'low' | 'medium' | 'high' | 'critical';
-  category: 'security' | 'availability' | 'integrity' | 'confidentiality' | 'privacy';
+  category:
+    | 'security'
+    | 'availability'
+    | 'integrity'
+    | 'confidentiality'
+    | 'privacy';
   description: string;
   impact: string;
   status: 'open' | 'investigating' | 'resolved' | 'closed';
@@ -89,7 +100,7 @@ export class SOC2ComplianceService extends EventEmitter {
     this.auditLog = [];
     this.incidents = new Map();
     this.controlTests = new Map();
-    
+
     this.initializeControls();
     this.startContinuousMonitoring();
   }
@@ -103,25 +114,36 @@ export class SOC2ComplianceService extends EventEmitter {
       {
         id: 'CC6.1',
         name: 'Logical and Physical Access Controls',
-        description: 'Entity implements logical and physical access controls to restrict unauthorized access',
+        description:
+          'Entity implements logical and physical access controls to restrict unauthorized access',
         criteria: TrustServiceCriteria.SECURITY,
         type: ControlType.PREVENTIVE,
         owner: 'Security Team',
         frequency: 'continuous',
-        evidence: ['Authentication logs', 'Access control configurations', 'Physical security measures'],
-        testProcedure: 'Review authentication mechanisms and test access controls',
+        evidence: [
+          'Authentication logs',
+          'Access control configurations',
+          'Physical security measures',
+        ],
+        testProcedure:
+          'Review authentication mechanisms and test access controls',
         nextTestDue: this.calculateNextTestDate('monthly'),
         effectiveness: ControlEffectiveness.NOT_TESTED,
       },
       {
         id: 'CC6.2',
         name: 'Transmission and Disposal of Information',
-        description: 'Entity implements controls over transmission and disposal of information',
+        description:
+          'Entity implements controls over transmission and disposal of information',
         criteria: TrustServiceCriteria.SECURITY,
         type: ControlType.PREVENTIVE,
         owner: 'Security Team',
         frequency: 'quarterly',
-        evidence: ['Encryption configurations', 'Data disposal procedures', 'Transmission logs'],
+        evidence: [
+          'Encryption configurations',
+          'Data disposal procedures',
+          'Transmission logs',
+        ],
         testProcedure: 'Test encryption in transit and data disposal processes',
         nextTestDue: this.calculateNextTestDate('quarterly'),
         effectiveness: ControlEffectiveness.NOT_TESTED,
@@ -129,17 +151,23 @@ export class SOC2ComplianceService extends EventEmitter {
       {
         id: 'CC6.3',
         name: 'Protection Against Unauthorized Access',
-        description: 'Entity implements controls to protect against unauthorized access',
+        description:
+          'Entity implements controls to protect against unauthorized access',
         criteria: TrustServiceCriteria.SECURITY,
         type: ControlType.DETECTIVE,
         owner: 'Security Team',
         frequency: 'continuous',
-        evidence: ['Security monitoring logs', 'Intrusion detection alerts', 'Vulnerability scans'],
-        testProcedure: 'Review security monitoring and incident response procedures',
+        evidence: [
+          'Security monitoring logs',
+          'Intrusion detection alerts',
+          'Vulnerability scans',
+        ],
+        testProcedure:
+          'Review security monitoring and incident response procedures',
         nextTestDue: this.calculateNextTestDate('monthly'),
         effectiveness: ControlEffectiveness.NOT_TESTED,
       },
-      
+
       // Availability Controls
       {
         id: 'A1.1',
@@ -149,21 +177,32 @@ export class SOC2ComplianceService extends EventEmitter {
         type: ControlType.DETECTIVE,
         owner: 'Operations Team',
         frequency: 'continuous',
-        evidence: ['Uptime reports', 'Performance metrics', 'Monitoring dashboards'],
-        testProcedure: 'Review availability metrics and incident response times',
+        evidence: [
+          'Uptime reports',
+          'Performance metrics',
+          'Monitoring dashboards',
+        ],
+        testProcedure:
+          'Review availability metrics and incident response times',
         nextTestDue: this.calculateNextTestDate('monthly'),
         effectiveness: ControlEffectiveness.NOT_TESTED,
       },
       {
         id: 'A1.2',
         name: 'Capacity Management',
-        description: 'Entity implements capacity management to maintain system availability',
+        description:
+          'Entity implements capacity management to maintain system availability',
         criteria: TrustServiceCriteria.AVAILABILITY,
         type: ControlType.PREVENTIVE,
         owner: 'Operations Team',
         frequency: 'monthly',
-        evidence: ['Capacity planning reports', 'Resource utilization metrics', 'Scaling procedures'],
-        testProcedure: 'Review capacity planning and auto-scaling configurations',
+        evidence: [
+          'Capacity planning reports',
+          'Resource utilization metrics',
+          'Scaling procedures',
+        ],
+        testProcedure:
+          'Review capacity planning and auto-scaling configurations',
         nextTestDue: this.calculateNextTestDate('monthly'),
         effectiveness: ControlEffectiveness.NOT_TESTED,
       },
@@ -172,12 +211,17 @@ export class SOC2ComplianceService extends EventEmitter {
       {
         id: 'PI1.1',
         name: 'Data Processing Accuracy',
-        description: 'Entity implements controls to ensure data processing accuracy',
+        description:
+          'Entity implements controls to ensure data processing accuracy',
         criteria: TrustServiceCriteria.PROCESSING_INTEGRITY,
         type: ControlType.PREVENTIVE,
         owner: 'Engineering Team',
         frequency: 'monthly',
-        evidence: ['Data validation logs', 'Error handling procedures', 'Testing results'],
+        evidence: [
+          'Data validation logs',
+          'Error handling procedures',
+          'Testing results',
+        ],
         testProcedure: 'Test data validation and error handling mechanisms',
         nextTestDue: this.calculateNextTestDate('monthly'),
         effectiveness: ControlEffectiveness.NOT_TESTED,
@@ -187,12 +231,17 @@ export class SOC2ComplianceService extends EventEmitter {
       {
         id: 'C1.1',
         name: 'Data Encryption',
-        description: 'Entity implements encryption controls to protect confidential information',
+        description:
+          'Entity implements encryption controls to protect confidential information',
         criteria: TrustServiceCriteria.CONFIDENTIALITY,
         type: ControlType.PREVENTIVE,
         owner: 'Security Team',
         frequency: 'quarterly',
-        evidence: ['Encryption configurations', 'Key management procedures', 'Encrypted data samples'],
+        evidence: [
+          'Encryption configurations',
+          'Key management procedures',
+          'Encrypted data samples',
+        ],
         testProcedure: 'Test encryption effectiveness and key rotation',
         nextTestDue: this.calculateNextTestDate('quarterly'),
         effectiveness: ControlEffectiveness.NOT_TESTED,
@@ -202,25 +251,36 @@ export class SOC2ComplianceService extends EventEmitter {
       {
         id: 'P1.1',
         name: 'Privacy Notice and Consent',
-        description: 'Entity provides privacy notices and obtains consent for data collection',
+        description:
+          'Entity provides privacy notices and obtains consent for data collection',
         criteria: TrustServiceCriteria.PRIVACY,
         type: ControlType.PREVENTIVE,
         owner: 'Privacy Team',
         frequency: 'quarterly',
-        evidence: ['Privacy policies', 'Consent records', 'Data processing agreements'],
-        testProcedure: 'Review privacy notices and consent management processes',
+        evidence: [
+          'Privacy policies',
+          'Consent records',
+          'Data processing agreements',
+        ],
+        testProcedure:
+          'Review privacy notices and consent management processes',
         nextTestDue: this.calculateNextTestDate('quarterly'),
         effectiveness: ControlEffectiveness.NOT_TESTED,
       },
       {
         id: 'P1.2',
         name: 'Data Subject Rights',
-        description: 'Entity implements processes to handle data subject rights requests',
+        description:
+          'Entity implements processes to handle data subject rights requests',
         criteria: TrustServiceCriteria.PRIVACY,
         type: ControlType.CORRECTIVE,
         owner: 'Privacy Team',
         frequency: 'monthly',
-        evidence: ['Data subject request logs', 'Response procedures', 'Fulfillment records'],
+        evidence: [
+          'Data subject request logs',
+          'Response procedures',
+          'Fulfillment records',
+        ],
         testProcedure: 'Test data subject rights request handling',
         nextTestDue: this.calculateNextTestDate('monthly'),
         effectiveness: ControlEffectiveness.NOT_TESTED,
@@ -240,19 +300,27 @@ export class SOC2ComplianceService extends EventEmitter {
   private calculateNextTestDate(frequency: string): Date {
     const now = new Date();
     switch (frequency) {
-      case 'daily': return new Date(now.getTime() + 24 * 60 * 60 * 1000);
-      case 'weekly': return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-      case 'monthly': return new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-      case 'quarterly': return new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
-      case 'annually': return new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
-      default: return new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      case 'daily':
+        return new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      case 'weekly':
+        return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      case 'monthly':
+        return new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      case 'quarterly':
+        return new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+      case 'annually':
+        return new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+      default:
+        return new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     }
   }
 
   /**
    * Log audit event
    */
-  async logAuditEvent(entry: Omit<AuditLogEntry, 'id' | 'timestamp'>): Promise<void> {
+  async logAuditEvent(
+    entry: Omit<AuditLogEntry, 'id' | 'timestamp'>
+  ): Promise<void> {
     const auditEntry: AuditLogEntry = {
       id: crypto.randomUUID(),
       timestamp: new Date(),
@@ -267,16 +335,11 @@ export class SOC2ComplianceService extends EventEmitter {
     }
 
     // Record metrics
-    monitoringService.recordMetric(
-      'audit_events',
-      1,
-      'count',
-      {
-        action: entry.action,
-        outcome: entry.outcome,
-        riskLevel: entry.riskLevel,
-      }
-    );
+    monitoringService.recordMetric('audit_events', 1, 'count', {
+      action: entry.action,
+      outcome: entry.outcome,
+      riskLevel: entry.riskLevel,
+    });
 
     // Emit high-risk events
     if (entry.riskLevel === 'high' || entry.riskLevel === 'critical') {
@@ -289,7 +352,9 @@ export class SOC2ComplianceService extends EventEmitter {
   /**
    * Create incident record
    */
-  async createIncident(incident: Omit<IncidentRecord, 'id' | 'timestamp'>): Promise<string> {
+  async createIncident(
+    incident: Omit<IncidentRecord, 'id' | 'timestamp'>
+  ): Promise<string> {
     const incidentId = crypto.randomUUID();
     const incidentRecord: IncidentRecord = {
       id: incidentId,
@@ -300,15 +365,10 @@ export class SOC2ComplianceService extends EventEmitter {
     this.incidents.set(incidentId, incidentRecord);
 
     // Record metrics
-    monitoringService.recordMetric(
-      'security_incidents',
-      1,
-      'count',
-      {
-        severity: incident.severity,
-        category: incident.category,
-      }
-    );
+    monitoringService.recordMetric('security_incidents', 1, 'count', {
+      severity: incident.severity,
+      category: incident.category,
+    });
 
     // Emit critical incidents immediately
     if (incident.severity === 'critical') {
@@ -322,11 +382,14 @@ export class SOC2ComplianceService extends EventEmitter {
   /**
    * Test control effectiveness
    */
-  async testControl(controlId: string, testResults: {
-    effectiveness: ControlEffectiveness;
-    findings?: string[];
-    evidence?: string[];
-  }): Promise<void> {
+  async testControl(
+    controlId: string,
+    testResults: {
+      effectiveness: ControlEffectiveness;
+      findings?: string[];
+      evidence?: string[];
+    }
+  ): Promise<void> {
     const control = this.controls.get(controlId);
     if (!control) {
       throw new Error(`Control ${controlId} not found`);
@@ -337,7 +400,7 @@ export class SOC2ComplianceService extends EventEmitter {
     control.lastTested = new Date();
     control.nextTestDue = this.calculateNextTestDate(control.frequency);
     control.findings = testResults.findings || [];
-    
+
     if (testResults.evidence) {
       control.evidence.push(...testResults.evidence);
     }
@@ -346,26 +409,27 @@ export class SOC2ComplianceService extends EventEmitter {
     this.controlTests.set(controlId, new Date());
 
     // Record metrics
-    monitoringService.recordMetric(
-      'control_tests',
-      1,
-      'count',
-      {
-        controlId,
-        effectiveness: testResults.effectiveness,
-        criteria: control.criteria,
-      }
-    );
+    monitoringService.recordMetric('control_tests', 1, 'count', {
+      controlId,
+      effectiveness: testResults.effectiveness,
+      criteria: control.criteria,
+    });
 
     // Log audit event
     await this.logAuditEvent({
       action: 'control_test',
       resource: controlId,
-      outcome: testResults.effectiveness === ControlEffectiveness.EFFECTIVE ? 'success' : 'failure',
+      outcome:
+        testResults.effectiveness === ControlEffectiveness.EFFECTIVE
+          ? 'success'
+          : 'failure',
       ipAddress: 'system',
       userAgent: 'soc2-compliance-service',
       details: testResults,
-      riskLevel: testResults.effectiveness === ControlEffectiveness.DEFICIENT ? 'high' : 'low',
+      riskLevel:
+        testResults.effectiveness === ControlEffectiveness.DEFICIENT
+          ? 'high'
+          : 'low',
       controlId,
     });
 
@@ -377,18 +441,24 @@ export class SOC2ComplianceService extends EventEmitter {
    */
   private startContinuousMonitoring(): void {
     // Monitor continuous controls every 5 minutes
-    setInterval(async () => {
-      for (const [controlId, control] of this.controls.entries()) {
-        if (control.frequency === 'continuous') {
-          await this.runAutomatedControlTest(controlId);
+    setInterval(
+      async () => {
+        for (const [controlId, control] of this.controls.entries()) {
+          if (control.frequency === 'continuous') {
+            await this.runAutomatedControlTest(controlId);
+          }
         }
-      }
-    }, 5 * 60 * 1000);
+      },
+      5 * 60 * 1000
+    );
 
     // Check for overdue control tests daily
-    setInterval(() => {
-      this.checkOverdueControlTests();
-    }, 24 * 60 * 60 * 1000);
+    setInterval(
+      () => {
+        this.checkOverdueControlTests();
+      },
+      24 * 60 * 60 * 1000
+    );
   }
 
   /**
@@ -421,7 +491,9 @@ export class SOC2ComplianceService extends EventEmitter {
       console.error(`Automated control test failed for ${controlId}:`, error);
       await this.testControl(controlId, {
         effectiveness: ControlEffectiveness.DEFICIENT,
-        findings: [`Automated test failed: ${error instanceof Error ? error.message : 'Unknown error'}`],
+        findings: [
+          `Automated test failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        ],
       });
     }
   }
@@ -431,12 +503,18 @@ export class SOC2ComplianceService extends EventEmitter {
    */
   private async testAccessControls(): Promise<ControlEffectiveness> {
     // Check if authentication and authorization are working
-    const authMetrics = monitoringService.getMetricHistory('operation_success_rate', 1);
-    const authSuccessRate = authMetrics
-      .filter(m => m.labels.operation?.includes('auth'))
-      .reduce((sum, m) => sum + m.value, 0) / Math.max(authMetrics.length, 1);
+    const authMetrics = monitoringService.getMetricHistory(
+      'operation_success_rate',
+      1
+    );
+    const authSuccessRate =
+      authMetrics
+        .filter(m => m.labels.operation?.includes('auth'))
+        .reduce((sum, m) => sum + m.value, 0) / Math.max(authMetrics.length, 1);
 
-    return authSuccessRate >= 95 ? ControlEffectiveness.EFFECTIVE : ControlEffectiveness.DEFICIENT;
+    return authSuccessRate >= 95
+      ? ControlEffectiveness.EFFECTIVE
+      : ControlEffectiveness.DEFICIENT;
   }
 
   /**
@@ -445,9 +523,9 @@ export class SOC2ComplianceService extends EventEmitter {
   private async testSecurityMonitoring(): Promise<ControlEffectiveness> {
     // Check if security monitoring is operational
     const monitoringHealth = monitoringService.getOverallHealth();
-    return monitoringHealth.status === 'healthy' ? 
-      ControlEffectiveness.EFFECTIVE : 
-      ControlEffectiveness.DEFICIENT;
+    return monitoringHealth.status === 'healthy'
+      ? ControlEffectiveness.EFFECTIVE
+      : ControlEffectiveness.DEFICIENT;
   }
 
   /**
@@ -456,9 +534,9 @@ export class SOC2ComplianceService extends EventEmitter {
   private async testAvailabilityMonitoring(): Promise<ControlEffectiveness> {
     // Check system availability
     const healthChecks = monitoringService.getOverallHealth();
-    return healthChecks.healthyChecks === healthChecks.totalChecks ? 
-      ControlEffectiveness.EFFECTIVE : 
-      ControlEffectiveness.DEFICIENT;
+    return healthChecks.healthyChecks === healthChecks.totalChecks
+      ? ControlEffectiveness.EFFECTIVE
+      : ControlEffectiveness.DEFICIENT;
   }
 
   /**
@@ -469,7 +547,10 @@ export class SOC2ComplianceService extends EventEmitter {
     const overdueControls: string[] = [];
 
     for (const [controlId, control] of this.controls.entries()) {
-      if (control.nextTestDue < now && control.effectiveness !== ControlEffectiveness.NOT_TESTED) {
+      if (
+        control.nextTestDue < now &&
+        control.effectiveness !== ControlEffectiveness.NOT_TESTED
+      ) {
         overdueControls.push(controlId);
       }
     }
@@ -482,7 +563,10 @@ export class SOC2ComplianceService extends EventEmitter {
       );
 
       this.emit('overdueControls', overdueControls);
-      console.warn(`${overdueControls.length} controls are overdue for testing:`, overdueControls);
+      console.warn(
+        `${overdueControls.length} controls are overdue for testing:`,
+        overdueControls
+      );
     }
   }
 
@@ -497,15 +581,22 @@ export class SOC2ComplianceService extends EventEmitter {
     complianceScore: number;
   } {
     const controls = Array.from(this.controls.values());
-    const effectiveControls = controls.filter(c => c.effectiveness === ControlEffectiveness.EFFECTIVE).length;
+    const effectiveControls = controls.filter(
+      c => c.effectiveness === ControlEffectiveness.EFFECTIVE
+    ).length;
     const totalControls = controls.length;
-    const complianceScore = totalControls > 0 ? (effectiveControls / totalControls) * 100 : 0;
+    const complianceScore =
+      totalControls > 0 ? (effectiveControls / totalControls) * 100 : 0;
 
     const summary = {
       totalControls,
       effectiveControls,
-      deficientControls: controls.filter(c => c.effectiveness === ControlEffectiveness.DEFICIENT).length,
-      notTestedControls: controls.filter(c => c.effectiveness === ControlEffectiveness.NOT_TESTED).length,
+      deficientControls: controls.filter(
+        c => c.effectiveness === ControlEffectiveness.DEFICIENT
+      ).length,
+      notTestedControls: controls.filter(
+        c => c.effectiveness === ControlEffectiveness.NOT_TESTED
+      ).length,
       complianceScore: Math.round(complianceScore),
       lastUpdated: new Date(),
     };

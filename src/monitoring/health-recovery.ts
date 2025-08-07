@@ -144,14 +144,17 @@ export class HealthRecoveryService extends EventEmitter {
     }, 30000);
 
     // Cleanup old execution history every hour
-    const cleanupInterval = setInterval(() => {
-      if (this.isShuttingDown) {
-        clearInterval(cleanupInterval);
-        return;
-      }
+    const cleanupInterval = setInterval(
+      () => {
+        if (this.isShuttingDown) {
+          clearInterval(cleanupInterval);
+          return;
+        }
 
-      this.cleanupExecutionHistory();
-    }, 60 * 60 * 1000);
+        this.cleanupExecutionHistory();
+      },
+      60 * 60 * 1000
+    );
 
     console.log('Health recovery monitoring started');
   }
@@ -176,13 +179,19 @@ export class HealthRecoveryService extends EventEmitter {
 
       // Memory usage check
       const memoryUsage = process.memoryUsage();
-      const memoryPercent = (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
+      const memoryPercent =
+        (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
       healthChecks.push({
         name: 'memory_usage',
-        status: memoryPercent > 85 ? 'unhealthy' : memoryPercent > 70 ? 'degraded' : 'healthy',
+        status:
+          memoryPercent > 85
+            ? 'unhealthy'
+            : memoryPercent > 70
+              ? 'degraded'
+              : 'healthy',
         latency: 0,
         timestamp: new Date(),
-        details: { 
+        details: {
           heapUsedMB: Math.round(memoryUsage.heapUsed / 1024 / 1024),
           heapTotalMB: Math.round(memoryUsage.heapTotal / 1024 / 1024),
           percentage: Math.round(memoryPercent),
@@ -211,7 +220,6 @@ export class HealthRecoveryService extends EventEmitter {
         timestamp: new Date(),
         details: { uptimeSeconds: Math.round(uptime) },
       });
-
     } catch (error) {
       console.error('Health check failed:', error);
       healthChecks.push({
@@ -232,7 +240,9 @@ export class HealthRecoveryService extends EventEmitter {
   /**
    * Process individual health check result
    */
-  private async processHealthCheckResult(healthCheck: HealthCheck): Promise<void> {
+  private async processHealthCheckResult(
+    healthCheck: HealthCheck
+  ): Promise<void> {
     // Record metrics
     monitoringService.recordMetric(
       `health_check_${healthCheck.name}`,
@@ -281,7 +291,10 @@ export class HealthRecoveryService extends EventEmitter {
   /**
    * Execute a specific recovery action
    */
-  private async executeRecoveryAction(actionId: string, trigger: string): Promise<boolean> {
+  private async executeRecoveryAction(
+    actionId: string,
+    trigger: string
+  ): Promise<boolean> {
     const action = this.recoveryActions.get(actionId);
     if (!action) {
       console.error(`Recovery action ${actionId} not found`);
@@ -291,9 +304,13 @@ export class HealthRecoveryService extends EventEmitter {
     // Check cooldown
     const lastExecution = this.cooldownTracker.get(actionId);
     if (lastExecution) {
-      const cooldownEnd = new Date(lastExecution.getTime() + action.cooldownMinutes * 60 * 1000);
+      const cooldownEnd = new Date(
+        lastExecution.getTime() + action.cooldownMinutes * 60 * 1000
+      );
       if (new Date() < cooldownEnd) {
-        console.log(`Recovery action ${actionId} is in cooldown until ${cooldownEnd}`);
+        console.log(
+          `Recovery action ${actionId} is in cooldown until ${cooldownEnd}`
+        );
         return false;
       }
     }
@@ -301,7 +318,9 @@ export class HealthRecoveryService extends EventEmitter {
     // Check retry count
     const retryCount = this.retryTracker.get(actionId) || 0;
     if (retryCount >= action.maxRetries) {
-      console.log(`Recovery action ${actionId} has exceeded max retries (${action.maxRetries})`);
+      console.log(
+        `Recovery action ${actionId} has exceeded max retries (${action.maxRetries})`
+      );
       return false;
     }
 
@@ -320,10 +339,12 @@ export class HealthRecoveryService extends EventEmitter {
     };
 
     try {
-      console.log(`Executing recovery action: ${action.name} (trigger: ${trigger})`);
+      console.log(
+        `Executing recovery action: ${action.name} (trigger: ${trigger})`
+      );
 
       const result = await action.executeFunction();
-      
+
       execution.endTime = new Date();
       execution.success = result.success;
       execution.message = result.message;
@@ -331,7 +352,9 @@ export class HealthRecoveryService extends EventEmitter {
       if (result.success) {
         // Reset retry counter on success
         this.retryTracker.delete(actionId);
-        console.log(`Recovery action ${actionId} completed successfully: ${result.message}`);
+        console.log(
+          `Recovery action ${actionId} completed successfully: ${result.message}`
+        );
       } else {
         // Increment retry counter on failure
         this.retryTracker.set(actionId, retryCount + 1);
@@ -345,17 +368,12 @@ export class HealthRecoveryService extends EventEmitter {
       this.executionHistory.push(execution);
 
       // Record metrics
-      monitoringService.recordMetric(
-        'recovery_action_executions',
-        1,
-        'count',
-        {
-          actionId,
-          trigger,
-          success: result.success.toString(),
-          severity: action.severity,
-        }
-      );
+      monitoringService.recordMetric('recovery_action_executions', 1, 'count', {
+        actionId,
+        trigger,
+        success: result.success.toString(),
+        severity: action.severity,
+      });
 
       // Log audit event
       await soc2ComplianceService.logAuditEvent({
@@ -374,7 +392,8 @@ export class HealthRecoveryService extends EventEmitter {
     } catch (error) {
       execution.endTime = new Date();
       execution.success = false;
-      execution.message = error instanceof Error ? error.message : 'Unknown error';
+      execution.message =
+        error instanceof Error ? error.message : 'Unknown error';
 
       this.retryTracker.set(actionId, retryCount + 1);
       this.executionHistory.push(execution);
@@ -389,20 +408,29 @@ export class HealthRecoveryService extends EventEmitter {
   /**
    * Recovery action implementations
    */
-  private async restartDatabaseConnection(): Promise<{ success: boolean; message: string }> {
+  private async restartDatabaseConnection(): Promise<{
+    success: boolean;
+    message: string;
+  }> {
     try {
       await this.database.disconnect();
       await this.database.connect();
-      return { success: true, message: 'Database connection restarted successfully' };
+      return {
+        success: true,
+        message: 'Database connection restarted successfully',
+      };
     } catch (error) {
-      return { 
-        success: false, 
-        message: `Failed to restart database connection: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      return {
+        success: false,
+        message: `Failed to restart database connection: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
 
-  private async clearMemoryCache(): Promise<{ success: boolean; message: string }> {
+  private async clearMemoryCache(): Promise<{
+    success: boolean;
+    message: string;
+  }> {
     try {
       // Force garbage collection if available
       if (global.gc) {
@@ -410,66 +438,82 @@ export class HealthRecoveryService extends EventEmitter {
       }
 
       // Clear various caches (would clear actual cache services in production)
-      const memoryBefore = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
-      
+      const memoryBefore = Math.round(
+        process.memoryUsage().heapUsed / 1024 / 1024
+      );
+
       // Simulate cache clearing
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const memoryAfter = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
-      
-      return { 
-        success: true, 
-        message: `Memory cache cleared. Memory usage: ${memoryBefore}MB -> ${memoryAfter}MB` 
+
+      const memoryAfter = Math.round(
+        process.memoryUsage().heapUsed / 1024 / 1024
+      );
+
+      return {
+        success: true,
+        message: `Memory cache cleared. Memory usage: ${memoryBefore}MB -> ${memoryAfter}MB`,
       };
     } catch (error) {
-      return { 
-        success: false, 
-        message: `Failed to clear memory cache: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      return {
+        success: false,
+        message: `Failed to clear memory cache: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
 
-  private async restartAIPipeline(): Promise<{ success: boolean; message: string }> {
+  private async restartAIPipeline(): Promise<{
+    success: boolean;
+    message: string;
+  }> {
     try {
       // This would restart the AI pipeline in production
       console.log('Restarting AI Pipeline (simulated)...');
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       return { success: true, message: 'AI Pipeline restarted successfully' };
     } catch (error) {
-      return { 
-        success: false, 
-        message: `Failed to restart AI Pipeline: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      return {
+        success: false,
+        message: `Failed to restart AI Pipeline: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
 
-  private async scaleUpResources(): Promise<{ success: boolean; message: string }> {
+  private async scaleUpResources(): Promise<{
+    success: boolean;
+    message: string;
+  }> {
     try {
       // This would trigger auto-scaling in production
       console.log('Scaling up resources (simulated)...');
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       return { success: true, message: 'Resources scaled up successfully' };
     } catch (error) {
-      return { 
-        success: false, 
-        message: `Failed to scale up resources: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      return {
+        success: false,
+        message: `Failed to scale up resources: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
 
-  private async enableMaintenanceMode(): Promise<{ success: boolean; message: string }> {
+  private async enableMaintenanceMode(): Promise<{
+    success: boolean;
+    message: string;
+  }> {
     try {
       // This would enable maintenance mode in production
       console.log('Enabling maintenance mode (simulated)...');
       await new Promise(resolve => setTimeout(resolve, 500));
-      
-      return { success: true, message: 'Maintenance mode enabled successfully' };
+
+      return {
+        success: true,
+        message: 'Maintenance mode enabled successfully',
+      };
     } catch (error) {
-      return { 
-        success: false, 
-        message: `Failed to enable maintenance mode: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      return {
+        success: false,
+        message: `Failed to enable maintenance mode: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
@@ -477,7 +521,10 @@ export class HealthRecoveryService extends EventEmitter {
   /**
    * Manually approve and execute a pending recovery action
    */
-  async approveRecoveryAction(actionId: string, trigger: string): Promise<boolean> {
+  async approveRecoveryAction(
+    actionId: string,
+    trigger: string
+  ): Promise<boolean> {
     const action = this.recoveryActions.get(actionId);
     if (!action) {
       throw new Error(`Recovery action ${actionId} not found`);
@@ -514,22 +561,28 @@ export class HealthRecoveryService extends EventEmitter {
     cooldowns: Array<{ actionId: string; expiresAt: Date }>;
     retries: Array<{ actionId: string; count: number; maxRetries: number }>;
   } {
-    const cooldowns = Array.from(this.cooldownTracker.entries()).map(([actionId, lastExecution]) => {
-      const action = this.recoveryActions.get(actionId)!;
-      return {
-        actionId,
-        expiresAt: new Date(lastExecution.getTime() + action.cooldownMinutes * 60 * 1000),
-      };
-    });
+    const cooldowns = Array.from(this.cooldownTracker.entries()).map(
+      ([actionId, lastExecution]) => {
+        const action = this.recoveryActions.get(actionId)!;
+        return {
+          actionId,
+          expiresAt: new Date(
+            lastExecution.getTime() + action.cooldownMinutes * 60 * 1000
+          ),
+        };
+      }
+    );
 
-    const retries = Array.from(this.retryTracker.entries()).map(([actionId, count]) => {
-      const action = this.recoveryActions.get(actionId)!;
-      return {
-        actionId,
-        count,
-        maxRetries: action.maxRetries,
-      };
-    });
+    const retries = Array.from(this.retryTracker.entries()).map(
+      ([actionId, count]) => {
+        const action = this.recoveryActions.get(actionId)!;
+        return {
+          actionId,
+          count,
+          maxRetries: action.maxRetries,
+        };
+      }
+    );
 
     return {
       actions: Array.from(this.recoveryActions.values()),

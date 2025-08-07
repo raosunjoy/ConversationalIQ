@@ -58,7 +58,7 @@ export class TestFramework {
     this.startTime = 0;
     this.benchmarks = new Map();
     this.testMetrics = new Map();
-    
+
     this.initializeBenchmarks();
   }
 
@@ -67,41 +67,56 @@ export class TestFramework {
    */
   private initializeBenchmarks(): void {
     const benchmarks: Array<[string, PerformanceBenchmark]> = [
-      ['api_response', {
-        name: 'API Response Time',
-        maxResponseTime: 500,
-        maxMemoryUsage: 128,
-        maxCpuUsage: 50,
-        minThroughput: 100,
-      }],
-      ['database_query', {
-        name: 'Database Query',
-        maxResponseTime: 100,
-        maxMemoryUsage: 64,
-        maxCpuUsage: 30,
-        minThroughput: 1000,
-      }],
-      ['ai_processing', {
-        name: 'AI Processing',
-        maxResponseTime: 2000,
-        maxMemoryUsage: 256,
-        maxCpuUsage: 70,
-        minThroughput: 50,
-      }],
-      ['graphql_query', {
-        name: 'GraphQL Query',
-        maxResponseTime: 300,
-        maxMemoryUsage: 96,
-        maxCpuUsage: 40,
-        minThroughput: 200,
-      }],
-      ['authentication', {
-        name: 'Authentication',
-        maxResponseTime: 200,
-        maxMemoryUsage: 32,
-        maxCpuUsage: 20,
-        minThroughput: 500,
-      }],
+      [
+        'api_response',
+        {
+          name: 'API Response Time',
+          maxResponseTime: 500,
+          maxMemoryUsage: 128,
+          maxCpuUsage: 50,
+          minThroughput: 100,
+        },
+      ],
+      [
+        'database_query',
+        {
+          name: 'Database Query',
+          maxResponseTime: 100,
+          maxMemoryUsage: 64,
+          maxCpuUsage: 30,
+          minThroughput: 1000,
+        },
+      ],
+      [
+        'ai_processing',
+        {
+          name: 'AI Processing',
+          maxResponseTime: 2000,
+          maxMemoryUsage: 256,
+          maxCpuUsage: 70,
+          minThroughput: 50,
+        },
+      ],
+      [
+        'graphql_query',
+        {
+          name: 'GraphQL Query',
+          maxResponseTime: 300,
+          maxMemoryUsage: 96,
+          maxCpuUsage: 40,
+          minThroughput: 200,
+        },
+      ],
+      [
+        'authentication',
+        {
+          name: 'Authentication',
+          maxResponseTime: 200,
+          maxMemoryUsage: 32,
+          maxCpuUsage: 20,
+          minThroughput: 500,
+        },
+      ],
     ];
 
     benchmarks.forEach(([key, benchmark]) => {
@@ -151,9 +166,9 @@ export class TestFramework {
 
     // Record test metrics
     if (this.config.monitoring.collectMetrics) {
-      monitoringService.recordMetric('test_completed', 1, 'count', { 
-        testName, 
-        duration: duration.toString() 
+      monitoringService.recordMetric('test_completed', 1, 'count', {
+        testName,
+        duration: duration.toString(),
       });
     }
   }
@@ -164,15 +179,15 @@ export class TestFramework {
   private async resetDatabase(): Promise<void> {
     try {
       await this.database.connect();
-      
+
       // Truncate all tables in reverse dependency order
       const prisma = (this.database as any).prisma as PrismaClient;
-      
+
       await prisma.responseSuggestion.deleteMany({});
       await prisma.message.deleteMany({});
       await prisma.conversation.deleteMany({});
       await prisma.healthCheck.deleteMany({});
-      
+
       console.log('✅ Database reset completed');
     } catch (error) {
       console.error('❌ Database reset failed:', error);
@@ -194,7 +209,7 @@ export class TestFramework {
         subject: 'Test Support Request',
         priority: 'normal',
         tags: ['test', 'support'],
-        status: 'OPEN',
+        status: 'active',
         metadata: { source: 'test-framework' },
       });
 
@@ -202,15 +217,16 @@ export class TestFramework {
       await this.database.createMessage({
         conversationId: conversation.id,
         content: 'Hello, I need help with my account',
-        senderType: 'CUSTOMER',
+        senderType: 'customer',
         senderId: 'customer-001',
         source: 'test',
       });
 
       await this.database.createMessage({
         conversationId: conversation.id,
-        content: 'Hi! I\'d be happy to help you with your account. What specific issue are you experiencing?',
-        senderType: 'AGENT',
+        content:
+          "Hi! I'd be happy to help you with your account. What specific issue are you experiencing?",
+        senderType: 'agent',
         senderId: 'agent-001',
         source: 'test',
       });
@@ -271,13 +287,17 @@ export class TestFramework {
     try {
       // Execute operation
       await operation();
-      
+
       // Measure results
       const responseTime = Date.now() - startTime;
       const memoryAfter = process.memoryUsage();
-      const memoryUsed = Math.round((memoryAfter.heapUsed - memoryBefore.heapUsed) / 1024 / 1024);
+      const memoryUsed = Math.round(
+        (memoryAfter.heapUsed - memoryBefore.heapUsed) / 1024 / 1024
+      );
       const cpuUsage = process.cpuUsage();
-      const cpuPercent = Math.round((cpuUsage.user + cpuUsage.system) / 1000000); // Convert to percentage
+      const cpuPercent = Math.round(
+        (cpuUsage.user + cpuUsage.system) / 1000000
+      ); // Convert to percentage
 
       const metrics = {
         responseTime,
@@ -286,7 +306,7 @@ export class TestFramework {
       };
 
       // Check against benchmarks
-      const passed = 
+      const passed =
         responseTime <= benchmark.maxResponseTime &&
         memoryUsed <= benchmark.maxMemoryUsage &&
         cpuPercent <= benchmark.maxCpuUsage;
@@ -305,7 +325,6 @@ export class TestFramework {
       }
 
       return { passed, metrics, benchmark };
-
     } catch (error) {
       console.error(`Benchmark failed for ${operationType}:`, error);
       throw error;
@@ -320,9 +339,10 @@ export class TestFramework {
 
     try {
       // Run vulnerability scan
-      const scanId = await vulnerabilityManagementService.runSecurityScan('manual');
+      const scanId =
+        await vulnerabilityManagementService.runSecurityScan('manual');
       const scanResult = vulnerabilityManagementService.getScanResult(scanId);
-      
+
       if (!scanResult) {
         throw new Error(`Security scan ${scanId} not found`);
       }
@@ -332,42 +352,43 @@ export class TestFramework {
 
       // Transform vulnerabilities
       const vulnerabilities = scanResult.vulnerabilities.map(vuln => ({
-        severity: vuln.severity,
+        severity:
+          vuln.severity === 'info'
+            ? 'low'
+            : (vuln.severity as 'low' | 'medium' | 'high' | 'critical'),
         description: vuln.description,
         recommendation: vuln.recommendation,
       }));
 
       const result: SecurityTestResult = {
         testName,
-        passed: scanResult.summary.critical === 0 && scanResult.summary.high < 3,
+        passed:
+          scanResult.summary.critical === 0 && scanResult.summary.high < 3,
         vulnerabilities,
         complianceScore: complianceReport.complianceScore,
       };
 
       // Record security metrics
-      monitoringService.recordMetric(
-        'security_test_completed',
-        1,
-        'count',
-        { 
-          testName, 
-          passed: result.passed.toString(),
-          complianceScore: result.complianceScore.toString()
-        }
-      );
+      monitoringService.recordMetric('security_test_completed', 1, 'count', {
+        testName,
+        passed: result.passed.toString(),
+        complianceScore: result.complianceScore.toString(),
+      });
 
       return result;
-
     } catch (error) {
       console.error(`Security test failed: ${testName}`, error);
       return {
         testName,
         passed: false,
-        vulnerabilities: [{
-          severity: 'high',
-          description: `Security test execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          recommendation: 'Investigate test execution failure and fix underlying issues',
-        }],
+        vulnerabilities: [
+          {
+            severity: 'high',
+            description: `Security test execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            recommendation:
+              'Investigate test execution failure and fix underlying issues',
+          },
+        ],
         complianceScore: 0,
       };
     }
@@ -407,12 +428,13 @@ export class TestFramework {
 
     try {
       // Calculate request intervals
-      const totalRequests = options.concurrentUsers * (options.duration + options.rampUpTime);
+      const totalRequests =
+        options.concurrentUsers * (options.duration + options.rampUpTime);
       const requestInterval = (options.duration * 1000) / totalRequests;
 
       // Execute load test
       const promises: Promise<void>[] = [];
-      
+
       for (let i = 0; i < options.concurrentUsers; i++) {
         const userPromise = this.simulateUserLoad(
           operation,
@@ -421,10 +443,15 @@ export class TestFramework {
           results
         );
         promises.push(userPromise);
-        
+
         // Ramp up delay
         if (options.rampUpTime > 0) {
-          await new Promise(resolve => setTimeout(resolve, (options.rampUpTime * 1000) / options.concurrentUsers));
+          await new Promise(resolve =>
+            setTimeout(
+              resolve,
+              (options.rampUpTime * 1000) / options.concurrentUsers
+            )
+          );
         }
       }
 
@@ -433,7 +460,9 @@ export class TestFramework {
 
       // Calculate metrics
       const duration = (Date.now() - startTime) / 1000;
-      const averageResponseTime = results.responseTimes.reduce((sum, time) => sum + time, 0) / results.responseTimes.length || 0;
+      const averageResponseTime =
+        results.responseTimes.reduce((sum, time) => sum + time, 0) /
+          results.responseTimes.length || 0;
       const requestsPerSecond = results.totalRequests / duration;
       const errorRate = (results.failedRequests / results.totalRequests) * 100;
 
@@ -447,26 +476,20 @@ export class TestFramework {
       };
 
       // Determine if test passed
-      const passed = 
+      const passed =
         errorRate < 5 && // Less than 5% error rate
         averageResponseTime < 1000 && // Less than 1 second average response time
         requestsPerSecond >= 10; // At least 10 RPS
 
       // Record load test metrics
-      monitoringService.recordMetric(
-        'load_test_completed',
-        1,
-        'count',
-        { 
-          testName,
-          passed: passed.toString(),
-          errorRate: errorRate.toString(),
-          rps: requestsPerSecond.toString()
-        }
-      );
+      monitoringService.recordMetric('load_test_completed', 1, 'count', {
+        testName,
+        passed: passed.toString(),
+        errorRate: errorRate.toString(),
+        rps: requestsPerSecond.toString(),
+      });
 
       return { passed, metrics };
-
     } catch (error) {
       console.error(`Load test failed: ${testName}`, error);
       throw error;
@@ -482,12 +505,12 @@ export class TestFramework {
     interval: number,
     results: any
   ): Promise<void> {
-    const endTime = Date.now() + (duration * 1000);
-    
+    const endTime = Date.now() + duration * 1000;
+
     while (Date.now() < endTime) {
       const requestStartTime = Date.now();
       results.totalRequests++;
-      
+
       try {
         await operation();
         results.successfulRequests++;
@@ -495,7 +518,7 @@ export class TestFramework {
       } catch (error) {
         results.failedRequests++;
       }
-      
+
       // Wait for next request
       await new Promise(resolve => setTimeout(resolve, interval));
     }
@@ -518,8 +541,10 @@ export class TestFramework {
   } {
     const summary = {
       totalTests: this.testMetrics.size,
-      passedTests: Array.from(this.testMetrics.values()).filter(m => m.passed).length,
-      failedTests: Array.from(this.testMetrics.values()).filter(m => !m.passed).length,
+      passedTests: Array.from(this.testMetrics.values()).filter(m => m.passed)
+        .length,
+      failedTests: Array.from(this.testMetrics.values()).filter(m => !m.passed)
+        .length,
       coverage: 85, // Would calculate from actual coverage data
       duration: Date.now() - this.startTime,
     };
@@ -533,8 +558,12 @@ export class TestFramework {
       .map(([, value]) => value as SecurityTestResult);
 
     const recommendations = [
-      ...(summary.coverage < 90 ? ['Increase test coverage to at least 90%'] : []),
-      ...(summary.failedTests > 0 ? ['Fix all failing tests before production deployment'] : []),
+      ...(summary.coverage < 90
+        ? ['Increase test coverage to at least 90%']
+        : []),
+      ...(summary.failedTests > 0
+        ? ['Fix all failing tests before production deployment']
+        : []),
       ...security.flatMap(s => s.vulnerabilities.map(v => v.recommendation)),
     ];
 

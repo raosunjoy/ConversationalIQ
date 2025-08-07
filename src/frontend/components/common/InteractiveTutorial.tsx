@@ -5,7 +5,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@zendeskgarden/react-buttons';
-import { Modal, Header, Body, Footer, Close } from '@zendeskgarden/react-modals';
+import {
+  Modal,
+  Header,
+  Body,
+  Footer,
+  Close,
+} from '@zendeskgarden/react-modals';
 import { Badge } from '@zendeskgarden/react-badges';
 import { Alert } from '@zendeskgarden/react-notifications';
 
@@ -69,12 +75,12 @@ const HighlightOverlay: React.FC<HighlightOverlayProps> = ({
       const element = document.querySelector(target) as HTMLElement;
       if (element) {
         setTargetElement(element);
-        
+
         // Scroll element into view
-        element.scrollIntoView({ 
-          behavior: 'smooth', 
+        element.scrollIntoView({
+          behavior: 'smooth',
           block: 'center',
-          inline: 'center' 
+          inline: 'center',
         });
 
         // Calculate overlay position
@@ -85,8 +91,8 @@ const HighlightOverlay: React.FC<HighlightOverlayProps> = ({
           position: 'fixed',
           top: rect.top - padding,
           left: rect.left - padding,
-          width: rect.width + (padding * 2),
-          height: rect.height + (padding * 2),
+          width: rect.width + padding * 2,
+          height: rect.height + padding * 2,
           border: '3px solid #1f73b7',
           borderRadius: '8px',
           backgroundColor: 'rgba(31, 115, 183, 0.1)',
@@ -105,18 +111,18 @@ const HighlightOverlay: React.FC<HighlightOverlayProps> = ({
         switch (position) {
           case 'top':
             tooltipTop = rect.top - tooltipHeight - 20;
-            tooltipLeft = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+            tooltipLeft = rect.left + rect.width / 2 - tooltipWidth / 2;
             break;
           case 'bottom':
             tooltipTop = rect.bottom + 20;
-            tooltipLeft = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+            tooltipLeft = rect.left + rect.width / 2 - tooltipWidth / 2;
             break;
           case 'left':
-            tooltipTop = rect.top + (rect.height / 2) - (tooltipHeight / 2);
+            tooltipTop = rect.top + rect.height / 2 - tooltipHeight / 2;
             tooltipLeft = rect.left - tooltipWidth - 20;
             break;
           case 'right':
-            tooltipTop = rect.top + (rect.height / 2) - (tooltipHeight / 2);
+            tooltipTop = rect.top + rect.height / 2 - tooltipHeight / 2;
             tooltipLeft = rect.right + 20;
             break;
         }
@@ -150,7 +156,7 @@ const HighlightOverlay: React.FC<HighlightOverlayProps> = ({
     <>
       {/* Highlight overlay */}
       <div style={overlayStyle} />
-      
+
       {/* Tooltip */}
       <div style={tooltipStyle}>
         <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4">
@@ -167,13 +173,13 @@ const HighlightOverlay: React.FC<HighlightOverlayProps> = ({
               ✕
             </Button>
           </div>
-          
+
           <div className="mb-4">
             <p className="text-sm text-gray-700 leading-relaxed">
               {step.content}
             </p>
           </div>
-          
+
           <div className="flex justify-between items-center">
             <Button
               size="small"
@@ -182,7 +188,7 @@ const HighlightOverlay: React.FC<HighlightOverlayProps> = ({
             >
               Previous
             </Button>
-            
+
             <div className="flex space-x-2">
               {step.optional && (
                 <Button size="small" onClick={onNext}>
@@ -248,10 +254,10 @@ const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
 
   const nextStep = (): void => {
     const currentStep = tutorial.steps[currentStepIndex];
-    
+
     // Mark step as completed
     setCompletedSteps(prev => [...prev, currentStep.id]);
-    
+
     if (currentStepIndex < tutorial.steps.length - 1) {
       setCurrentStepIndex(prev => prev + 1);
     } else {
@@ -278,7 +284,7 @@ const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
 
   const handleStepAction = (): void => {
     const currentStep = tutorial.steps[currentStepIndex];
-    
+
     if (currentStep.action === 'wait' && currentStep.duration) {
       // Auto-advance after duration
       setTimeout(() => {
@@ -318,7 +324,8 @@ const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
   }
 
   const currentStep = tutorial.steps[currentStepIndex];
-  const progressPercentage = ((currentStepIndex + 1) / tutorial.steps.length) * 100;
+  const progressPercentage =
+    ((currentStepIndex + 1) / tutorial.steps.length) * 100;
 
   return (
     <>
@@ -332,7 +339,7 @@ const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
           <Body>
             <div className="space-y-4">
               <p className="text-gray-700">{tutorial.description}</p>
-              
+
               <div className="bg-blue-50 p-4 rounded-lg">
                 <h3 className="font-semibold text-blue-900 mb-2">
                   What you'll learn:
@@ -346,15 +353,18 @@ const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
                   )}
                 </ul>
               </div>
-              
+
               <div className="flex items-center justify-between text-sm text-gray-600">
-                <span>⏱️ Estimated time: {tutorial.estimatedDuration} minutes</span>
+                <span>
+                  ⏱️ Estimated time: {tutorial.estimatedDuration} minutes
+                </span>
                 <Badge type="neutral">{tutorial.category}</Badge>
               </div>
 
               {tutorial.prerequisites && tutorial.prerequisites.length > 0 && (
                 <Alert type="warning">
-                  <strong>Prerequisites:</strong> Make sure you have completed: {tutorial.prerequisites.join(', ')}
+                  <strong>Prerequisites:</strong> Make sure you have completed:{' '}
+                  {tutorial.prerequisites.join(', ')}
                 </Alert>
               )}
             </div>

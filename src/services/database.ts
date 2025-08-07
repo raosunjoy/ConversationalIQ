@@ -16,7 +16,10 @@ import type {
   SuggestionType,
   Prisma,
 } from '@prisma/client';
-import { encryptionService, privacyService } from '../security/encryption-service';
+import {
+  encryptionService,
+  privacyService,
+} from '../security/encryption-service';
 import { monitoringService } from '../monitoring/monitoring-service';
 
 export interface CreateConversationData {
@@ -104,7 +107,11 @@ export class DatabaseService {
   /**
    * Encrypt sensitive content before storage
    */
-  private async encryptSensitiveContent(content: string, tableName: string, fieldName: string): Promise<string> {
+  private async encryptSensitiveContent(
+    content: string,
+    tableName: string,
+    fieldName: string
+  ): Promise<string> {
     if (!this.encryptSensitiveData) {
       return content;
     }
@@ -112,21 +119,30 @@ export class DatabaseService {
     try {
       // Check for PII in content
       const piiResult = encryptionService.detectPII(content);
-      
+
       // Log PII detection for compliance
       if (piiResult.hasPII) {
-        monitoringService.recordMetric(
-          'pii_detected',
-          1,
-          'count',
-          { table: tableName, field: fieldName, types: piiResult.detectedTypes.join(',') }
-        );
+        monitoringService.recordMetric('pii_detected', 1, 'count', {
+          table: tableName,
+          field: fieldName,
+          types: piiResult.detectedTypes.join(','),
+        });
       }
 
       // Encrypt if contains PII or is sensitive field
-      const sensitiveFields = ['content', 'subject', 'email', 'phone', 'address'];
+      const sensitiveFields = [
+        'content',
+        'subject',
+        'email',
+        'phone',
+        'address',
+      ];
       if (piiResult.hasPII || sensitiveFields.includes(fieldName)) {
-        const encryptedField = await encryptionService.encryptField(tableName, fieldName, content);
+        const encryptedField = await encryptionService.encryptField(
+          tableName,
+          fieldName,
+          content
+        );
         return JSON.stringify(encryptedField);
       }
 
@@ -162,21 +178,22 @@ export class DatabaseService {
    * Process data subject access request (GDPR)
    */
   async handleDataSubjectAccessRequest(email: string): Promise<any> {
-    monitoringService.recordMetric('gdpr_access_request', 1, 'count', { type: 'access' });
-    
+    monitoringService.recordMetric('gdpr_access_request', 1, 'count', {
+      type: 'access',
+    });
+
     try {
       // This would collect all data associated with the email
       const conversations = await this.prisma.conversation.findMany({
         where: {
           OR: [
             { customerId: email },
-            { metadata: { path: ['customerEmail'], equals: email } }
-          ]
+            { metadata: { path: ['customerEmail'], equals: email } },
+          ],
         },
         include: {
           messages: true,
-          responseSuggestions: true,
-        }
+        },
       });
 
       // Return via privacy service for proper formatting
@@ -190,9 +207,13 @@ export class DatabaseService {
   /**
    * Process data subject deletion request (GDPR)
    */
-  async handleDataSubjectDeletionRequest(email: string): Promise<{ success: boolean; deletedRecords: number }> {
-    monitoringService.recordMetric('gdpr_deletion_request', 1, 'count', { type: 'deletion' });
-    
+  async handleDataSubjectDeletionRequest(
+    email: string
+  ): Promise<{ success: boolean; deletedRecords: number }> {
+    monitoringService.recordMetric('gdpr_deletion_request', 1, 'count', {
+      type: 'deletion',
+    });
+
     try {
       let deletedRecords = 0;
 
@@ -201,26 +222,33 @@ export class DatabaseService {
         where: {
           OR: [
             { customerId: email },
-            { metadata: { path: ['customerEmail'], equals: email } }
-          ]
-        }
+            { metadata: { path: ['customerEmail'], equals: email } },
+          ],
+        },
+        include: {
+          messages: true,
+        },
       });
 
       // Delete associated data in proper order (respecting foreign key constraints)
       for (const conversation of conversations) {
         // Delete response suggestions
         await this.prisma.responseSuggestion.deleteMany({
-          where: { messageId: { in: conversation.messages?.map(m => m.id) || [] } }
+          where: {
+            messageId: {
+              in: conversation.messages?.map((m: any) => m.id) || [],
+            },
+          },
         });
 
         // Delete messages
         await this.prisma.message.deleteMany({
-          where: { conversationId: conversation.id }
+          where: { conversationId: conversation.id },
         });
 
         // Delete conversation
         await this.prisma.conversation.delete({
-          where: { id: conversation.id }
+          where: { id: conversation.id },
         });
 
         deletedRecords++;
@@ -366,12 +394,12 @@ export class DatabaseService {
    */
   async createMessage(data: CreateMessageData): Promise<Message> {
     const startTime = Date.now();
-    
+
     try {
       // Encrypt sensitive content
       const encryptedContent = await this.encryptSensitiveContent(
-        data.content, 
-        'message', 
+        data.content,
+        'message',
         'content'
       );
 

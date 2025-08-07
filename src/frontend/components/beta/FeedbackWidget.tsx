@@ -4,20 +4,24 @@
  */
 
 import React, { useState } from 'react';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@zendeskgarden/react-cards';
 import { Button } from '@zendeskgarden/react-buttons';
-import { Field, Input, Label, Textarea, Select } from '@zendeskgarden/react-forms';
-import { Modal, Header, Body, Footer, Close } from '@zendeskgarden/react-modals';
+import { Field, Label, Textarea, Select } from '@zendeskgarden/react-forms';
+import {
+  Modal,
+  Header,
+  Body,
+  Footer,
+  Close,
+} from '@zendeskgarden/react-modals';
 import { Badge } from '@zendeskgarden/react-badges';
 import { Alert, Paragraph } from '@zendeskgarden/react-notifications';
 
 interface FeedbackData {
-  type: 'feature_request' | 'bug_report' | 'general_feedback' | 'satisfaction_score';
+  type:
+    | 'feature_request'
+    | 'bug_report'
+    | 'general_feedback'
+    | 'satisfaction_score';
   content: string;
   rating?: number;
   urgency: 'low' | 'medium' | 'high' | 'critical';
@@ -64,7 +68,7 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
 
     try {
       setIsSubmitting(true);
-      
+
       const response = await fetch('/api/beta-program/feedback', {
         method: 'POST',
         headers: {
@@ -100,7 +104,7 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
     const rating = feedback.rating || 0;
     return (
       <div className="flex space-x-1">
-        {[1, 2, 3, 4, 5].map((star) => (
+        {[1, 2, 3, 4, 5].map(star => (
           <button
             key={star}
             type="button"
@@ -126,8 +130,8 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
         <Body>
           <Alert type="success">
             <Paragraph>
-              Your feedback has been submitted successfully. We appreciate your input in making 
-              ConversationIQ better!
+              Your feedback has been submitted successfully. We appreciate your
+              input in making ConversationIQ better!
             </Paragraph>
           </Alert>
         </Body>
@@ -145,7 +149,7 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
       {/* Floating feedback button */}
       {!isOpen && (
         <div className="fixed bottom-4 right-4 z-50">
-          <Button 
+          <Button
             onClick={() => setIsOpen(true)}
             className="rounded-full w-14 h-14 bg-blue-600 hover:bg-blue-700 shadow-lg"
             title="Send Feedback"
@@ -177,9 +181,11 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
               <Label>Type of Feedback</Label>
               <Select
                 value={feedback.type}
-                onChange={(e) => updateFeedback({ 
-                  type: e.target.value as FeedbackData['type']
-                })}
+                onChange={e =>
+                  updateFeedback({
+                    type: e.target.value as FeedbackData['type'],
+                  })
+                }
               >
                 <option value="feature_request">Feature Request</option>
                 <option value="bug_report">Bug Report</option>
@@ -206,9 +212,11 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
               <Label>Urgency Level</Label>
               <Select
                 value={feedback.urgency}
-                onChange={(e) => updateFeedback({ 
-                  urgency: e.target.value as FeedbackData['urgency']
-                })}
+                onChange={e =>
+                  updateFeedback({
+                    urgency: e.target.value as FeedbackData['urgency'],
+                  })
+                }
               >
                 <option value="low">Low - General improvement</option>
                 <option value="medium">Medium - Would be helpful</option>
@@ -220,22 +228,25 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
             {/* Feedback Content */}
             <Field>
               <Label>
-                {feedback.type === 'feature_request' && 'Describe the feature you\'d like to see'}
-                {feedback.type === 'bug_report' && 'Describe the issue you encountered'}
+                {feedback.type === 'feature_request' &&
+                  "Describe the feature you'd like to see"}
+                {feedback.type === 'bug_report' &&
+                  'Describe the issue you encountered'}
                 {feedback.type === 'general_feedback' && 'Share your thoughts'}
-                {feedback.type === 'satisfaction_score' && 'What could we improve?'}
+                {feedback.type === 'satisfaction_score' &&
+                  'What could we improve?'}
               </Label>
               <Textarea
                 value={feedback.content}
-                onChange={(e) => updateFeedback({ content: e.target.value })}
+                onChange={e => updateFeedback({ content: e.target.value })}
                 placeholder={
                   feedback.type === 'feature_request'
                     ? 'I would love to see...'
                     : feedback.type === 'bug_report'
-                    ? 'Steps to reproduce: 1. ...'
-                    : feedback.type === 'satisfaction_score'
-                    ? 'This could be better if...'
-                    : 'I think that...'
+                      ? 'Steps to reproduce: 1. ...'
+                      : feedback.type === 'satisfaction_score'
+                        ? 'This could be better if...'
+                        : 'I think that...'
                 }
                 rows={4}
                 className="resize-none"
@@ -251,19 +262,25 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
               <div className="flex flex-wrap gap-2 mt-2">
                 {feedback.type === 'feature_request' && (
                   <>
-                    <Badge 
+                    <Badge
                       className="cursor-pointer hover:bg-blue-100"
-                      onClick={() => updateFeedback({ 
-                        content: 'I would like to export conversation analytics to CSV format.'
-                      })}
+                      onClick={() =>
+                        updateFeedback({
+                          content:
+                            'I would like to export conversation analytics to CSV format.',
+                        })
+                      }
                     >
                       Export feature
                     </Badge>
-                    <Badge 
+                    <Badge
                       className="cursor-pointer hover:bg-blue-100"
-                      onClick={() => updateFeedback({ 
-                        content: 'Add support for custom sentiment analysis rules based on our industry terminology.'
-                      })}
+                      onClick={() =>
+                        updateFeedback({
+                          content:
+                            'Add support for custom sentiment analysis rules based on our industry terminology.',
+                        })
+                      }
                     >
                       Custom rules
                     </Badge>
@@ -271,19 +288,25 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
                 )}
                 {feedback.type === 'bug_report' && (
                   <>
-                    <Badge 
+                    <Badge
                       className="cursor-pointer hover:bg-blue-100"
-                      onClick={() => updateFeedback({ 
-                        content: 'The page loads slowly when viewing conversation history.'
-                      })}
+                      onClick={() =>
+                        updateFeedback({
+                          content:
+                            'The page loads slowly when viewing conversation history.',
+                        })
+                      }
                     >
                       Performance issue
                     </Badge>
-                    <Badge 
+                    <Badge
                       className="cursor-pointer hover:bg-blue-100"
-                      onClick={() => updateFeedback({ 
-                        content: 'The sentiment indicator shows incorrect results for certain messages.'
-                      })}
+                      onClick={() =>
+                        updateFeedback({
+                          content:
+                            'The sentiment indicator shows incorrect results for certain messages.',
+                        })
+                      }
                     >
                       Display issue
                     </Badge>
@@ -291,19 +314,25 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
                 )}
                 {feedback.type === 'general_feedback' && (
                   <>
-                    <Badge 
+                    <Badge
                       className="cursor-pointer hover:bg-blue-100"
-                      onClick={() => updateFeedback({ 
-                        content: 'The interface is intuitive and easy to use.'
-                      })}
+                      onClick={() =>
+                        updateFeedback({
+                          content:
+                            'The interface is intuitive and easy to use.',
+                        })
+                      }
                     >
                       Praise UI
                     </Badge>
-                    <Badge 
+                    <Badge
                       className="cursor-pointer hover:bg-blue-100"
-                      onClick={() => updateFeedback({ 
-                        content: 'This feature saves me a lot of time during customer interactions.'
-                      })}
+                      onClick={() =>
+                        updateFeedback({
+                          content:
+                            'This feature saves me a lot of time during customer interactions.',
+                        })
+                      }
                     >
                       Time saver
                     </Badge>
@@ -315,8 +344,8 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
         </Body>
         <Footer>
           <Button onClick={handleClose}>Cancel</Button>
-          <Button 
-            isPrimary 
+          <Button
+            isPrimary
             onClick={handleSubmit}
             disabled={!feedback.content.trim() || isSubmitting}
           >

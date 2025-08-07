@@ -5,7 +5,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@zendeskgarden/react-buttons';
-import { Modal, Header, Body, Footer, Close } from '@zendeskgarden/react-modals';
+import {
+  Modal,
+  Header,
+  Body,
+  Footer,
+  Close,
+} from '@zendeskgarden/react-modals';
 import { Badge } from '@zendeskgarden/react-badges';
 import { Alert } from '@zendeskgarden/react-notifications';
 import { Field, Input, Label } from '@zendeskgarden/react-forms';
@@ -15,7 +21,11 @@ export interface HelpContent {
   id: string;
   title: string;
   content: string;
-  category: 'quick-help' | 'feature-guide' | 'troubleshooting' | 'best-practices';
+  category:
+    | 'quick-help'
+    | 'feature-guide'
+    | 'troubleshooting'
+    | 'best-practices';
   context?: string[]; // Component contexts where this help is relevant
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   tags: string[];
@@ -53,33 +63,33 @@ const HelpTooltip: React.FC<HelpTooltipProps> = ({
       const rect = triggerRef.current.getBoundingClientRect();
       const tooltipWidth = 300;
       const tooltipHeight = 120;
-      
+
       let top = 0;
       let left = 0;
-      
+
       switch (position) {
         case 'top':
           top = rect.top - tooltipHeight - 10;
-          left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+          left = rect.left + rect.width / 2 - tooltipWidth / 2;
           break;
         case 'bottom':
           top = rect.bottom + 10;
-          left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+          left = rect.left + rect.width / 2 - tooltipWidth / 2;
           break;
         case 'left':
-          top = rect.top + (rect.height / 2) - (tooltipHeight / 2);
+          top = rect.top + rect.height / 2 - tooltipHeight / 2;
           left = rect.left - tooltipWidth - 10;
           break;
         case 'right':
-          top = rect.top + (rect.height / 2) - (tooltipHeight / 2);
+          top = rect.top + rect.height / 2 - tooltipHeight / 2;
           left = rect.right + 10;
           break;
       }
-      
+
       // Keep tooltip within viewport
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
-      
+
       if (left < 10) left = 10;
       if (left + tooltipWidth > viewportWidth - 10) {
         left = viewportWidth - tooltipWidth - 10;
@@ -88,7 +98,7 @@ const HelpTooltip: React.FC<HelpTooltipProps> = ({
       if (top + tooltipHeight > viewportHeight - 10) {
         top = viewportHeight - tooltipHeight - 10;
       }
-      
+
       setTooltipStyle({
         position: 'fixed',
         top,
@@ -109,7 +119,7 @@ const HelpTooltip: React.FC<HelpTooltipProps> = ({
       >
         {trigger}
       </div>
-      
+
       {isVisible && (
         <div style={tooltipStyle}>
           <div className="bg-gray-900 text-white p-3 rounded-lg shadow-xl">
@@ -125,7 +135,7 @@ const HelpTooltip: React.FC<HelpTooltipProps> = ({
 class ContextualHelpService {
   private helpContent: Map<string, HelpContent[]> = new Map();
   private userPreferences: Map<string, any> = new Map();
-  
+
   constructor() {
     this.initializeHelpContent();
   }
@@ -136,34 +146,37 @@ class ContextualHelpService {
       {
         id: 'sentiment-basics',
         title: 'Understanding Sentiment Indicators',
-        content: 'Sentiment indicators show your customer\'s emotional state using colors: Green (positive), Yellow (neutral), Red (negative). The percentage shows AI confidence in this reading.',
+        content:
+          "Sentiment indicators show your customer's emotional state using colors: Green (positive), Yellow (neutral), Red (negative). The percentage shows AI confidence in this reading.",
         category: 'quick-help',
         context: ['sentiment-panel', 'sentiment-indicator'],
         difficulty: 'beginner',
         tags: ['sentiment', 'basics', 'indicators'],
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       },
       {
         id: 'sentiment-trend',
         title: 'Reading Sentiment Trends',
-        content: 'The sentiment trend chart shows how customer mood changes over time. Look for sharp drops (potential issues) or steady improvements (successful de-escalation).',
+        content:
+          'The sentiment trend chart shows how customer mood changes over time. Look for sharp drops (potential issues) or steady improvements (successful de-escalation).',
         category: 'feature-guide',
         context: ['sentiment-panel', 'analytics'],
         difficulty: 'intermediate',
         tags: ['sentiment', 'trends', 'analytics'],
         relatedTopics: ['escalation-prevention'],
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       },
       {
         id: 'sentiment-confidence',
         title: 'Confidence Scores Explained',
-        content: 'Confidence scores above 85% are highly reliable. Lower scores (50-85%) suggest ambiguous language or sarcasm. Use your judgment with low-confidence readings.',
+        content:
+          'Confidence scores above 85% are highly reliable. Lower scores (50-85%) suggest ambiguous language or sarcasm. Use your judgment with low-confidence readings.',
         category: 'best-practices',
         context: ['sentiment-panel'],
         difficulty: 'advanced',
         tags: ['sentiment', 'confidence', 'accuracy'],
-        lastUpdated: new Date()
-      }
+        lastUpdated: new Date(),
+      },
     ]);
 
     // Response Suggestions Help
@@ -171,23 +184,25 @@ class ContextualHelpService {
       {
         id: 'suggestion-types',
         title: 'Types of Response Suggestions',
-        content: 'Empathy responses acknowledge feelings, Solution responses provide answers, Information responses gather details, and De-escalation responses calm frustration.',
+        content:
+          'Empathy responses acknowledge feelings, Solution responses provide answers, Information responses gather details, and De-escalation responses calm frustration.',
         category: 'quick-help',
         context: ['suggestions-panel'],
         difficulty: 'beginner',
         tags: ['suggestions', 'types', 'responses'],
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       },
       {
         id: 'customizing-suggestions',
         title: 'Personalizing AI Suggestions',
-        content: 'Always customize suggestions to match your voice and the specific situation. Click the edit icon to modify before inserting. The AI provides a starting point, not a final answer.',
+        content:
+          'Always customize suggestions to match your voice and the specific situation. Click the edit icon to modify before inserting. The AI provides a starting point, not a final answer.',
         category: 'best-practices',
         context: ['suggestions-panel'],
         difficulty: 'intermediate',
         tags: ['suggestions', 'customization', 'personalization'],
-        lastUpdated: new Date()
-      }
+        lastUpdated: new Date(),
+      },
     ]);
 
     // Analytics Help
@@ -195,13 +210,14 @@ class ContextualHelpService {
       {
         id: 'performance-metrics',
         title: 'Key Performance Metrics',
-        content: 'CSAT measures customer satisfaction, FCR tracks first-contact resolution, and Response Time shows how quickly you reply. Higher is better for CSAT and FCR, lower is better for Response Time.',
+        content:
+          'CSAT measures customer satisfaction, FCR tracks first-contact resolution, and Response Time shows how quickly you reply. Higher is better for CSAT and FCR, lower is better for Response Time.',
         category: 'feature-guide',
         context: ['analytics-panel', 'dashboard'],
         difficulty: 'beginner',
         tags: ['analytics', 'metrics', 'performance'],
-        lastUpdated: new Date()
-      }
+        lastUpdated: new Date(),
+      },
     ]);
 
     // Escalation Prevention Help
@@ -209,24 +225,26 @@ class ContextualHelpService {
       {
         id: 'escalation-risk-levels',
         title: 'Escalation Risk Levels',
-        content: 'Green (0-25%): Normal conversation. Yellow (26-65%): Monitor closely. Red (66-85%): Take preventive action. Flashing Red (86%+): Immediate intervention needed.',
+        content:
+          'Green (0-25%): Normal conversation. Yellow (26-65%): Monitor closely. Red (66-85%): Take preventive action. Flashing Red (86%+): Immediate intervention needed.',
         category: 'troubleshooting',
         context: ['escalation-panel'],
         difficulty: 'intermediate',
         tags: ['escalation', 'risk', 'prevention'],
         relatedTopics: ['deescalation-techniques'],
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       },
       {
         id: 'deescalation-techniques',
         title: 'De-escalation Best Practices',
-        content: '1. Acknowledge the issue 2. Apologize sincerely 3. Take ownership 4. Provide specific next steps 5. Set clear expectations 6. Follow up proactively',
+        content:
+          '1. Acknowledge the issue 2. Apologize sincerely 3. Take ownership 4. Provide specific next steps 5. Set clear expectations 6. Follow up proactively',
         category: 'best-practices',
         context: ['escalation-panel', 'suggestions-panel'],
         difficulty: 'advanced',
         tags: ['deescalation', 'techniques', 'customer-service'],
-        lastUpdated: new Date()
-      }
+        lastUpdated: new Date(),
+      },
     ]);
 
     // Beta Program Help
@@ -234,13 +252,14 @@ class ContextualHelpService {
       {
         id: 'beta-feedback',
         title: 'Providing Effective Beta Feedback',
-        content: 'Be specific about issues, include steps to reproduce bugs, suggest improvements with context, and rate urgency appropriately to help us prioritize.',
+        content:
+          'Be specific about issues, include steps to reproduce bugs, suggest improvements with context, and rate urgency appropriately to help us prioritize.',
         category: 'quick-help',
         context: ['beta-feedback', 'feedback-widget'],
         difficulty: 'beginner',
         tags: ['beta', 'feedback', 'testing'],
-        lastUpdated: new Date()
-      }
+        lastUpdated: new Date(),
+      },
     ]);
   }
 
@@ -262,7 +281,7 @@ class ContextualHelpService {
   searchHelp(query: string): HelpContent[] {
     const results: HelpContent[] = [];
     const searchLower = query.toLowerCase();
-    
+
     this.helpContent.forEach(contentArray => {
       contentArray.forEach(content => {
         if (
@@ -276,19 +295,17 @@ class ContextualHelpService {
         }
       });
     });
-    
+
     return results;
   }
 
   getRelatedHelp(helpId: string): HelpContent[] {
     const allContent = Array.from(this.helpContent.values()).flat();
     const currentHelp = allContent.find(h => h.id === helpId);
-    
+
     if (!currentHelp?.relatedTopics) return [];
-    
-    return allContent.filter(h => 
-      currentHelp.relatedTopics!.includes(h.id)
-    );
+
+    return allContent.filter(h => currentHelp.relatedTopics!.includes(h.id));
   }
 }
 
@@ -302,41 +319,53 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
   userId,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('contextual');
+  const [selectedCategory, setSelectedCategory] =
+    useState<string>('contextual');
   const [selectedHelp, setSelectedHelp] = useState<HelpContent | null>(null);
-  
+
   const contextualHelp = helpService.getContextualHelp(context);
   const searchResults = searchQuery ? helpService.searchHelp(searchQuery) : [];
-  
+
   const getFilteredHelp = (): HelpContent[] => {
     if (selectedCategory === 'contextual') return contextualHelp;
     if (selectedCategory === 'search') return searchResults;
-    
+
     const allHelp = Array.from(helpService['helpContent'].values()).flat();
     return allHelp.filter(h => h.category === selectedCategory);
   };
 
   const getCategoryIcon = (category: string): string => {
     switch (category) {
-      case 'quick-help': return '⚡';
-      case 'feature-guide': return '📖';
-      case 'troubleshooting': return '🔧';
-      case 'best-practices': return '⭐';
-      default: return '❓';
+      case 'quick-help':
+        return '⚡';
+      case 'feature-guide':
+        return '📖';
+      case 'troubleshooting':
+        return '🔧';
+      case 'best-practices':
+        return '⭐';
+      default:
+        return '❓';
     }
   };
 
-  const getDifficultyColor = (difficulty: string): 'positive' | 'warning' | 'danger' => {
+  const getDifficultyColor = (
+    difficulty: string
+  ): 'positive' | 'warning' | 'danger' => {
     switch (difficulty) {
-      case 'beginner': return 'positive';
-      case 'intermediate': return 'warning';
-      case 'advanced': return 'danger';
-      default: return 'positive';
+      case 'beginner':
+        return 'positive';
+      case 'intermediate':
+        return 'warning';
+      case 'advanced':
+        return 'danger';
+      default:
+        return 'positive';
     }
   };
 
   const HelpCard: React.FC<{ help: HelpContent }> = ({ help }) => (
-    <div 
+    <div
       className="border rounded-lg p-4 hover:shadow-md cursor-pointer transition-shadow"
       onClick={() => setSelectedHelp(help)}
     >
@@ -349,11 +378,9 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
           {help.difficulty}
         </Badge>
       </div>
-      
-      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-        {help.content}
-      </p>
-      
+
+      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{help.content}</p>
+
       <div className="flex flex-wrap gap-1 mb-2">
         {help.tags.slice(0, 3).map(tag => (
           <Badge key={tag} type="neutral" className="text-xs">
@@ -366,7 +393,7 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
 
   const HelpDetail: React.FC<{ help: HelpContent }> = ({ help }) => {
     const relatedHelp = helpService.getRelatedHelp(help.id);
-    
+
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -377,20 +404,22 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
             {help.difficulty}
           </Badge>
         </div>
-        
+
         <div>
           <div className="flex items-center space-x-2 mb-3">
             <span className="text-2xl">{getCategoryIcon(help.category)}</span>
             <h2 className="text-xl font-bold">{help.title}</h2>
           </div>
-          
+
           <div className="prose text-sm mb-4">
             {help.content.split('\n').map((paragraph, index) => (
-              <p key={index} className="mb-2">{paragraph}</p>
+              <p key={index} className="mb-2">
+                {paragraph}
+              </p>
             ))}
           </div>
         </div>
-        
+
         <div className="flex flex-wrap gap-1 mb-4">
           {help.tags.map(tag => (
             <Badge key={tag} type="neutral" className="text-xs">
@@ -398,7 +427,7 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
             </Badge>
           ))}
         </div>
-        
+
         {relatedHelp.length > 0 && (
           <div>
             <h3 className="font-semibold mb-2">Related Topics</h3>
@@ -445,7 +474,7 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
               <Label>Search Help Topics</Label>
               <Input
                 value={searchQuery}
-                onChange={(e) => {
+                onChange={e => {
                   setSearchQuery(e.target.value);
                   if (e.target.value) setSelectedCategory('search');
                 }}
@@ -454,7 +483,10 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
             </Field>
 
             {/* Category Tabs */}
-            <Tabs selectedItem={selectedCategory} onChange={setSelectedCategory}>
+            <Tabs
+              selectedItem={selectedCategory}
+              onChange={setSelectedCategory}
+            >
               <TabList>
                 <Tab item="contextual">For This Page</Tab>
                 <Tab item="quick-help">Quick Help</Tab>
@@ -477,7 +509,9 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     <p>No contextual help available for this page.</p>
-                    <p className="text-sm mt-2">Try searching or browse other categories.</p>
+                    <p className="text-sm mt-2">
+                      Try searching or browse other categories.
+                    </p>
                   </div>
                 )}
               </TabPanel>
@@ -520,7 +554,9 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
                     {searchResults.length > 0 ? (
                       <>
                         <p className="text-sm text-gray-600">
-                          Found {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "{searchQuery}"
+                          Found {searchResults.length} result
+                          {searchResults.length !== 1 ? 's' : ''} for "
+                          {searchQuery}"
                         </p>
                         {searchResults.map(help => (
                           <HelpCard key={help.id} help={help} />
@@ -529,7 +565,9 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
                     ) : (
                       <div className="text-center py-8 text-gray-500">
                         <p>No results found for "{searchQuery}"</p>
-                        <p className="text-sm mt-2">Try different keywords or browse categories.</p>
+                        <p className="text-sm mt-2">
+                          Try different keywords or browse categories.
+                        </p>
                       </div>
                     )}
                   </div>
@@ -554,10 +592,10 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
 // Hook for using contextual help in components
 export const useContextualHelp = (context: string) => {
   const [isHelpVisible, setIsHelpVisible] = useState(false);
-  
+
   const showHelp = (): void => setIsHelpVisible(true);
   const hideHelp = (): void => setIsHelpVisible(false);
-  
+
   const HelpButton: React.FC<{ className?: string }> = ({ className = '' }) => (
     <Button
       size="small"
@@ -568,7 +606,7 @@ export const useContextualHelp = (context: string) => {
       ❓
     </Button>
   );
-  
+
   const HelpModal: React.FC<{ userId?: string }> = ({ userId }) => (
     <ContextualHelp
       context={context}
@@ -577,7 +615,7 @@ export const useContextualHelp = (context: string) => {
       userId={userId}
     />
   );
-  
+
   return { showHelp, hideHelp, HelpButton, HelpModal, isHelpVisible };
 };
 
@@ -590,9 +628,9 @@ export const QuickHelpTooltip: React.FC<{
   // Find help content by ID
   const allHelp = Array.from(helpService['helpContent'].values()).flat();
   const helpContent = allHelp.find(h => h.id === helpId);
-  
+
   if (!helpContent) return children;
-  
+
   return (
     <HelpTooltip
       title={helpContent.title}
